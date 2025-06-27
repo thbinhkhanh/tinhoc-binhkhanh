@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest identifier="YLCMm6fcJfKzz" xmlns="http://www.imsglobal.org/xsd/imscp_v1p1" xmlns:imsss="http://www.imsglobal.org/xsd/imsss" xmlns:adlcp="http://www.adlnet.org/xsd/adlcp_v1p3" xmlns:adlseq="http://www.adlnet.org/xsd/adlseq_v1p3" xmlns:adlnav="http://www.adlnet.org/xsd/adlnav_v1p3" xmlns:lom="http://ltsc.ieee.org/xsd/LOM" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.imsglobal.org/xsd/imscp_v1p1 imscp_v1p1.xsd http://www.imsglobal.org/xsd/imsss imsss_v1p0.xsd http://www.adlnet.org/xsd/adlcp_v1p3 adlcp_v1p3.xsd http://www.adlnet.org/xsd/adlseq_v1p3 adlseq_v1p3.xsd http://www.adlnet.org/xsd/adlnav_v1p3 adlnav_v1p3.xsd http://ltsc.ieee.org/xsd/LOM lom.xsd">
+<metadata>
+<schema>ADL SCORM</schema>
+<schemaversion>CAM 1.3</schemaversion>
+<lom:lom>
+<lom:general>
+<lom:title>
+<lom:string>Bai12</lom:string>
+</lom:title>
+</lom:general>
+<lom:educational>
+<lom:typicalLearningTime>
+<lom:duration>PT1H0M0S</lom:duration>
+</lom:typicalLearningTime>
+</lom:educational>
+<lom:metaMetadata>
+<lom:metadataSchema>LOMv1.0</lom:metadataSchema>
+<lom:metadataSchema>SCORM_CAM_v1.3</lom:metadataSchema>
+</lom:metaMetadata>
+</lom:lom>
+</metadata>
+<organizations default="bai12_organization">
+<organization identifier="bai12_organization">
+<title>Bai12</title>
+<item identifier="AE5DD9F5-550D-4C1C-9E14-C98DECC215C8" identifierref="resource">
+<title>Bai11</title>
+<imsss:sequencing>
+<imsss:deliveryControls completionSetByContent="true" objectiveSetByContent="true"/>
+</imsss:sequencing>
+</item>
+<imsss:sequencing>
+<imsss:controlMode flow="true"/>
+</imsss:sequencing>
+</organization>
+</organizations>
+<resources>
+<resource identifier="resource" type="webcontent" adlcp:scormType="sco" href="res/index.html">
+<file href="res/index.html"/>
+<file href="res/lms.js"/>
+<file href="res/data/quiz1.js"/>
+<file href="res/data/quiz1/fonts/fnt0.woff"/>
+<file href="res/data/quiz1/fonts/fnt1.woff"/>
+<file href="res/data/quiz1/fonts/fnt2.woff"/>
+<file href="res/data/quiz1/fonts/fnt3.woff"/>
+<file href="res/data/quiz1/images/img-01ecd9c5a745b584bffc7ab88ba726c881096d0f.jpg"/>
+<file href="res/data/quiz1/images/img-0674344afd9f4bc6665f9964c186e23ffa01c76c.jpg"/>
+<file href="res/data/quiz1/images/img-216841a456fa3d22588e8bfc67947f5c929002ca.jpg"/>
+<file href="res/data/quiz1/images/img-2ae724fe40eae9b2bf7ddb597e2d49070ebf1202.jpg"/>
+<file href="res/data/quiz1/images/img-52b6ab0a8f3fda39153c57f4e2a7792345636953.jpg"/>
+<file href="res/data/quiz1/images/img-6bd16c87fc255a275cffcfb96c6acd24fb887e71.jpg"/>
+<file href="res/data/quiz1/images/img-8a6789a09838020df1ad25135a6a71aeef41ac0c.jpg"/>
+<file href="res/data/quiz1/images/img-93cff845cb5cd3b64818e078b15a4c1095d38848.jpg"/>
+<file href="res/data/quiz1/images/img-9cadcfee88851f827459b4442309c5452f6fca3a.jpg"/>
+<file href="res/data/quiz1/images/img-baebfbdbcea2673e665aa9b3c5ce549d7f33de41.jpg"/>
+<file href="res/data/quiz1/images/img-db61198fbda3008ddff46dbebc4c9934f452509a.jpg"/>
+<file href="res/data/quiz1/images/img-ddceda39bb96f06d60c5f8493f031166ac8fb0c9.jpg"/>
+<file href="res/data/quiz1/images/img-de2c5eaabf41e13c87c9ebca6bb4485764ddf89c.jpg"/>
+<file href="res/data/quiz1/images/quiz_bg_0.png"/>
+<file href="res/data/quizplayer.js"/>
+<file href="res/index.html"/>
+<file href="res/data/player.js"/>
+<file href="res/data/eraser.cur"/>
+<file href="res/data/highlighter.cur"/>
+<file href="res/data/marker.cur"/>
+<file href="res/data/lock.cur"/>
+<file href="res/data/browsersupport.js"/>
+<file href="res/data/apple-touch-icon.png"/>
+<file href="res/data/favicon.ico"/>
+<file href="res/data/fnt0.woff"/>
+<file href="res/data/fnt1.woff"/>
+<file href="res/data/fnt2.woff"/>
+<file href="res/data/fnt3.woff"/>
+<file href="res/data/fnt4.woff"/>
+<file href="res/data/fnt5.woff"/>
+<file href="res/data/fnt6.woff"/>
+<file href="res/data/fnt7.woff"/>
+<file href="res/data/html5-unsupported.html"/>
+<file href="res/data/html5.png"/>
+<file href="res/data/img0.png"/>
+<file href="res/data/img1.png"/>
+<file href="res/data/img2.png"/>
+<file href="res/data/img3.png"/>
+<file href="res/data/photo1.png"/>
+<file href="res/data/quiz_bg_0.png"/>
+</resource>
+</resources>
+</manifest>

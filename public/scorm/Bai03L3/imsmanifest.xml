@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest identifier="xctggubkMaMoh" xmlns="http://www.imsglobal.org/xsd/imscp_v1p1" xmlns:imsss="http://www.imsglobal.org/xsd/imsss" xmlns:adlcp="http://www.adlnet.org/xsd/adlcp_v1p3" xmlns:adlseq="http://www.adlnet.org/xsd/adlseq_v1p3" xmlns:adlnav="http://www.adlnet.org/xsd/adlnav_v1p3" xmlns:lom="http://ltsc.ieee.org/xsd/LOM" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.imsglobal.org/xsd/imscp_v1p1 imscp_v1p1.xsd http://www.imsglobal.org/xsd/imsss imsss_v1p0.xsd http://www.adlnet.org/xsd/adlcp_v1p3 adlcp_v1p3.xsd http://www.adlnet.org/xsd/adlseq_v1p3 adlseq_v1p3.xsd http://www.adlnet.org/xsd/adlnav_v1p3 adlnav_v1p3.xsd http://ltsc.ieee.org/xsd/LOM lom.xsd">
+<metadata>
+<schema>ADL SCORM</schema>
+<schemaversion>CAM 1.3</schemaversion>
+<lom:lom>
+<lom:general>
+<lom:title>
+<lom:string>Bai3</lom:string>
+</lom:title>
+</lom:general>
+<lom:educational>
+<lom:typicalLearningTime>
+<lom:duration>PT1H0M0S</lom:duration>
+</lom:typicalLearningTime>
+</lom:educational>
+<lom:metaMetadata>
+<lom:metadataSchema>LOMv1.0</lom:metadataSchema>
+<lom:metadataSchema>SCORM_CAM_v1.3</lom:metadataSchema>
+</lom:metaMetadata>
+</lom:lom>
+</metadata>
+<organizations default="bai3_organization">
+<organization identifier="bai3_organization">
+<title>Bai3</title>
+<item identifier="AE5DD9F5-550D-4C1C-9E14-C98DECC215C8" identifierref="resource">
+<title>Bai2</title>
+<imsss:sequencing>
+<imsss:deliveryControls completionSetByContent="true" objectiveSetByContent="true"/>
+</imsss:sequencing>
+</item>
+<imsss:sequencing>
+<imsss:controlMode flow="true"/>
+</imsss:sequencing>
+</organization>
+</organizations>
+<resources>
+<resource identifier="resource" type="webcontent" adlcp:scormType="sco" href="res/index.html">
+<file href="res/index.html"/>
+<file href="res/lms.js"/>
+<file href="res/data/quiz1.js"/>
+<file href="res/data/quiz1/fonts/fnt0.woff"/>
+<file href="res/data/quiz1/fonts/fnt1.woff"/>
+<file href="res/data/quiz1/fonts/fnt2.woff"/>
+<file href="res/data/quiz1/fonts/fnt3.woff"/>
+<file href="res/data/quiz1/images/img-212e3bb3d47dafb76a05eed6f29832d581c5872e.jpg"/>
+<file href="res/data/quiz1/images/img-2df519a0cc5869d81d9f85e6905e63c7ea58b3f2.jpg"/>
+<file href="res/data/quiz1/images/img-3d11561fc943ce8c718ca7106c3691a712cad4e2.jpg"/>
+<file href="res/data/quiz1/images/img-5ebae04577fe34369d0c3a748999b2f03c272fde.jpg"/>
+<file href="res/data/quiz1/images/img-62e890e1633084275bd7a3cef534d2587e3ccb5a.jpg"/>
+<file href="res/data/quiz1/images/img-72cf14bd4e1491c2cb086cfe13bd3afae7ba2efd.jpg"/>
+<file href="res/data/quiz1/images/img-7391e5b1e4d3db4ef8810efc850eaccf2ebcd3a6.jpg"/>
+<file href="res/data/quiz1/images/img-86590d30154fc4835566bdf0a8e9fbe71a6db1e2.jpg"/>
+<file href="res/data/quiz1/images/img-94e1ea069ccc952b239e4bdbee5892532895882a.jpg"/>
+<file href="res/data/quiz1/images/img-9c57c8ef6e1a98e40ae29b3270a6934f1aeff7a9.jpg"/>
+<file href="res/data/quiz1/images/img-a2368f1f95afc4b67ed0f7c656ce48ea18fb9bdc.jpg"/>
+<file href="res/data/quiz1/images/img-a96f2ebca72dd53082d6faebafbfceb1fc80e724.jpg"/>
+<file href="res/data/quiz1/images/img-ada93e88a0afe8f6ac25954d47b56050c1a1461b.jpg"/>
+<file href="res/data/quiz1/images/img-b0b99d0df1784b5d5efcf855a4d3783dddc225f4.jpg"/>
+<file href="res/data/quiz1/images/img-cda07dd890cd38809607134b276d63206937a1b9.jpg"/>
+<file href="res/data/quiz1/images/img-d93249385c552d586bdfa1655d03b6e760be2021.jpg"/>
+<file href="res/data/quiz1/images/img-d9ca30b718b40be91b48a45ff1335e1ecfc2073f.jpg"/>
+<file href="res/data/quiz1/images/img-eec88ddc8f67a9dd5cd7416e597f0e1072d4d23d.jpg"/>
+<file href="res/data/quiz1/images/img-f76778cec74fa7e5854e2e60f672d57b9e7fa5e5.jpg"/>
+<file href="res/data/quiz1/images/img-fd5d3c32db03532671ce2ab99e02cad664e03490.jpg"/>
+<file href="res/data/quiz1/images/quiz_bg_0.png"/>
+<file href="res/data/quizplayer.js"/>
+<file href="res/index.html"/>
+<file href="res/data/player.js"/>
+<file href="res/data/eraser.cur"/>
+<file href="res/data/highlighter.cur"/>
+<file href="res/data/marker.cur"/>
+<file href="res/data/lock.cur"/>
+<file href="res/data/browsersupport.js"/>
+<file href="res/data/apple-touch-icon.png"/>
+<file href="res/data/favicon.ico"/>
+<file href="res/data/fnt0.woff"/>
+<file href="res/data/fnt1.woff"/>
+<file href="res/data/fnt2.woff"/>
+<file href="res/data/fnt3.woff"/>
+<file href="res/data/fnt4.woff"/>
+<file href="res/data/fnt5.woff"/>
+<file href="res/data/fnt6.woff"/>
+<file href="res/data/fnt7.woff"/>
+<file href="res/data/html5-unsupported.html"/>
+<file href="res/data/html5.png"/>
+<file href="res/data/img0.png"/>
+<file href="res/data/img1.png"/>
+<file href="res/data/img2.png"/>
+<file href="res/data/img3.png"/>
+<file href="res/data/photo1.png"/>
+<file href="res/data/quiz_bg_0.png"/>
+</resource>
+</resources>
+</manifest>

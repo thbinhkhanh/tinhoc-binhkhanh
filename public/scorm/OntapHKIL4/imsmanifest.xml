@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest identifier="aVwoU9m2ZWypU" xmlns="http://www.imsglobal.org/xsd/imscp_v1p1" xmlns:imsss="http://www.imsglobal.org/xsd/imsss" xmlns:adlcp="http://www.adlnet.org/xsd/adlcp_v1p3" xmlns:adlseq="http://www.adlnet.org/xsd/adlseq_v1p3" xmlns:adlnav="http://www.adlnet.org/xsd/adlnav_v1p3" xmlns:lom="http://ltsc.ieee.org/xsd/LOM" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.imsglobal.org/xsd/imscp_v1p1 imscp_v1p1.xsd http://www.imsglobal.org/xsd/imsss imsss_v1p0.xsd http://www.adlnet.org/xsd/adlcp_v1p3 adlcp_v1p3.xsd http://www.adlnet.org/xsd/adlseq_v1p3 adlseq_v1p3.xsd http://www.adlnet.org/xsd/adlnav_v1p3 adlnav_v1p3.xsd http://ltsc.ieee.org/xsd/LOM lom.xsd">
+<metadata>
+<schema>ADL SCORM</schema>
+<schemaversion>CAM 1.3</schemaversion>
+<lom:lom>
+<lom:general>
+<lom:title>
+<lom:string>OntapHKI</lom:string>
+</lom:title>
+</lom:general>
+<lom:educational>
+<lom:typicalLearningTime>
+<lom:duration>PT1H0M0S</lom:duration>
+</lom:typicalLearningTime>
+</lom:educational>
+<lom:metaMetadata>
+<lom:metadataSchema>LOMv1.0</lom:metadataSchema>
+<lom:metadataSchema>SCORM_CAM_v1.3</lom:metadataSchema>
+</lom:metaMetadata>
+</lom:lom>
+</metadata>
+<organizations default="ontaphki_organization">
+<organization identifier="ontaphki_organization">
+<title>OntapHKI</title>
+<item identifier="AE5DD9F5-550D-4C1C-9E14-C98DECC215C8" identifierref="resource">
+<title>OntapHKI</title>
+<imsss:sequencing>
+<imsss:deliveryControls completionSetByContent="true" objectiveSetByContent="true"/>
+</imsss:sequencing>
+</item>
+<imsss:sequencing>
+<imsss:controlMode flow="true"/>
+</imsss:sequencing>
+</organization>
+</organizations>
+<resources>
+<resource identifier="resource" type="webcontent" adlcp:scormType="sco" href="res/index.html">
+<file href="res/index.html"/>
+<file href="res/lms.js"/>
+<file href="res/data/quiz1.js"/>
+<file href="res/data/quiz1/fonts/fnt0.woff"/>
+<file href="res/data/quiz1/fonts/fnt1.woff"/>
+<file href="res/data/quiz1/fonts/fnt2.woff"/>
+<file href="res/data/quiz1/fonts/fnt3.woff"/>
+<file href="res/data/quiz1/fonts/fnt4.woff"/>
+<file href="res/data/quiz1/fonts/fnt5.woff"/>
+<file href="res/data/quiz1/fonts/fnt6.woff"/>
+<file href="res/data/quiz1/images/img-02e396268b559c66eaeb33ad7626a474ae3297f3.png"/>
+<file href="res/data/quiz1/images/img-03967788ee42a8ee975674939d28c1c62284649b.png"/>
+<file href="res/data/quiz1/images/img-0a8c014bb5b46a2e25382f46f79b48949aed17ba.png"/>
+<file href="res/data/quiz1/images/img-11c5f1d124b2bda6b848a67bb945d6b0db177e42.png"/>
+<file href="res/data/quiz1/images/img-1e6e5be978611cba4c6569952dbe6e7f5b00af64.png"/>
+<file href="res/data/quiz1/images/img-383360940a4ca4c60f275adbd41f9dfef4748c26.png"/>
+<file href="res/data/quiz1/images/img-3e4ca5cf8d6079cfef4a6db4076f22897d455726.png"/>
+<file href="res/data/quiz1/images/img-432a420518f2281aa6c1156fd898581955783093.png"/>
+<file href="res/data/quiz1/images/img-4e2c157bcadfb8dea7d4aaf44d2f6f559805b70b.png"/>
+<file href="res/data/quiz1/images/img-4f93740716c3e8b805c6709a3c45da974996590a.png"/>
+<file href="res/data/quiz1/images/img-573df2ba59994bba38ac4721c32631f09bae456f.png"/>
+<file href="res/data/quiz1/images/img-6e46899dc49b7657e419431fe0dd132e13033b24.png"/>
+<file href="res/data/quiz1/images/img-7a2e1d3e3b5903b958892f8fb6c75421da247671.png"/>
+<file href="res/data/quiz1/images/img-7db36e821819bb2e4dc47fd19bd7d2db72934486.jpg"/>
+<file href="res/data/quiz1/images/img-8066d50afc5e53ed22f0e8c64fa41f6a4b83f0b2.jpg"/>
+<file href="res/data/quiz1/images/img-902ca71154e01d0505c82b102328457f6a04cb93.png"/>
+<file href="res/data/quiz1/images/img-9ecf25b49ba0116d947656d89a723b67ece4baf3.png"/>
+<file href="res/data/quiz1/images/img-a520c2ccd1cbea2bc34d1b6d4d6ea9d8d035e7b9.png"/>
+<file href="res/data/quiz1/images/img-c3b72eab762190256fc881ab82a7056af0bc7f34.png"/>
+<file href="res/data/quiz1/images/img-c9e0c56c2c08e85d5dbd26f0c0356cf2b813caa4.jpg"/>
+<file href="res/data/quiz1/images/img-e19a282487965dfd4c27f651f3d3529e6bf603ff.png"/>
+<file href="res/data/quiz1/images/quiz_bg_0.png"/>
+<file href="res/data/quizplayer.js"/>
+<file href="res/index.html"/>
+<file href="res/data/player.js"/>
+<file href="res/data/eraser.cur"/>
+<file href="res/data/highlighter.cur"/>
+<file href="res/data/marker.cur"/>
+<file href="res/data/lock.cur"/>
+<file href="res/data/browsersupport.js"/>
+<file href="res/data/apple-touch-icon.png"/>
+<file href="res/data/favicon.ico"/>
+<file href="res/data/fnt0.woff"/>
+<file href="res/data/fnt1.woff"/>
+<file href="res/data/fnt2.woff"/>
+<file href="res/data/fnt3.woff"/>
+<file href="res/data/fnt4.woff"/>
+<file href="res/data/fnt5.woff"/>
+<file href="res/data/fnt6.woff"/>
+<file href="res/data/fnt7.woff"/>
+<file href="res/data/html5-unsupported.html"/>
+<file href="res/data/html5.png"/>
+<file href="res/data/img0.png"/>
+<file href="res/data/img1.png"/>
+<file href="res/data/img2.png"/>
+<file href="res/data/img3.png"/>
+<file href="res/data/photo1.png"/>
+<file href="res/data/quiz_bg_0.png"/>
+</resource>
+</resources>
+</manifest>
