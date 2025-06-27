@@ -22,6 +22,7 @@ const lessonsHK1 = [
   { title: 'Bài 6. Chỉnh sửa văn bản', icon: <Brush size={32} color="#1976d2" />, color: 'success', link: '/scorm/Bai06L5/res/index.html' },
   { title: 'Bài 7. Định dạng kí tự', icon: <Smile size={32} color="#1976d2" />, color: 'warning', link: '/scorm/Bai07L5/res/index.html' },
   { title: 'Ôn tập học kì I', icon: <ShieldCheck size={32} color="#1976d2" />, color: 'error', link: '/scorm/OntapHKIL5/res/index.html' },
+  { title: 'Ôn tập kiểm tra học kì I', icon: <ShieldCheck size={32} color="#1976d2" />, color: 'error', link: '' },
 ];
 
 // Dữ liệu bài học lớp 5 (học kỳ II)
@@ -36,6 +37,7 @@ const lessonsHK2 = [
   { title: 'Bài 14. Viết kịch bản chương trình máy tính', icon: <ScrollText size={32} color="#1976d2" />, color: 'success', link: '/scorm/Bai14L5/res/index.html' },
   { title: 'Bài 15. Thực hành tạo chương trình theo kịch bản', icon: <PlayCircle size={32} color="#1976d2" />, color: 'warning', link: '/scorm/Bai15L5/res/index.html' },
   { title: 'Ôn tập học kì II', icon: <ShieldCheck size={32} color="#1976d2" />, color: 'error', link: '/scorm/OntapHKIIL5/res/index.html' },
+  { title: 'Ôn tập kiểm tra học kì II', icon: <ShieldCheck size={32} color="#1976d2" />, color: 'error', link: '' },
 ];
 
 const LessonCard = ({ title, icon, color, onSelect }) => {

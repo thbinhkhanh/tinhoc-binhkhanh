@@ -20,6 +20,7 @@ const lessonsHK1 = [
   { title: 'Bài 5. Thao tác với tệp và thư mục', icon: <Folder size={32} color="#1976d2" />, color: 'success', link: '/scorm/Bai05L4/res/index.html' },
   { title: 'Bài 6. Sử dụng phần mềm khi được phép', icon: <ShieldCheck size={32} color="#1976d2" />, color: 'warning', link: '/scorm/Bai06L4/res/index.html' },
   { title: 'Ôn tập học kì I', icon: <ClipboardList size={32} color="#1976d2" />, color: 'error', link: '/scorm/OntapHKIL4/res/index.html' },
+  { title: 'Ôn tập kiểm tra học kì I', icon: <ShieldCheck size={32} color="#1976d2" />, color: 'error', link: '' },
 ];
 
 const lessonsHK2 = [
@@ -35,6 +36,7 @@ const lessonsHK2 = [
   { title: 'Bài 15. Tạo chương trình máy tính để diễn tả ý tưởng', icon: <Lightbulb size={32} color="#1976d2" />, color: 'primary', link: '/scorm/Bai15L4/res/index.html' },
   { title: 'Bài 16. Chương trình của em', icon: <UserCheck size={32} color="#1976d2" />, color: 'success', link: '/scorm/Bai16L4/res/index.html' },
   { title: 'Ôn tập học kì II', icon: <ClipboardList size={32} color="#1976d2" />, color: 'error', link: '/scorm/OntapHKIIL4/res/index.html' },
+  { title: 'Ôn tập kiểm tra học kì II', icon: <ShieldCheck size={32} color="#1976d2" />, color: 'error', link: '' },
 ];
 
 const LessonCard = ({ title, icon, color, onSelect }) => {
