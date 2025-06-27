@@ -117,7 +117,7 @@ export default function Lop3() {
 
   return (
     <>
-      <Banner title="TIN HỌC - LỚP 3" />
+      <Banner title="TIN HỌC - LỚP 4" />
       <Box
         sx={{
           p: { xs: 2, sm: 4 },
