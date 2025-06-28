@@ -30,7 +30,7 @@ const lessonsHK2 = [
   { title: 'Bài 9. Lưu trữ, bảo vệ thông tin của em và gia đình', icon: <Save size={32} color="#1976d2" />, color: 'warning', link: '/scorm/Bai09L3/res/index.html' },
   { title: 'Bài 10. Trang trình chiếu của em', icon: <Image size={32} color="#1976d2" />, color: 'primary', link: '/scorm/Bai10L3/res/index.html' },
   { title: 'Bài 11A. Hệ Mặt Trời', icon: <Users size={32} color="#1976d2" />, color: 'success', link: '/scorm/Bai11AL3/res/index.html' },
-  { title: 'Bài 11B. Luyện tập, sử dụng chuột máy tính', icon: <MousePointerClick size={32} color="#1976d2" />, color: 'primary', link: '/scorm/Bai11BL3/res/index.html' },
+  { title: 'Bài 11B. Luyện tập, sử dụng chuột máy tính', icon: <MousePointerClick size={32} color="#1976d2" />, color: 'primary', link: '' },
   { title: 'Bài 12. Thực hiện công việc theo các bước', icon: <ListTodo size={32} color="#1976d2" />, color: 'warning', link: '/scorm/Bai12L3/res/index.html' },
   { title: 'Bài 13. Chia việc lớn thành việc nhỏ để giải quyết', icon: <Divide size={32} color="#1976d2" />, color: 'success', link: '/scorm/Bai13L3/res/index.html' },
   { title: 'Bài 14. Thực hiện công việc theo điều kiện', icon: <CheckCheck size={32} color="#1976d2" />, color: 'primary', link: '/scorm/Bai14L3/res/index.html' },

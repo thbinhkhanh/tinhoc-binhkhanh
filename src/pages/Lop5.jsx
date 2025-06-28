@@ -27,8 +27,8 @@ const lessonsHK1 = [
 
 // Dữ liệu bài học lớp 5 (học kỳ II)
 const lessonsHK2 = [
-  { title: 'Bài 8A. Thực hành tạo thiệp chúc mừng', icon: <Brush size={32} color="#1976d2" />, color: 'primary', link: '/scorm/Bai08AL5/res/index.html' },
-  { title: 'Bài 8B. Thực hành tạo sản phẩm thủ công theo video hướng dẫn', icon: <Globe size={32} color="#1976d2" />, color: 'success', link: '/scorm/Bai08BL5/res/index.html' },
+  { title: 'Bài 8A. Thực hành tạo thiệp chúc mừng', icon: <Brush size={32} color="#1976d2" />, color: 'primary', link: '' },
+  { title: 'Bài 8B. Thực hành tạo sản phẩm thủ công theo video hướng dẫn', icon: <Globe size={32} color="#1976d2" />, color: 'success', link: '' },
   { title: 'Bài 9. Cấu trúc tuần tự', icon: <FileCode2 size={32} color="#1976d2" />, color: 'warning', link: '/scorm/Bai09L5/res/index.html' },
   { title: 'Bài 10. Cấu trúc rẽ nhánh', icon: <GitCompare size={32} color="#1976d2" />, color: 'primary', link: '/scorm/Bai10L5/res/index.html' },
   { title: 'Bài 11. Cấu trúc lặp', icon: <Repeat size={32} color="#1976d2" />, color: 'success', link: '/scorm/Bai11L5/res/index.html' },
