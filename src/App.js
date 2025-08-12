@@ -199,7 +199,7 @@ function Navigation() {
               boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
               cursor: 'pointer'
             }}
-            onClick={() => setOpenLogo(false)} // Bấm vào ảnh sẽ đóng modal
+            onClick={() => setOpenLogo(false)} // Click ảnh để đóng
           />
         </Box>
       </Modal>
