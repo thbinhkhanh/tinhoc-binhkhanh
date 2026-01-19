@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest identifier="gVSf7JVwQnKUl" xmlns="http://www.imsglobal.org/xsd/imscp_v1p1" xmlns:imsss="http://www.imsglobal.org/xsd/imsss" xmlns:adlcp="http://www.adlnet.org/xsd/adlcp_v1p3" xmlns:adlseq="http://www.adlnet.org/xsd/adlseq_v1p3" xmlns:adlnav="http://www.adlnet.org/xsd/adlnav_v1p3" xmlns:lom="http://ltsc.ieee.org/xsd/LOM" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.imsglobal.org/xsd/imscp_v1p1 imscp_v1p1.xsd http://www.imsglobal.org/xsd/imsss imsss_v1p0.xsd http://www.adlnet.org/xsd/adlcp_v1p3 adlcp_v1p3.xsd http://www.adlnet.org/xsd/adlseq_v1p3 adlseq_v1p3.xsd http://www.adlnet.org/xsd/adlnav_v1p3 adlnav_v1p3.xsd http://ltsc.ieee.org/xsd/LOM lom.xsd">
+<manifest identifier="zUDKCFyku8Dpn" xmlns="http://www.imsglobal.org/xsd/imscp_v1p1" xmlns:imsss="http://www.imsglobal.org/xsd/imsss" xmlns:adlcp="http://www.adlnet.org/xsd/adlcp_v1p3" xmlns:adlseq="http://www.adlnet.org/xsd/adlseq_v1p3" xmlns:adlnav="http://www.adlnet.org/xsd/adlnav_v1p3" xmlns:lom="http://ltsc.ieee.org/xsd/LOM" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.imsglobal.org/xsd/imscp_v1p1 imscp_v1p1.xsd http://www.imsglobal.org/xsd/imsss imsss_v1p0.xsd http://www.adlnet.org/xsd/adlcp_v1p3 adlcp_v1p3.xsd http://www.adlnet.org/xsd/adlseq_v1p3 adlseq_v1p3.xsd http://www.adlnet.org/xsd/adlnav_v1p3 adlnav_v1p3.xsd http://ltsc.ieee.org/xsd/LOM lom.xsd">
 <metadata>
 <schema>ADL SCORM</schema>
 <schemaversion>CAM 1.3</schemaversion>
 <lom:lom>
 <lom:general>
 <lom:title>
-<lom:string>OntapHKII</lom:string>
+<lom:string>OntapHKI</lom:string>
 </lom:title>
 </lom:general>
 <lom:educational>
@@ -20,11 +20,11 @@
 </lom:metaMetadata>
 </lom:lom>
 </metadata>
-<organizations default="ontaphkii_organization">
-<organization identifier="ontaphkii_organization">
-<title>OntapHKII</title>
+<organizations default="ontaphki_organization">
+<organization identifier="ontaphki_organization">
+<title>OntapHKI</title>
 <item identifier="AE5DD9F5-550D-4C1C-9E14-C98DECC215C8" identifierref="resource">
-<title>OntapHKII</title>
+<title>Bai07</title>
 <imsss:sequencing>
 <imsss:deliveryControls completionSetByContent="true" objectiveSetByContent="true"/>
 </imsss:sequencing>
@@ -41,23 +41,20 @@
 <file href="res/data/quiz1.js"/>
 <file href="res/data/quiz1/fonts/fnt0.woff"/>
 <file href="res/data/quiz1/fonts/fnt1.woff"/>
+<file href="res/data/quiz1/fonts/fnt10.woff"/>
 <file href="res/data/quiz1/fonts/fnt2.woff"/>
 <file href="res/data/quiz1/fonts/fnt3.woff"/>
 <file href="res/data/quiz1/fonts/fnt4.woff"/>
 <file href="res/data/quiz1/fonts/fnt5.woff"/>
 <file href="res/data/quiz1/fonts/fnt6.woff"/>
-<file href="res/data/quiz1/images/img-32d62f205b465c698c860fc94db42cfa65822b8b.jpg"/>
-<file href="res/data/quiz1/images/img-4838489c4a189358b367a6c1012958bc91bbf605.jpg"/>
-<file href="res/data/quiz1/images/img-89111a261da88e668e589a575f598025c25ac26f.png"/>
-<file href="res/data/quiz1/images/img-940751a15ff38e2a6591f64c53700d49359b2149.png"/>
-<file href="res/data/quiz1/images/img-a7c8e89fbd1efd7bacca067cff918208a27488c0.png"/>
-<file href="res/data/quiz1/images/img-ab11f193570dd2a9f468ffd77ca18ef110166cba.png"/>
-<file href="res/data/quiz1/images/img-b648c126d0ae7d873ad785dcf0ef67a8ff1f1cc0.png"/>
-<file href="res/data/quiz1/images/img-c486a1466198c8119c63deee54009db27c14f54f.jpg"/>
-<file href="res/data/quiz1/images/img-d0a7841c7163a2e88d7156744873ab94a4b5afeb.png"/>
-<file href="res/data/quiz1/images/img-d804f1215f6ababb403779783b8a64ba191576c4.png"/>
-<file href="res/data/quiz1/images/img-e316b0db4684fb631507813cd637399dba9793c0.png"/>
-<file href="res/data/quiz1/images/img-fcfddacdbfff4aa0a460a948af2c9a92f46975d5.png"/>
+<file href="res/data/quiz1/fonts/fnt7.woff"/>
+<file href="res/data/quiz1/fonts/fnt8.woff"/>
+<file href="res/data/quiz1/fonts/fnt9.woff"/>
+<file href="res/data/quiz1/images/img-06f22346329976af59b94992b8b0743e56e19512.jpg"/>
+<file href="res/data/quiz1/images/img-544092d31b736376d084c765b4ce84f0275088ff.png"/>
+<file href="res/data/quiz1/images/img-6f7c12ae743f86f6357058a8b37278dd877d8acc.jpg"/>
+<file href="res/data/quiz1/images/img-7a35303f9bccd50e41d701dda9ccb95a1374ca24.png"/>
+<file href="res/data/quiz1/images/img-cc6fd7fe82b520a530be98971efa8018bf3dc3cd.png"/>
 <file href="res/data/quiz1/images/quiz_bg_0.png"/>
 <file href="res/data/quizplayer.js"/>
 <file href="res/index.html"/>
