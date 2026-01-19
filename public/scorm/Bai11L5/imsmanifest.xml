@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest identifier="TrgFK6Z8u0Isv" xmlns="http://www.imsglobal.org/xsd/imscp_v1p1" xmlns:imsss="http://www.imsglobal.org/xsd/imsss" xmlns:adlcp="http://www.adlnet.org/xsd/adlcp_v1p3" xmlns:adlseq="http://www.adlnet.org/xsd/adlseq_v1p3" xmlns:adlnav="http://www.adlnet.org/xsd/adlnav_v1p3" xmlns:lom="http://ltsc.ieee.org/xsd/LOM" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.imsglobal.org/xsd/imscp_v1p1 imscp_v1p1.xsd http://www.imsglobal.org/xsd/imsss imsss_v1p0.xsd http://www.adlnet.org/xsd/adlcp_v1p3 adlcp_v1p3.xsd http://www.adlnet.org/xsd/adlseq_v1p3 adlseq_v1p3.xsd http://www.adlnet.org/xsd/adlnav_v1p3 adlnav_v1p3.xsd http://ltsc.ieee.org/xsd/LOM lom.xsd">
+<manifest identifier="cJZqTTwornENV" xmlns="http://www.imsglobal.org/xsd/imscp_v1p1" xmlns:imsss="http://www.imsglobal.org/xsd/imsss" xmlns:adlcp="http://www.adlnet.org/xsd/adlcp_v1p3" xmlns:adlseq="http://www.adlnet.org/xsd/adlseq_v1p3" xmlns:adlnav="http://www.adlnet.org/xsd/adlnav_v1p3" xmlns:lom="http://ltsc.ieee.org/xsd/LOM" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.imsglobal.org/xsd/imscp_v1p1 imscp_v1p1.xsd http://www.imsglobal.org/xsd/imsss imsss_v1p0.xsd http://www.adlnet.org/xsd/adlcp_v1p3 adlcp_v1p3.xsd http://www.adlnet.org/xsd/adlseq_v1p3 adlseq_v1p3.xsd http://www.adlnet.org/xsd/adlnav_v1p3 adlnav_v1p3.xsd http://ltsc.ieee.org/xsd/LOM lom.xsd">
 <metadata>
 <schema>ADL SCORM</schema>
 <schemaversion>CAM 1.3</schemaversion>
@@ -24,7 +24,7 @@
 <organization identifier="bai11_organization">
 <title>Bai11</title>
 <item identifier="AE5DD9F5-550D-4C1C-9E14-C98DECC215C8" identifierref="resource">
-<title>Bai10</title>
+<title>Bai11</title>
 <imsss:sequencing>
 <imsss:deliveryControls completionSetByContent="true" objectiveSetByContent="true"/>
 </imsss:sequencing>
@@ -44,7 +44,7 @@
 <file href="res/data/quiz1/fonts/fnt2.woff"/>
 <file href="res/data/quiz1/fonts/fnt3.woff"/>
 <file href="res/data/quiz1/fonts/fnt4.woff"/>
-<file href="res/data/quiz1/images/img-a7c8e89fbd1efd7bacca067cff918208a27488c0.png"/>
+<file href="res/data/quiz1/images/img-89106938f8c6aa011968e21aadaafc01c46a4516.png"/>
 <file href="res/data/quiz1/images/img-ab11f193570dd2a9f468ffd77ca18ef110166cba.png"/>
 <file href="res/data/quiz1/images/img-b648c126d0ae7d873ad785dcf0ef67a8ff1f1cc0.png"/>
 <file href="res/data/quiz1/images/quiz_bg_0.png"/>

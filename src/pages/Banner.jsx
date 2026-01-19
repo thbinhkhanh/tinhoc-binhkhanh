@@ -26,7 +26,7 @@ export default function Banner({ title, subtitle }) {
   return (
     <Box
       sx={{
-        mt: '64px',
+        mt: '45px',
         position: "relative",
         width: "100%",
         height: { xs: 120, sm: 120, md: 200 },

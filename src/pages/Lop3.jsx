@@ -22,7 +22,7 @@ const lessonsHK1 = [
   { title: 'Bài 6. Xem tin và giải trí trên Internet', icon: <Newspaper size={32} color="#1976d2" />, color: 'warning', link: '/scorm/Bai06L3/res/index.html' },
   { title: 'Bài 7. Sắp xếp để dễ tìm', icon: <Folder size={32} color="#1976d2" />, color: 'primary', link: '/scorm/Bai07L3/res/index.html' },
   { title: 'Ôn tập học kì I', icon: <ShieldCheck size={32} color="#1976d2" />, color: 'error', link: '/scorm/OntapHKIL3/res/index.html' },
-  { title: 'Ôn tập kiểm tra học kì I', icon: <ShieldCheck size={32} color="#1976d2" />, color: 'error', link: '' },
+  { title: 'Ôn tập kiểm tra học kì I', icon: <ShieldCheck size={32} color="#1976d2" />, color: 'error' , link: '' },
 ];
 
 const lessonsHK2 = [
@@ -35,7 +35,8 @@ const lessonsHK2 = [
   { title: 'Bài 13. Chia việc lớn thành việc nhỏ để giải quyết', icon: <Divide size={32} color="#1976d2" />, color: 'success', link: '/scorm/Bai13L3/res/index.html' },
   { title: 'Bài 14. Thực hiện công việc theo điều kiện', icon: <CheckCheck size={32} color="#1976d2" />, color: 'primary', link: '/scorm/Bai14L3/res/index.html' },
   { title: 'Bài 15. Nhiệm vụ của em và sự trợ giúp của máy tính', icon: <Laptop size={32} color="#1976d2" />, color: 'success', link: '/scorm/Bai15L3/res/index.html' },
-  { title: 'Ôn tập kiểm tra học kì II', icon: <ShieldCheck size={32} color="#1976d2" />, color: 'error', link: '' },
+  { title: 'Ôn tập học kì II', icon: <ShieldCheck size={32} color="#1976d2" />, color: 'error', link: '/scorm/OntapHKIIL3/res/index.html' },
+  { title: 'Ôn tập kiểm tra học kì II', icon: <ShieldCheck size={32} color="#1976d2" />, color: 'error' , link: '' },
 ];
 
 const LessonCard = ({ title, icon, color, onSelect }) => {

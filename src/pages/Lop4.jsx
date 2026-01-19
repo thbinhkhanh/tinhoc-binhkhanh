@@ -37,6 +37,7 @@ const lessonsHK2 = [
   { title: 'Ôn tập kiểm tra học kì II', icon: <ShieldCheck size={32} color="#1976d2" />, color: 'error', link: '' },
 ];
 
+
 const LessonCard = ({ title, icon, color, onSelect }) => {
   const bgColors = {
     primary: '#E3F2FD',

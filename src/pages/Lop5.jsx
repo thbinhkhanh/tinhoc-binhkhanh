@@ -38,6 +38,7 @@ const lessonsHK2 = [
   { title: 'Bài 15. Thực hành tạo chương trình theo kịch bản', icon: <PlayCircle size={32} color="#1976d2" />, color: 'warning', link: '/scorm/Bai15L5/res/index.html' },
   { title: 'Ôn tập học kì II', icon: <ShieldCheck size={32} color="#1976d2" />, color: 'error', link: '/scorm/OntapHKIIL5/res/index.html' },
   { title: 'Ôn tập kiểm tra học kì II', icon: <ShieldCheck size={32} color="#1976d2" />, color: 'error', link: '' },
+
 ];
 
 const LessonCard = ({ title, icon, color, onSelect }) => {

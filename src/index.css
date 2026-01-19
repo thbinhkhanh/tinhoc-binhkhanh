@@ -11,3 +11,49 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* ===================================================== */
+/* ===== Tiêu đề câu hỏi / nhóm tiêu đề ===== */
+/* ===================================================== */
+
+.question-header-title {
+  font-size: 17px;       /* cỡ chữ cho tiêu đề */
+  font-weight: 600;
+  line-height: 1.6;
+  margin-bottom: 8px;
+}
+
+/* ===================================================== */
+/* ===== ReactQuill OPTION – GIỐNG TEXTFIELD MUI ===== */
+/* ===================================================== */
+
+.choice-option-editor .ql-editor {
+  font-size: 16px;              /* = TextField mặc định */
+  line-height: 1.5;
+  padding: 10.5px 14px;         /* giống TextField mặc định */
+  min-height: auto;
+}
+
+.choice-option-editor .ql-editor p {
+  margin: 0;
+}
+
+.choice-option-editor .ql-container {
+  font-family: Roboto, Helvetica, Arial, sans-serif;
+  border-radius: 4px;
+}
+
+/* Viền giống TextField outlined */
+.choice-option-editor .ql-container.ql-snow {
+  border: 1px solid rgba(0, 0, 0, 0.23);
+}
+
+.choice-option-editor .ql-container.ql-snow:hover {
+  border-color: rgba(0, 0, 0, 0.87);
+}
+
+.choice-option-editor .ql-container.ql-snow.ql-focused {
+  border-color: #1976d2; /* MUI primary */
+  border-width: 2px;
+}
+
