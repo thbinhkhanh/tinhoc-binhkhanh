@@ -23,7 +23,7 @@ import About from './pages/About';
 import Footer from './pages/Footer';
 import HuongDan from './pages/HuongDan';
 import TracNghiem from './pages/TracNghiem';
-import TracNghiem_Test from './pages/TracNghiem_Test';
+import TracNghiemTest from './pages/TracNghiemTest';
 import TracNghiemGV from './pages/TracNghiemGV';
 import ScormViewer from './pages/ScormViewer';
 import Login from './pages/Login';
@@ -67,7 +67,7 @@ function App() {
                   <Route path="/lop5-new" element={<Lop5New />} />
 
                   <Route path="/trac-nghiem" element={<TracNghiem />} />
-                  <Route path="/test-de" element={<TracNghiem_Test />} />
+                  <Route path="/test-de" element={<TracNghiemTest />} />
                   <Route path="/soan-de" element={<TracNghiemGV />} />
                   <Route path="/scorm-viewer" element={<ScormViewer />} />
                   <Route path="/gioithieu" element={<About />} />

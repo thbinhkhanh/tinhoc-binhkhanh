@@ -57,7 +57,7 @@ function shuffleArray(array) {
   return arr;
 }
 
-export default function TracNghiem_Test() {
+export default function TracNghiemTest() {
   const location = useLocation();
   const navigate = useNavigate();
   const { config } = useConfig();
