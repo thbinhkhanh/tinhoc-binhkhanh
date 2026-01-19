@@ -40,7 +40,7 @@ export default function QuanTri() {
   const [openBackup, setOpenBackup] = useState(false);
   const [openRestore, setOpenRestore] = useState(false);
 
-  const heThong = config.heThong || "old";
+  const heThong = config.heThong || "cu";
 
   // ===== Lấy danh sách lớp =====
   useEffect(() => {
