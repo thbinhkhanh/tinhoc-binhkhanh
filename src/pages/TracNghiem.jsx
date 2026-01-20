@@ -1751,14 +1751,13 @@ return (
                       src={currentQuestion.options[optIdx]}
                       alt={`option ${optIdx + 1}`}
                       style={{
-                        maxHeight: 80,
-                        maxWidth: "100%",
+                        maxWidth: "70%",     // 🔽 giảm chiều ngang
+                        maxHeight: 70,       // 🔽 giảm chiều cao
                         objectFit: "contain",
                         marginBottom: 8,
                       }}
                       onError={(e) => {
-                        e.target.src = "";
-                        e.target.alt = "(Không tải được ảnh)";
+                        e.currentTarget.style.display = "none";
                       }}
                     />
 

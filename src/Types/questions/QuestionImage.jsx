@@ -36,7 +36,7 @@ const QuestionImage = ({ q, qi, update }) => {
             alt="question"
             style={{
               maxWidth: "100%",
-              maxHeight: 260,
+              maxHeight: 160,
               objectFit: "contain",
               borderRadius: 8,
               border: "1px solid #ccc",
