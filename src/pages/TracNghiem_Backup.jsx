@@ -22,15 +22,10 @@ import {
   Card,
 } from "@mui/material";
 import { doc, getDoc, getDocs, setDoc, collection, updateDoc } from "firebase/firestore";
-// Thay cho react-beautiful-dnd
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 
 import { db } from "../firebase";
-//import { useContext } from "react";
-//import { ConfigContext } from "../context/ConfigContext";
-//import { exportQuizPDF } from "../utils/exportQuizPDF"; 
 import { handleSubmitQuiz } from "../utils/submitQuiz";
-//import { autoSubmitQuiz } from "../utils/autoSubmitQuiz";
 import { useConfig } from "../context/ConfigContext";
 import { useStudentQuizContext } from "../context/StudentQuizContext";
 
@@ -41,7 +36,6 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import HighlightOffIcon from '@mui/icons-material/HighlightOff';
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 
-
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
@@ -50,15 +44,11 @@ import DialogActions from "@mui/material/DialogActions";
 import { useLocation } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 
-//import { jsPDF } from "jspdf";
-//import html2canvas from "html2canvas";
-
 import IncompleteAnswersDialog from "../dialog/IncompleteAnswersDialog";
 import ExitConfirmDialog from "../dialog/ExitConfirmDialog";
 import ResultDialog from "../dialog/ResultDialog";
 import { useSearchParams } from "react-router-dom";
 import ImageZoomDialog from "../dialog/ImageZoomDialog";
-
 
 // Hàm shuffle mảng
 function shuffleArray(array) {
@@ -121,22 +111,47 @@ export default function TracNghiem() {
   const tenBai = decodeURIComponent(searchParams.get("bai") || "");
   const lopHoc = searchParams.get("lop");
 
+  useEffect(() => {
+    // ✅ 0️⃣ LƯU BÀI ĐANG LÀM (ĐÚNG CHỖ)
+    if (lopHoc || tenBai) {
+      const khoi = lopHoc ? `Khối ${lopHoc[0]}` : undefined;
+
+      localStorage.setItem(
+        "lastExam",
+        JSON.stringify({
+          khoi,
+          lop: lopHoc,
+          bai: tenBai,
+          path: location.pathname + location.search,
+        })
+      );
+    }
+
+    // ✅ 1️⃣ VÉ THÔNG HÀNH (TỪ INFO QUAY LẠI)
+    if (location.state?.fromInfo) {
+      navigate(location.pathname + location.search, { replace: true });
+      return;
+    }
+
+    // ✅ 2️⃣ MỞ LINK TRỰC TIẾP → INFO
+    const khoiFinal = lopHoc ? `Khối ${lopHoc[0]}` : undefined;
+
+    navigate("/info", {
+      replace: true,
+      state: {
+        ...(khoiFinal ? { khoi: khoiFinal } : {}),
+        target: location.pathname + location.search,
+        disableKhoi: true,
+      },
+    });
+  }, []);
+
+
+
   // Đồng bộ thời gian nếu config thay đổi
   useEffect(() => {
     setTimeLeft(timeLimitMinutes * 60);
   }, [timeLimitMinutes]);
-
-  // Kiểm tra dữ liệu học sinh và redirect an toàn
-  useEffect(() => {
-    const hasStudentInfo =
-      (config?.fullname?.trim() || savedStudentInfo.fullname?.trim()) &&
-      (config?.lop?.trim() || savedStudentInfo.lop?.trim());
-
-    if (!hasStudentInfo) {
-      console.warn("❌ Thiếu dữ liệu học sinh, quay lại danh sách");
-      navigate("/hoc-sinh", { replace: true });
-    }
-  }, [config, savedStudentInfo, navigate]);
 
   // Lấy thông tin học sinh tiện dùng
   const studentInfo = {
@@ -441,6 +456,8 @@ export default function TracNghiem() {
     });
   }
 
+
+
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
@@ -495,7 +512,12 @@ export default function TracNghiem() {
         ) {
           //console.log("🧠 LOAD FROM CONTEXT (VALID)", CACHE_KEY);
 
-          setQuestions(cacheFromContext.questions);
+          const runtimeQuestions = buildRuntimeQuestions(
+            cacheFromContext.rawQuestions
+          );
+          setQuestions(runtimeQuestions);
+
+
           setQuizClass(cacheFromContext.class || "");
           setStarted(true);
           setProgress(100);
@@ -516,7 +538,12 @@ export default function TracNghiem() {
           ) {
             //console.log("💾 LOAD FROM LOCALSTORAGE (VALID)", CACHE_KEY);
 
-            setQuestions(parsed.questions);
+            const runtimeQuestions = buildRuntimeQuestions(
+              parsed.rawQuestions
+            );
+            setQuestions(runtimeQuestions);
+
+
             setQuizClass(parsed.class || "");
             setStarted(true);
             setProgress(100);
@@ -538,6 +565,7 @@ export default function TracNghiem() {
         // --- Xử lý câu hỏi ---
         const runtimeQuestions = buildRuntimeQuestions(data.questions);
         setQuestions(runtimeQuestions);
+
         // =======================
         // ✅ LƯU CONTEXT + STORAGE
         // =======================
@@ -547,9 +575,8 @@ export default function TracNghiem() {
           tenBai,
           class: data.class || "",
 
-          rawQuestions: data.questions,   // ✅ CHỈ LƯU RAW
-          updatedAt: serverUpdatedAt,     // ✅ BẮT BUỘC
-          savedAt: Date.now(),            // (tuỳ, debug)
+          rawQuestions: data.questions, // 🔥 RAW FIRESTORE
+          updatedAt: serverUpdatedAt,
         };
 
         setQuizCache(prev => ({
@@ -565,7 +592,6 @@ export default function TracNghiem() {
 
         setAnswers(prev => {
           const next = { ...prev };
-
           runtimeQuestions.forEach(q => {
             if (q.type === "sort" && Array.isArray(q.initialSortOrder)) {
               if (!Array.isArray(next[q.id])) {
@@ -576,7 +602,6 @@ export default function TracNghiem() {
 
           return next;
         });
-
 
       } catch (err) {
         console.error("❌ Lỗi khi load câu hỏi:", err);
@@ -798,15 +823,26 @@ return (
       <Tooltip title="Thoát trắc nghiệm" arrow>
         <IconButton
           onClick={() => {
-            // Nếu thông báo chứa "❌ Không tìm thấy đề" → thoát ngay
+            const goToInfo = () => {
+              navigate("/info", {
+                replace: true,
+                state: {
+                  fromExam: true, // ⭐ cờ để disable menu
+                  khoi: `Khối ${lopHoc}`,
+                  target: location.pathname + location.search,
+                },
+              });
+            };
+
+            // ❌ Không tìm thấy đề → quay về Info luôn
             if (notFoundMessage?.includes("❌ Không tìm thấy đề trắc nghiệm!")) {
-              navigate(-1);
-            } 
-            // Nếu đã submit → thoát luôn
+              goToInfo();
+            }
+            // ✅ Đã nộp bài → quay về Info
             else if (submitted) {
-              navigate(-1);
-            } 
-            // Chưa submit → mở dialog xác nhận
+              goToInfo();
+            }
+            // ⚠️ Chưa nộp → hỏi xác nhận
             else {
               setOpenExitConfirm(true);
             }
@@ -823,6 +859,7 @@ return (
           <CloseIcon />
         </IconButton>
       </Tooltip>
+
 
 
 
@@ -868,12 +905,12 @@ return (
           alignItems: "center",
           mt: 0.5,
           mb: -2,
-          minHeight: 40, // giữ khoảng trống luôn
+          minHeight: 10, // giữ khoảng trống luôn
           width: "100%",
         }}
       >
         {/* Nội dung đồng hồ chỉ hiển thị khi started && !loading */}
-        {started && !loading && (
+        {started && !loading && config.showTimer && (
           <Box
             sx={{
               display: "flex",
@@ -882,15 +919,19 @@ return (
               px: 3,
               py: 0.5,
               borderRadius: 2,
-              bgcolor: "#fff", // tùy chỉnh nếu muốn nền
+              bgcolor: "#fff",
             }}
           >
             <AccessTimeIcon sx={{ color: "#d32f2f" }} />
-            <Typography variant="h6" sx={{ fontWeight: "bold", color: "#d32f2f" }}>
+            <Typography
+              variant="h6"
+              sx={{ fontWeight: "bold", color: "#d32f2f" }}
+            >
               {formatTime(timeLeft)}
             </Typography>
           </Box>
         )}
+
 
         {/* Đường gạch ngang màu xám nhạt luôn hiển thị */}
         <Box

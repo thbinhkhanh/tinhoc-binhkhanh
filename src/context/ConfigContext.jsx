@@ -18,6 +18,7 @@ export const ConfigProvider = ({ children }) => {
     hocKi: 1,
     login: false,
     namHoc: "2025-2026",
+    hideMenu: false,
   };
 
   // 1️⃣ Khởi tạo state
