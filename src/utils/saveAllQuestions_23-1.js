@@ -30,12 +30,7 @@ export const saveAllQuestions = async ({
     const questionsToSave = [];
 
     for (let q of questions) {
-      let updatedQ = {
-        ...q,
-        ...(q.type === "matching" && !("columnRatio" in q)
-          ? { columnRatio: { left: 1, right: 1 } }
-          : {}),
-      };
+      let updatedQ = { ...q };
 
       // Upload images cho các thuộc tính chung
       if (q.images) {

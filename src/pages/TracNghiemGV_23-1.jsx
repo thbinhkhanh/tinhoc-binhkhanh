@@ -70,7 +70,6 @@ export default function TracNghiemGV() {
     pairs: [],
     answers: [],
     questionImage: "",
-    columnRatio: { left: 1, right: 1 },
   });
 
   // ===== INIT QUESTIONS =====
