@@ -857,7 +857,7 @@ return (
       <Typography
         variant="h6"
         fontWeight="bold"
-        sx={{ color: "#1976d2", mb: { xs: 1, sm: -1 }, textAlign: "center" }}
+        sx={{ color: "#1976d2", mt: { xs: 4, sm: -1 }, mb: { xs: 1, sm: -1 }, textAlign: "center" }}
       >
         {tenBai ? tenBai.toUpperCase() : "TRẮC NGHIỆM"}
       </Typography>
@@ -1774,7 +1774,7 @@ return (
                       border: "1px solid #90caf9",
                       cursor: submitted || !started ? "default" : "pointer",
 
-                      width: { xs: "100%", sm: 150 },
+                      width: { xs: 150, sm: 150 },
                       height: { xs: "auto", sm: 180 },
                       boxSizing: "border-box",
                     }}
