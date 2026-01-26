@@ -425,11 +425,30 @@ export default function TracNghiemGV() {
               </Select>
             </FormControl>
 
-            <FormControl size="small" sx={{ minWidth: 600 }} disabled={!selectedClass}>
+            <FormControl
+              size="small"
+              sx={{
+                width: { xs: "100%", md: 600 }, // mobile full, desktop 600
+              }}
+              disabled={!selectedClass}
+            >
               <InputLabel>Bài học</InputLabel>
               <Select
                 value={lesson}
                 label="Bài học"
+                sx={{
+                  '& .MuiSelect-select': {
+                    whiteSpace: 'normal',
+                    wordBreak: 'break-word',
+                  },
+                }}
+                MenuProps={{
+                  PaperProps: {
+                    sx: {
+                      maxWidth: '90vw', // không tràn màn hình mobile
+                    },
+                  },
+                }}
                 onChange={(e) => {
                   const value = e.target.value;
                   setLesson(value);
@@ -438,10 +457,21 @@ export default function TracNghiemGV() {
               >
                 <MenuItem value="">Chọn</MenuItem>
                 {lessonsFromFirestore.map((bai) => (
-                  <MenuItem key={bai} value={bai}>{bai}</MenuItem>
+                  <MenuItem
+                    key={bai}
+                    value={bai}
+                    sx={{
+                      whiteSpace: 'normal',
+                      wordBreak: 'break-word',
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    {bai}
+                  </MenuItem>
                 ))}
               </Select>
             </FormControl>
+
           </Stack>
         </Paper>
 
