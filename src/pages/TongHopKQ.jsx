@@ -26,7 +26,7 @@ import {
   Button
 } from "@mui/material";
 import { db } from "../firebase";
-import { collection, getDocs, doc, getDoc, writeBatch } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc, writeBatch, setDoc, deleteDoc } from "firebase/firestore";
 import { FileDownload, Delete, DeleteForever } from "@mui/icons-material";
 import CloseIcon from "@mui/icons-material/Close";
 import { exportKetQuaExcel } from "../utils/exportKetQuaExcel";
@@ -44,6 +44,8 @@ export default function TongHopKQ() {
   const [dialogTitle, setDialogTitle] = useState("");
   const [dialogContent, setDialogContent] = useState("");
   const [dialogAction, setDialogAction] = useState(null);
+  const [baiList, setBaiList] = useState([]);
+  const [selectedBai, setSelectedBai] = useState("ALL");
 
   const circleIconStyle = {
     bgcolor: "white",
@@ -78,55 +80,214 @@ export default function TongHopKQ() {
 
   // Load kết quả
   const loadResults = async () => {
-    if (!selectedLop) return;
-    setLoading(true);
-    try {
-      const classKey = selectedLop.replace(".", "_");
-      const colRef = collection(db, "DATA", classKey, "HOCSINH");
-      const snapshot = await getDocs(colRef);
+  if (!selectedLop) return;
 
-      if (snapshot.empty) {
-        setResults([]);
-        setSnackbarSeverity("warning");
-        setSnackbarMessage(`Không tìm thấy học sinh trong lớp ${selectedLop}`);
-        setSnackbarOpen(true);
-        setLoading(false);
-        return;
-      }
+  const currentLop = selectedLop; // 🔒 chụp giá trị tại thời điểm gọi
+  setLoading(true);
 
-      const data = snapshot.docs.map(docSnap => {
-        const studentData = docSnap.data();
-        const phanTram = studentData.phanTram ?? 0;
-        return {
-          hoVaTen: studentData.hoVaTen || "",
-          lop: selectedLop,
-          diem: studentData.diem ?? 0, // ✅ LẤY ĐIỂM TRỰC TIẾP
-          ngayKiemTra: studentData.ngayKiemTra || "",
-          thoiGianLamBai: studentData.thoiGianLamBai || "",
-          soLan: studentData.soLan ?? 1,
-        };
-      });
+  try {
+    const classKey = currentLop.replace(".", "_");
+    const hsColRef = collection(db, "DATA", classKey, "HOCSINH");
+    const hsSnap = await getDocs(hsColRef);
 
-      data.sort((a, b) => {
-        const nameA = (a.hoVaTen || "").trim().split(" ").reverse();
-        const nameB = (b.hoVaTen || "").trim().split(" ").reverse();
-        for (let i = 0; i < Math.max(nameA.length, nameB.length); i++) {
-          const cmp = (nameA[i] || "").toLowerCase().localeCompare((nameB[i] || "").toLowerCase());
-          if (cmp !== 0) return cmp;
-        }
-        return 0;
-      });
+    // ⚠️ nếu selectedLop đã đổi → bỏ kết quả
+    if (currentLop !== selectedLop) return;
 
-      setResults(data.map((item, idx) => ({ stt: idx + 1, ...item })));
-    } catch (err) {
-      console.error(err);
+    if (hsSnap.empty) {
       setResults([]);
-      setSnackbarSeverity("error");
-      setSnackbarMessage("❌ Lỗi khi load kết quả!");
-      setSnackbarOpen(true);
+      setBaiList(["ALL"]);
+      setLoading(false);
+      return;
     }
-    setLoading(false);
+
+    const rows = [];
+    const baiSet = new Set();
+
+    await Promise.all(
+      hsSnap.docs.map(async (hsDoc) => {
+        const hsData = hsDoc.data();
+
+        const baiColRef = collection(
+          db,
+          "DATA",
+          classKey,
+          "HOCSINH",
+          hsDoc.id,
+          "BAITHI"
+        );
+
+        const baiSnap = await getDocs(baiColRef);
+        if (currentLop !== selectedLop) return;
+        if (baiSnap.empty) return;
+
+        baiSnap.forEach((baiDoc) => {
+          const baiData = baiDoc.data();
+          if (!baiData?.bai) return;
+
+          baiSet.add(baiData.bai);
+
+          if (selectedBai !== "ALL" && baiData.bai !== selectedBai) return;
+
+          rows.push({
+            hoVaTen: hsData.hoVaTen || "",
+            lop: currentLop,
+            bai: baiData.bai,
+            diem: baiData.diem ?? 0,
+            thoiGianLamBai: baiData.thoiGianLamBai || "",
+            ngayKiemTra: baiData.ngayKiemTra || "",
+            soLan: baiData.soLan ?? 1
+          });
+        });
+      })
+    );
+
+    // ⚠️ check lần cuối
+    if (currentLop !== selectedLop) return;
+
+    rows.sort((a, b) => {
+      const soA = parseInt(a.bai.replace(/\D/g, ""), 10);
+      const soB = parseInt(b.bai.replace(/\D/g, ""), 10);
+      if (soA !== soB) return soA - soB;
+
+      const na = a.hoVaTen.split(" ").reverse().join(" ");
+      const nb = b.hoVaTen.split(" ").reverse().join(" ");
+      return na.localeCompare(nb, "vi");
+    });
+
+    setResults(rows.map((r, i) => ({ stt: i + 1, ...r })));
+    setBaiList(["ALL", ...Array.from(baiSet)]);
+
+  } catch (err) {
+    console.error("❌ loadResults error:", err);
+    setResults([]);
+  }
+
+  setLoading(false);
+};
+
+
+
+  useEffect(() => {
+    loadResults();
+  }, [selectedLop, selectedBai]);
+
+  /*const migrateOldDataToNew = async () => {
+    if (!selectedLop) return;
+
+    const classKey = selectedLop.replace(".", "_");
+    const hsColRef = collection(db, "DATA", classKey, "HOCSINH");
+    const hsSnap = await getDocs(hsColRef);
+
+    if (hsSnap.empty) return;
+
+    for (const hsDoc of hsSnap.docs) {
+      const hsData = hsDoc.data();
+
+      // 🔹 Không có dữ liệu cũ → bỏ
+      if (hsData.diem === undefined) continue;
+
+      // 🔹 ref đúng BAITHI/Bài_9
+      const bai9Ref = doc(
+        db,
+        "DATA",
+        classKey,
+        "HOCSINH",
+        hsDoc.id,
+        "BAITHI",
+        "Bài_9"
+      );
+
+      // 🔹 nếu đã có Bài_9 → bỏ
+      const bai9Snap = await getDocs(
+        collection(
+          db,
+          "DATA",
+          classKey,
+          "HOCSINH",
+          hsDoc.id,
+          "BAITHI"
+        )
+      );
+      if (bai9Snap.docs.some(d => d.id === "Bài_9")) continue;
+
+      // 🔹 ghi dữ liệu cũ sang cấu trúc mới
+      await setDoc(bai9Ref, {
+        bai: "Bài 9",
+        diem: hsData.diem ?? 0,
+        ngayKiemTra: hsData.ngayKiemTra || "",
+        thoiGianLamBai: hsData.thoiGianLamBai || "",
+        soLan: hsData.soLan ?? 1,
+        migratedAt: new Date()
+      });
+
+      console.log(`✅ Migrated: ${hsData.hoVaTen}`);
+    }
+
+    console.log("🎉 Hoàn tất migrate dữ liệu cũ → BAITHI/Bài_9");
   };
+
+
+  useEffect(() => {
+    if (selectedLop) {
+      migrateOldDataToNew();
+    }
+  }, [selectedLop]);*/
+
+  /*const deleteNotBai9 = async () => {
+    if (!selectedLop) return;
+
+    const classKey = selectedLop.replace(".", "_");
+    const hsColRef = collection(db, "DATA", classKey, "HOCSINH");
+    const hsSnap = await getDocs(hsColRef);
+
+    if (hsSnap.empty) return;
+
+    for (const hsDoc of hsSnap.docs) {
+      const baiColRef = collection(
+        db,
+        "DATA",
+        classKey,
+        "HOCSINH",
+        hsDoc.id,
+        "BAITHI"
+      );
+
+      const baiSnap = await getDocs(baiColRef);
+      if (baiSnap.empty) continue;
+
+      for (const baiDoc of baiSnap.docs) {
+        // ❌ KHÔNG phải Bài_9 → xóa
+        if (baiDoc.id !== "Bài_9") {
+          await deleteDoc(
+            doc(
+              db,
+              "DATA",
+              classKey,
+              "HOCSINH",
+              hsDoc.id,
+              "BAITHI",
+              baiDoc.id
+            )
+          );
+
+          console.log(
+            `🗑️ Đã xóa ${baiDoc.id} của ${hsDoc.data().hoVaTen}`
+          );
+        }
+      }
+    }
+
+    console.log("✅ Hoàn tất xóa tất cả BAITHI ≠ Bài_9");
+  };
+
+  useEffect(() => {
+    if (!selectedLop) return;
+
+    // ⚠️ chỉ dùng khi cần dọn dữ liệu
+    deleteNotBai9();
+
+  }, [selectedLop]);*/
+
 
   useEffect(() => { loadResults(); }, [selectedLop]);
 
@@ -141,7 +302,7 @@ export default function TongHopKQ() {
     setDialogOpen(true);
   };
 
-  const handleDeleteClass = () => {
+  /*const handleDeleteClass = () => {
     openConfirmDialog(
       "Xóa lớp",
       `⚠️ Bạn có chắc muốn xóa toàn bộ kết quả lớp ${selectedLop}?\nHành động này không thể hoàn tác.`,
@@ -167,34 +328,119 @@ export default function TongHopKQ() {
         setSnackbarOpen(true);
       }
     );
-  };
+  };*/
 
-  const handleDeleteSchool = () => {
-    if (!classesList || classesList.length === 0) return;
+  const handleDeleteClass = () => {
     openConfirmDialog(
-      "Xóa toàn trường",
-      `⚠️ Bạn có chắc muốn xóa toàn bộ dữ liệu của khối ${khoi}?\nHành động này không thể hoàn tác.`,
+      "Xóa lớp",
+      `⚠️ Bạn có chắc muốn xóa toàn bộ kết quả lớp ${selectedLop}?\nHành động này không thể hoàn tác.`,
       async () => {
-        const CHUNK_SIZE = 450;
-        for (const lop of classesList) {
-          const classKey = lop.replace(".", "_");
-          const colRef = collection(db, "DATA", classKey, "HOCSINH");
-          const snapshot = await getDocs(colRef);
-          if (snapshot.empty) continue;
-          const docsList = snapshot.docs.map(docSnap => ({ docRef: doc(db, "DATA", classKey, "HOCSINH", docSnap.id) }));
-          for (let i = 0; i < docsList.length; i += CHUNK_SIZE) {
+        if (!selectedLop) return;
+
+        const classKey = selectedLop.replace(".", "_");
+        const hsColRef = collection(db, "DATA", classKey, "HOCSINH");
+        const hsSnap = await getDocs(hsColRef);
+        if (hsSnap.empty) return;
+
+        const CHUNK_SIZE = 400; // chừa dư cho BAITHI
+
+        let operations = [];
+
+        for (const hsDoc of hsSnap.docs) {
+          const hsRef = doc(db, "DATA", classKey, "HOCSINH", hsDoc.id);
+
+          // 🔹 Lấy BAITHI của học sinh
+          const baiColRef = collection(hsRef, "BAITHI");
+          const baiSnap = await getDocs(baiColRef);
+
+          // 🔹 Xóa từng bài thi
+          baiSnap.forEach(baiDoc => {
+            operations.push(doc(baiColRef, baiDoc.id));
+          });
+
+          // 🔹 Xóa học sinh
+          operations.push(hsRef);
+
+          // 🔸 Commit theo chunk
+          if (operations.length >= CHUNK_SIZE) {
             const batch = writeBatch(db);
-            docsList.slice(i, i + CHUNK_SIZE).forEach(item => batch.delete(item.docRef));
+            operations.forEach(ref => batch.delete(ref));
             await batch.commit();
+            operations = [];
           }
         }
+
+        // 🔹 Commit phần còn lại
+        if (operations.length > 0) {
+          const batch = writeBatch(db);
+          operations.forEach(ref => batch.delete(ref));
+          await batch.commit();
+        }
+
         setResults([]);
         setSnackbarSeverity("success");
-        setSnackbarMessage(`✅ Đã xóa toàn trường khối ${khoi}`);
+        setSnackbarMessage(`✅ Đã xóa toàn bộ dữ liệu lớp ${selectedLop}`);
         setSnackbarOpen(true);
       }
     );
   };
+
+
+  const handleDeleteSchool = () => {
+    if (!classesList || classesList.length === 0) return;
+
+    openConfirmDialog(
+      "Xóa toàn trường",
+      `⚠️ Bạn có chắc muốn xóa toàn bộ dữ liệu của khối ${khoi}?\nHành động này không thể hoàn tác.`,
+      async () => {
+        const CHUNK_SIZE = 400;
+        let operations = [];
+
+        for (const lop of classesList) {
+          const classKey = lop.replace(".", "_");
+          const hsColRef = collection(db, "DATA", classKey, "HOCSINH");
+          const hsSnap = await getDocs(hsColRef);
+          if (hsSnap.empty) continue;
+
+          for (const hsDoc of hsSnap.docs) {
+            const hsRef = doc(db, "DATA", classKey, "HOCSINH", hsDoc.id);
+
+            // 🔹 Xóa BAITHI
+            const baiColRef = collection(hsRef, "BAITHI");
+            const baiSnap = await getDocs(baiColRef);
+
+            baiSnap.forEach(baiDoc => {
+              operations.push(doc(baiColRef, baiDoc.id));
+            });
+
+            // 🔹 Xóa HOCSINH
+            operations.push(hsRef);
+
+            // 🔸 Commit theo chunk
+            if (operations.length >= CHUNK_SIZE) {
+              const batch = writeBatch(db);
+              operations.forEach(ref => batch.delete(ref));
+              await batch.commit();
+              operations = [];
+            }
+          }
+        }
+
+        // 🔹 Commit phần còn lại
+        if (operations.length > 0) {
+          const batch = writeBatch(db);
+          operations.forEach(ref => batch.delete(ref));
+          await batch.commit();
+        }
+
+        setResults([]);
+        setSnackbarSeverity("success");
+        setSnackbarMessage(`✅ Đã xóa toàn bộ dữ liệu khối ${khoi}`);
+        setSnackbarOpen(true);
+      }
+    );
+  };
+
 
   const handleExportExcel = () => {
     if (!results.length) {
@@ -212,7 +458,7 @@ export default function TongHopKQ() {
 
   return (
     <Box sx={{ minHeight: "100vh", pt: 10, px: 3, background: "linear-gradient(to bottom, #e3f2fd, #bbdefb)", display: "flex", justifyContent: "center" }}>
-      <Paper sx={{ p: 4, borderRadius: 3, width: "100%", maxWidth: 800, position: "relative" }} elevation={6}>
+      <Paper sx={{ p: 4, borderRadius: 3, width: "100%", maxWidth: 920, position: "relative" }} elevation={6}>
 
         <Box sx={{ position: "absolute", top: 16, left: 16 }}>
           <Stack direction="row" spacing={1}>
@@ -245,7 +491,7 @@ export default function TongHopKQ() {
             </FormControl>
 
             {/* Lớp */}
-            <FormControl size="small" sx={{ width: 80 }} variant="outlined">
+            <FormControl size="small" sx={{ width: 100 }} variant="outlined">
               <InputLabel id="lop-label">Lớp</InputLabel>
               <Select
                 labelId="lop-label"
@@ -258,71 +504,109 @@ export default function TongHopKQ() {
                 ))}
               </Select>
             </FormControl>
+
+            <FormControl size="small" sx={{ width: 100 }} variant="outlined">
+              <InputLabel id="bai-label">Bài học</InputLabel>
+              <Select
+                labelId="bai-label"
+                value={selectedBai}
+                label="Bài học"
+                onChange={e => setSelectedBai(e.target.value)}
+              >
+                <MenuItem value="ALL">Tất cả</MenuItem>
+                {baiList.filter(b => b !== "ALL").map(bai => (
+                  <MenuItem key={bai} value={bai}>{bai}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
           </Box>
 
         </Box>
 
         {/* Table */}
-        {loading ? <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}><CircularProgress /></Box> :
-          <Box sx={{ width: "100%", overflowX: "auto" }}>
-            <TableContainer component={Paper} sx={{ boxShadow: "none", minWidth: 700 }}>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell
-                      sx={{ width: 60, bgcolor: "#1976d2", color: "#fff", textAlign: "center" }}
-                    >
-                      STT
-                    </TableCell>
+        {loading ? (
+        <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+          <CircularProgress />
+        </Box>
+      ) : (
+        <Box sx={{ width: "100%", overflowX: "auto" }}>
+          <TableContainer component={Paper} sx={{ boxShadow: "none", minWidth: 700 }}>
+            <Table
+              size="small"
+              sx={{
+                tableLayout: "fixed", // ✅ QUAN TRỌNG: CỐ ĐỊNH ĐỘ RỘNG
+              }}
+            >
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ width: 60, bgcolor: "#1976d2", color: "#fff", textAlign: "center" }}>
+                    STT
+                  </TableCell>
+                  <TableCell sx={{ width: 180, bgcolor: "#1976d2", color: "#fff", textAlign: "center" }}>
+                    Họ và tên
+                  </TableCell>
+                  <TableCell sx={{ width: 80, bgcolor: "#1976d2", color: "#fff", textAlign: "center" }}>
+                    Tên bài học
+                  </TableCell>
+                  <TableCell sx={{ width: 80, bgcolor: "#1976d2", color: "#fff", textAlign: "center" }}>
+                    Điểm
+                  </TableCell>
+                  <TableCell sx={{ width: 80, bgcolor: "#1976d2", color: "#fff", textAlign: "center" }}>
+                    Thời gian
+                  </TableCell>
+                  <TableCell sx={{ width: 90, bgcolor: "#1976d2", color: "#fff", textAlign: "center" }}>
+                    Ngày
+                  </TableCell>
+                  <TableCell sx={{ width: 110, bgcolor: "#1976d2", color: "#fff", textAlign: "center" }}>
+                    Số lần kiểm tra
+                  </TableCell>
+                </TableRow>
+              </TableHead>
 
-                    <TableCell
-                      sx={{ minWidth: 180, bgcolor: "#1976d2", color: "#fff", textAlign: "center" }}
-                    >
-                      Họ và tên
+              <TableBody>
+                {(results.length > 0
+                  ? results
+                  : Array.from({ length: 5 }, (_, i) => ({ stt: i + 1 }))
+                ).map((r) => (
+                  <TableRow key={r.stt}>
+                    <TableCell sx={{ width: 60, textAlign: "center", border: "1px solid rgba(0,0,0,0.12)" }}>
+                      {r.stt}
                     </TableCell>
-
                     <TableCell
-                      sx={{ width: 80, bgcolor: "#1976d2", color: "#fff", textAlign: "center" }}
+                      sx={{
+                        width: 180,
+                        textAlign: "left",
+                        border: "1px solid rgba(0,0,0,0.12)",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
                     >
-                      Điểm
+                      {r.hoVaTen}
                     </TableCell>
-
-                    <TableCell
-                      sx={{ width: 110, bgcolor: "#1976d2", color: "#fff", textAlign: "center" }}
-                    >
-                      Thời gian
+                    <TableCell sx={{ width: 80, textAlign: "center", border: "1px solid rgba(0,0,0,0.12)" }}>
+                      {r.bai}
                     </TableCell>
-
-                    <TableCell
-                      sx={{ width: 110, bgcolor: "#1976d2", color: "#fff", textAlign: "center" }}
-                    >
-                      Ngày
+                    <TableCell sx={{ width: 80, textAlign: "center", border: "1px solid rgba(0,0,0,0.12)", fontWeight: "bold" }}>
+                      {r.diem}
                     </TableCell>
-
-                    <TableCell
-                      sx={{ width: 120, bgcolor: "#1976d2", color: "#fff", textAlign: "center" }}
-                    >
-                      Số lần kiểm tra
+                    <TableCell sx={{ width: 80, textAlign: "center", border: "1px solid rgba(0,0,0,0.12)" }}>
+                      {r.thoiGianLamBai}
+                    </TableCell>
+                    <TableCell sx={{ width: 90, textAlign: "center", border: "1px solid rgba(0,0,0,0.12)" }}>
+                      {r.ngayKiemTra}
+                    </TableCell>
+                    <TableCell sx={{ width: 110, textAlign: "center", border: "1px solid rgba(0,0,0,0.12)" }}>
+                      {r.soLan}
                     </TableCell>
                   </TableRow>
-                </TableHead>
-
-                <TableBody>
-                  {(results.length > 0 ? results : Array.from({ length: 5 }, (_, i) => ({ stt:i+1, hoVaTen:"", diem:"", thoiGianLamBai:"", ngayKiemTra:"" }))).map(r => (
-                    <TableRow key={r.stt}>
-                      <TableCell sx={{ textAlign:"center", border:"1px solid rgba(0,0,0,0.12)" }}>{r.stt}</TableCell>
-                      <TableCell sx={{ textAlign:"left", border:"1px solid rgba(0,0,0,0.12)" }}>{r.hoVaTen}</TableCell>
-                      <TableCell sx={{ textAlign:"center", border:"1px solid rgba(0,0,0,0.12)", fontWeight:"bold" }}>{r.diem}</TableCell>
-                      <TableCell sx={{ textAlign:"center", border:"1px solid rgba(0,0,0,0.12)" }}>{r.thoiGianLamBai}</TableCell>
-                      <TableCell sx={{ textAlign:"center", border:"1px solid rgba(0,0,0,0.12)" }}>{r.ngayKiemTra}</TableCell>
-                      <TableCell sx={{ textAlign:"center", border:"1px solid rgba(0,0,0,0.12)" }}>{r.soLan}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Box>
-        }
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Box>
+      )}
 
         {/* Snackbar */}
         <Snackbar open={snackbarOpen} autoHideDuration={3000} onClose={() => setSnackbarOpen(false)} anchorOrigin={{ vertical:"bottom", horizontal:"right" }}>

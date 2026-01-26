@@ -121,54 +121,22 @@ export default function TracNghiem() {
   const tenBai = decodeURIComponent(searchParams.get("bai") || "");
   const lopHoc = searchParams.get("lop");
 
-  const tenBaiRutGon = getTenBaiRutGon(tenBai);
-  
-  function getTenBaiRutGon(tenBai) {
-    if (!tenBai) return "";
-    const match = tenBai.match(/^Bài\s+\d+[A-Z]?/i);
-    return match ? match[0] : tenBai;
-  }
-
-  useEffect(() => {
-    // ✅ 0️⃣ LƯU BÀI ĐANG LÀM (ĐÚNG CHỖ)
-    if (lopHoc || tenBai) {
-      const khoi = lopHoc ? `Khối ${lopHoc[0]}` : undefined;
-
-      localStorage.setItem(
-        "lastExam",
-        JSON.stringify({
-          khoi,
-          lop: lopHoc,
-          bai: tenBai,
-          bai: tenBaiRutGon, // ✅ dùng rút gọn
-          path: location.pathname + location.search,
-        })
-      );
-    }
-
-    // ✅ 1️⃣ VÉ THÔNG HÀNH (TỪ INFO QUAY LẠI)
-    if (location.state?.fromInfo) {
-      navigate(location.pathname + location.search, { replace: true });
-      return;
-    }
-
-    // ✅ 2️⃣ MỞ LINK TRỰC TIẾP → INFO
-    const khoiFinal = lopHoc ? `Khối ${lopHoc[0]}` : undefined;
-
-    navigate("/info", {
-      replace: true,
-      state: {
-        ...(khoiFinal ? { khoi: khoiFinal } : {}),
-        target: location.pathname + location.search,
-        disableKhoi: true,
-      },
-    });
-  }, []);
-
   // Đồng bộ thời gian nếu config thay đổi
   useEffect(() => {
     setTimeLeft(timeLimitMinutes * 60);
   }, [timeLimitMinutes]);
+
+  // Kiểm tra dữ liệu học sinh và redirect an toàn
+  useEffect(() => {
+    const hasStudentInfo =
+      (config?.fullname?.trim() || savedStudentInfo.fullname?.trim()) &&
+      (config?.lop?.trim() || savedStudentInfo.lop?.trim());
+
+    if (!hasStudentInfo) {
+      console.warn("❌ Thiếu dữ liệu học sinh, quay lại danh sách");
+      navigate("/hoc-sinh", { replace: true });
+    }
+  }, [config, savedStudentInfo, navigate]);
 
   // Lấy thông tin học sinh tiện dùng
   const studentInfo = {
@@ -228,6 +196,249 @@ export default function TracNghiem() {
       attempts < 100
     );
     return shuffled;
+  }
+
+  function buildRuntimeQuestions(rawQuestions = []) {
+    // 🔥 1. SHUFFLE THỨ TỰ CÂU HỎI
+    let saved = shuffleArray([...rawQuestions]);
+
+    const loadedQuestions = saved.map((q, index) => {
+      const questionId = q.id ?? `q_${index}`;
+      const questionText =
+        typeof q.question === "string" ? q.question.trim() : "";
+
+      const rawType = (q.type || "").toString().trim().toLowerCase();
+      const type = [
+        "sort",
+        "matching",
+        "single",
+        "multiple",
+        "image",
+        "truefalse",
+        "fillblank",
+      ].includes(rawType)
+        ? rawType
+        : null;
+
+      if (!type) return null;
+
+      // ================= MATCHING =================
+      if (type === "matching") {
+        const pairs = Array.isArray(q.pairs) ? q.pairs : [];
+        if (pairs.length === 0) return null;
+
+        const leftOptions = pairs.map((p, idx) => {
+          if (p.leftImage && p.leftImage.url) {
+            return {
+              type: "image",
+              url: p.leftImage.url,
+              name: p.leftImage.name || `img-${idx}`,
+            };
+          }
+
+          if (
+            typeof p.left === "string" &&
+            /^https?:\/\//i.test(p.left.trim())
+          ) {
+            return {
+              type: "image",
+              url: p.left.trim(),
+              name: `img-${idx}`,
+            };
+          }
+
+          return p.left ?? "";
+        });
+
+        const rightOriginal = pairs.map((p, idx) => ({
+          opt: p.right,
+          idx,
+        }));
+
+        const processedRight =
+          q.sortType === "shuffle"
+            ? shuffleUntilDifferent(rightOriginal)
+            : rightOriginal;
+
+        const indexMap = {};
+        processedRight.forEach((item, newIndex) => {
+          indexMap[item.idx] = newIndex;
+        });
+
+        const correct = leftOptions.map((_, i) => indexMap[i]);
+
+        return {
+          ...q,
+          id: questionId,
+          type,
+          question: questionText,
+          image: q.image ?? null,
+          leftOptions,
+          rightOptions: processedRight.map(i => i.opt),
+          correct,
+          score: q.score ?? 1,
+        };
+      }
+
+      // ================= SORT =================
+      if (type === "sort") {
+        const options =
+          Array.isArray(q.options) && q.options.length > 0
+            ? [...q.options]
+            : ["", "", "", ""];
+
+        const indexed = options.map((opt, idx) => ({ opt, idx }));
+
+        const processed =
+          q.sortType === "shuffle"
+            ? shuffleUntilDifferent(indexed)
+            : indexed;
+
+        return {
+          ...q,
+          id: questionId,
+          type,
+          question: questionText,
+          image: q.image ?? null,
+          options: processed.map(i => i.opt),
+          initialSortOrder: processed.map(i => i.idx),
+          correctTexts: options,
+          score: q.score ?? 1,
+        };
+      }
+
+      // ================= SINGLE / MULTIPLE =================
+      if (type === "single" || type === "multiple") {
+        const options =
+          Array.isArray(q.options) && q.options.length > 0
+            ? q.options.map(opt => {
+                if (typeof opt === "string") {
+                  if (/^https?:\/\/.*\.(png|jpg|jpeg|gif)$/i.test(opt)) {
+                    return { text: "", image: opt };
+                  }
+                  return { text: opt, image: null };
+                }
+                if (typeof opt === "object") {
+                  return {
+                    text: opt.text ?? "",
+                    image: opt.image ?? null,
+                  };
+                }
+                return { text: "", image: null };
+              })
+            : [
+                { text: "", image: null },
+                { text: "", image: null },
+                { text: "", image: null },
+                { text: "", image: null },
+              ];
+
+        const indexed = options.map((opt, idx) => ({ opt, idx }));
+        const shouldShuffle =
+          q.sortType === "shuffle" || q.shuffleOptions === true;
+
+        const processed = shouldShuffle
+          ? shuffleArray(indexed)
+          : indexed;
+
+        return {
+          ...q,
+          id: questionId,
+          type,
+          question: questionText,
+          image: q.image ?? null,
+          options,
+          displayOrder: processed.map(i => i.idx),
+          correct: Array.isArray(q.correct)
+            ? q.correct.map(Number)
+            : typeof q.correct === "number"
+            ? [q.correct]
+            : [],
+          score: q.score ?? 1,
+        };
+      }
+
+      // ================= IMAGE =================
+      if (type === "image") {
+        const options =
+          Array.isArray(q.options) && q.options.length > 0
+            ? q.options
+            : ["", "", "", ""];
+
+        return {
+          ...q,
+          id: questionId,
+          type,
+          question: questionText,
+          image: q.image ?? null,
+          options,
+          displayOrder: shuffleArray(options.map((_, idx) => idx)),
+          correct: Array.isArray(q.correct) ? q.correct : [],
+          score: q.score ?? 1,
+        };
+      }
+
+      // ================= TRUE / FALSE =================
+      if (type === "truefalse") {
+        const options =
+          Array.isArray(q.options) && q.options.length >= 2
+            ? [...q.options]
+            : ["Đúng", "Sai"];
+
+        const indexed = options.map((opt, idx) => ({ opt, idx }));
+        const processed =
+          q.sortType === "shuffle" ? shuffleArray(indexed) : indexed;
+
+        return {
+          ...q,
+          id: questionId,
+          type,
+          question: questionText,
+          image: q.image ?? null,
+          options: processed.map(i => i.opt),
+          initialOrder: processed.map(i => i.idx),
+          correct:
+            Array.isArray(q.correct) && q.correct.length === options.length
+              ? q.correct
+              : options.map(() => ""),
+          score: q.score ?? 1,
+        };
+      }
+
+      // ================= FILL BLANK =================
+      if (type === "fillblank") {
+        const options = Array.isArray(q.options) ? q.options : [];
+
+        return {
+          ...q,
+          id: questionId,
+          type,
+          question: questionText,
+          image: q.image ?? null,
+          option: q.option,
+          options,
+          shuffledOptions: shuffleArray([...options]),
+          score: q.score ?? 1,
+        };
+      }
+
+      return null;
+    }).filter(Boolean);
+
+    // ================= VALIDATE =================
+    return loadedQuestions.filter(q => {
+      if (q.type === "matching")
+        return q.question.trim() && q.leftOptions.length && q.rightOptions.length;
+      if (q.type === "sort")
+        return q.question.trim() && q.options.length;
+      if (["single", "multiple", "image"].includes(q.type))
+        return q.question.trim() && q.options.length;
+      if (q.type === "truefalse")
+        return q.question.trim() && q.options.length >= 2;
+      if (q.type === "fillblank")
+        return q.question.trim() && q.options.length;
+      return false;
+    });
   }
 
   useEffect(() => {
@@ -325,214 +536,8 @@ export default function TracNghiem() {
         }
 
         // --- Xử lý câu hỏi ---
-        let saved = Array.isArray(data.questions) ? data.questions : [];
-        saved = shuffleArray(saved);
-
-        const loadedQuestions = saved.map((q, index) => {
-          const questionId = q.id ?? `q_${index}`;
-          const questionText = typeof q.question === "string" ? q.question.trim() : "";
-          const rawType = (q.type || "").toString().trim().toLowerCase();
-          const type = ["sort", "matching", "single", "multiple", "image", "truefalse", "fillblank"].includes(rawType)
-            ? rawType
-            : null;
-          if (!type) return null;
-
-          if (type === "matching") {
-            const pairs = Array.isArray(q.pairs) ? q.pairs : [];
-            if (pairs.length === 0) return null;
-
-            //console.log("🔥 RAW MATCHING PAIRS:", pairs);
-
-            const leftOptions = pairs.map((p, idx) => {
-              // --- CASE 1: editor lưu { leftImage: { url, name } } ---
-              if (p.leftImage && p.leftImage.url) {
-                //console.log(`🔥 left[${idx}] = leftImage`, p.leftImage.url);
-                return { type: "image", url: p.leftImage.url, name: p.leftImage.name || `img-${idx}` };
-              }
-
-              // --- CASE 2: left là chuỗi URL ---
-              if (typeof p.left === "string" && /^https?:\/\//i.test(p.left.trim())) {
-                //console.log(`🔥 left[${idx}] = URL`, p.left);
-                return { type: "image", url: p.left.trim(), name: `img-${idx}` };
-              }
-
-              // --- CASE 3: để nguyên dạng text ---
-              //console.log(`🔥 left[${idx}] = text`, p.left);
-              return p.left ?? "";
-            });
-
-            // cột phải: đảo cho đến khi khác ít nhất 1 phần tử
-            const rightOptionsOriginal = pairs.map((p, idx) => ({ opt: p.right, idx }));
-            const processedRightOptions =
-              q.sortType === "shuffle"
-                ? shuffleUntilDifferent(rightOptionsOriginal)
-                : rightOptionsOriginal;
-
-            const originalRightIndexMap = {};
-            processedRightOptions.forEach((item, newIndex) => {
-              originalRightIndexMap[item.idx] = newIndex;
-            });
-
-            const newCorrect = leftOptions.map((_, i) => originalRightIndexMap[i]);
-
-            return {
-              ...q,
-              id: questionId,
-              type,
-              question: questionText,
-              image: q.image ?? null,
-              leftOptions,
-              rightOptions: processedRightOptions.map(i => i.opt),
-              correct: newCorrect,
-              score: q.score ?? 1,
-            };
-          }
-
-          if (type === "sort") {
-            const options = Array.isArray(q.options) && q.options.length > 0
-              ? [...q.options]
-              : ["", "", "", ""];
-
-            const indexed = options.map((opt, idx) => ({ opt, idx }));
-
-            // Nếu sortType là "shuffle" thì đảo, nếu là "fixed" thì giữ nguyên
-            const processed =
-              q.sortType === "shuffle"
-                ? shuffleUntilDifferent(indexed)
-                : indexed;
-
-            const shuffledOptions = processed.map(i => i.opt);
-
-            return {
-              ...q,
-              id: questionId,
-              type,
-              question: questionText,
-              image: q.image ?? null,
-              options: shuffledOptions,                    // hiển thị theo shuffle hoặc giữ nguyên
-              initialSortOrder: processed.map(i => i.idx), // thứ tự index sau shuffle/giữ nguyên
-              correctTexts: options,                       // đáp án đúng: text gốc Firestore
-              score: q.score ?? 1,
-            };
-          }
-
-          if (type === "single" || type === "multiple") {
-            // Chuẩn hóa options
-            const options = Array.isArray(q.options) && q.options.length > 0
-              ? q.options.map((opt) => {
-                  if (typeof opt === "string") {
-                    // Nếu là URL => đặt vào image, còn text để trống
-                    if (/^https?:\/\/.*\.(png|jpg|jpeg|gif)$/i.test(opt)) {
-                      return { text: "", image: opt };
-                    }
-                    return { text: opt, image: null };
-                  } else if (typeof opt === "object") {
-                    // Giữ text và image, nếu text là URL hình => vẫn giữ cả hai
-                    return {
-                      text: opt.text ?? "",
-                      image: opt.image ?? null
-                    };
-                  }
-                  return { text: "", image: null };
-                })
-              : [
-                  { text: "", image: null },
-                  { text: "", image: null },
-                  { text: "", image: null },
-                  { text: "", image: null },
-                ];
-
-            const indexed = options.map((opt, idx) => ({ opt, idx }));
-            const shouldShuffle = q.sortType === "shuffle" || q.shuffleOptions === true;
-            const shuffled = shouldShuffle ? shuffleArray(indexed) : indexed;
-
-            return { 
-              ...q,
-              id: questionId,
-              type,
-              question: questionText,
-              image: q.image ?? null,      // hình minh họa câu hỏi
-              options,                     // mảng chuẩn {text, image}
-              displayOrder: shuffled.map(i => i.idx),
-              correct: Array.isArray(q.correct) 
-                ? q.correct.map(Number) 
-                : typeof q.correct === "number" 
-                  ? [q.correct] 
-                  : [],
-              score: q.score ?? 1
-            };
-          }
-
-          if (type === "image") {
-            const options = Array.isArray(q.options) && q.options.length > 0 ? q.options : ["", "", "", ""];
-            const correct = Array.isArray(q.correct) ? q.correct : [];
-            return { 
-              ...q, 
-              id: questionId, 
-              type, 
-              question: questionText, 
-              image: q.image ?? null,          // ✅ Thêm image
-              options, 
-              displayOrder: shuffleArray(options.map((_, idx) => idx)), 
-              correct, 
-              score: q.score ?? 1 
-            };
-          }
-
-          if (type === "truefalse") {
-            const options = Array.isArray(q.options) && q.options.length >= 2
-              ? [...q.options]
-              : ["Đúng", "Sai"];
-
-            const indexed = options.map((opt, idx) => ({ opt, idx }));
-            const processed = q.sortType === "shuffle" ? shuffleArray(indexed) : indexed;
-
-            return {
-              ...q,
-              id: questionId,
-              type,
-              question: questionText,
-              image: q.image ?? null,
-              options: processed.map(i => i.opt),        // hiển thị theo shuffle
-              initialOrder: processed.map(i => i.idx),   // mapping: vị trí hiển thị -> index gốc
-              correct: Array.isArray(q.correct) && q.correct.length === options.length
-                ? q.correct                               // theo thứ tự gốc Firestore
-                : options.map(() => ""),
-              score: q.score ?? 1
-            };
-          }
-
-          if (type === "fillblank") {
-            const options = Array.isArray(q.options) ? q.options : []; // các đáp án đúng
-            const questionText = q.question || "";                     // câu có chỗ trống
-            return {
-              ...q,
-              id: questionId,
-              type,
-              question: questionText,
-              image: q.image ?? null,
-              option: q.option,               // giữ câu có dấu [...]
-              options,                        // đáp án đúng, giữ nguyên thứ tự gốc
-              shuffledOptions: shuffleArray([...options]), // shuffle một lần nếu cần
-              score: q.score ?? 1
-            };
-          }
-
-          return null;
-        }).filter(Boolean);
-
-
-        // --- Lọc câu hợp lệ bao gồm fillblank ---
-        const validQuestions = loadedQuestions.filter(q => {
-          if (q.type === "matching") return q.question.trim() !== "" && q.leftOptions.length > 0 && q.rightOptions.length > 0;
-          if (q.type === "sort") return q.question.trim() !== "" && q.options.length > 0;
-          if (["single", "multiple", "image"].includes(q.type)) return q.question.trim() !== "" && q.options.length > 0 && Array.isArray(q.correct);
-          if (q.type === "truefalse") return q.question.trim() !== "" && q.options.length >= 2 && Array.isArray(q.correct);
-          if (q.type === "fillblank") return q.question.trim() !== "" && q.options.length > 0;
-          return false;
-        });
-
-        setQuestions(validQuestions);
+        const runtimeQuestions = buildRuntimeQuestions(data.questions);
+        setQuestions(runtimeQuestions);
         // =======================
         // ✅ LƯU CONTEXT + STORAGE
         // =======================
@@ -541,12 +546,11 @@ export default function TracNghiem() {
           lopHoc,
           tenBai,
           class: data.class || "",
-          questions: validQuestions,
 
-          updatedAt: serverUpdatedAt, // ✅ BẮT BUỘC
-          savedAt: Date.now(),        // (tuỳ, để debug)
+          rawQuestions: data.questions,   // ✅ CHỈ LƯU RAW
+          updatedAt: serverUpdatedAt,     // ✅ BẮT BUỘC
+          savedAt: Date.now(),            // (tuỳ, debug)
         };
-
 
         setQuizCache(prev => ({
           ...prev,
@@ -561,15 +565,18 @@ export default function TracNghiem() {
 
         setAnswers(prev => {
           const next = { ...prev };
-          validQuestions.forEach(q => {
+
+          runtimeQuestions.forEach(q => {
             if (q.type === "sort" && Array.isArray(q.initialSortOrder)) {
               if (!Array.isArray(next[q.id])) {
                 next[q.id] = q.initialSortOrder;
               }
             }
           });
+
           return next;
         });
+
 
       } catch (err) {
         console.error("❌ Lỗi khi load câu hỏi:", err);
@@ -639,7 +646,6 @@ export default function TracNghiem() {
     handleSubmitQuiz({
       studentName,
       studentClass,
-      tenBaiRutGon,
       studentId,
       studentInfo,
       studentResult,
@@ -794,26 +800,15 @@ return (
       <Tooltip title="Thoát trắc nghiệm" arrow>
         <IconButton
           onClick={() => {
-            const goToInfo = () => {
-              navigate("/info", {
-                replace: true,
-                state: {
-                  fromExam: true, // ⭐ cờ để disable menu
-                  khoi: `Khối ${lopHoc}`,
-                  target: location.pathname + location.search,
-                },
-              });
-            };
-
-            // ❌ Không tìm thấy đề → quay về Info luôn
+            // Nếu thông báo chứa "❌ Không tìm thấy đề" → thoát ngay
             if (notFoundMessage?.includes("❌ Không tìm thấy đề trắc nghiệm!")) {
-              goToInfo();
-            }
-            // ✅ Đã nộp bài → quay về Info
+              navigate(-1);
+            } 
+            // Nếu đã submit → thoát luôn
             else if (submitted) {
-              goToInfo();
-            }
-            // ⚠️ Chưa nộp → hỏi xác nhận
+              navigate(-1);
+            } 
+            // Chưa submit → mở dialog xác nhận
             else {
               setOpenExitConfirm(true);
             }
@@ -830,7 +825,6 @@ return (
           <CloseIcon />
         </IconButton>
       </Tooltip>
-
 
 
 
@@ -876,12 +870,12 @@ return (
           alignItems: "center",
           mt: 0.5,
           mb: -2,
-          minHeight: 10, // giữ khoảng trống luôn
+          minHeight: 40, // giữ khoảng trống luôn
           width: "100%",
         }}
       >
         {/* Nội dung đồng hồ chỉ hiển thị khi started && !loading */}
-        {started && !loading && config.showTimer && (
+        {started && !loading && (
           <Box
             sx={{
               display: "flex",
@@ -890,19 +884,15 @@ return (
               px: 3,
               py: 0.5,
               borderRadius: 2,
-              bgcolor: "#fff",
+              bgcolor: "#fff", // tùy chỉnh nếu muốn nền
             }}
           >
             <AccessTimeIcon sx={{ color: "#d32f2f" }} />
-            <Typography
-              variant="h6"
-              sx={{ fontWeight: "bold", color: "#d32f2f" }}
-            >
+            <Typography variant="h6" sx={{ fontWeight: "bold", color: "#d32f2f" }}>
               {formatTime(timeLeft)}
             </Typography>
           </Box>
         )}
-
 
         {/* Đường gạch ngang màu xám nhạt luôn hiển thị */}
         <Box
@@ -1197,7 +1187,7 @@ return (
                         {/* ================= LEFT ================= */}
                         <Paper
                           sx={{
-                             flexGrow: ratio.left,
+                            flexGrow: ratio.left,
                             flexBasis: 0,
                             display: "flex",
                             alignItems: "center",

@@ -139,8 +139,10 @@ function Navigation() {
   const handleMenuClick = (item) => {
     if (item.action) {
       item.action();
+      return;
+    }
 
-    } else if (item.khoi) {
+    if (item.khoi) {
       if (config.locked) {
         setLockedDialogOpen(true);
         return;
@@ -148,34 +150,21 @@ function Navigation() {
 
       const soKhoi = item.khoi.replace('Khối ', '');
 
-      // ✅ HỆ THỐNG CŨ → VÀO THẲNG LỚP
+      // ✅ HỆ THỐNG CŨ → VÀO LỚP CŨ
       if (config.heThong === 'old') {
         navigate(`/lop${soKhoi}`);
         return;
       }
 
-      // ✅ HỆ THỐNG MỚI → QUA INFO
-      const newRouteMap = {
-        'Khối 1': '/lop1-new',
-        'Khối 2': '/lop2-new',
-        'Khối 3': '/lop3-new',
-        'Khối 4': '/lop4-new',
-        'Khối 5': '/lop5-new',
-      };
+      // ✅ HỆ THỐNG MỚI → VÀO LỚP MỚI (KHÔNG QUA INFO)
+      navigate(`/lop${soKhoi}-new`);
+      return;
+    }
 
-      navigate('/info', {
-        state: {
-          khoi: item.khoi,
-          heThong: 'new',
-          target: newRouteMap[item.khoi],
-        },
-      });
-    }
-    else {
-      // ✅ BẮT BUỘC PHẢI CÓ
-      navigate(item.path);
-    }
+    // ✅ MENU KHÁC
+    navigate(item.path);
   };
+
 
   return (
     <>
