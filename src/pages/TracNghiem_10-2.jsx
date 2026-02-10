@@ -121,22 +121,54 @@ export default function TracNghiem() {
   const tenBai = decodeURIComponent(searchParams.get("bai") || "");
   const lopHoc = searchParams.get("lop");
 
+  const tenBaiRutGon = getTenBaiRutGon(tenBai);
+  
+  function getTenBaiRutGon(tenBai) {
+    if (!tenBai) return "";
+    const match = tenBai.match(/^Bài\s+\d+[A-Z]?/i);
+    return match ? match[0] : tenBai;
+  }
+
+  useEffect(() => {
+    // ✅ 0️⃣ LƯU BÀI ĐANG LÀM (ĐÚNG CHỖ)
+    if (lopHoc || tenBai) {
+      const khoi = lopHoc ? `Khối ${lopHoc[0]}` : undefined;
+
+      localStorage.setItem(
+        "lastExam",
+        JSON.stringify({
+          khoi,
+          lop: lopHoc,
+          bai: tenBai,
+          bai: tenBaiRutGon, // ✅ dùng rút gọn
+          path: location.pathname + location.search,
+        })
+      );
+    }
+
+    // ✅ 1️⃣ VÉ THÔNG HÀNH (TỪ INFO QUAY LẠI)
+    if (location.state?.fromInfo) {
+      navigate(location.pathname + location.search, { replace: true });
+      return;
+    }
+
+    // ✅ 2️⃣ MỞ LINK TRỰC TIẾP → INFO
+    const khoiFinal = lopHoc ? `Khối ${lopHoc[0]}` : undefined;
+
+    navigate("/info", {
+      replace: true,
+      state: {
+        ...(khoiFinal ? { khoi: khoiFinal } : {}),
+        target: location.pathname + location.search,
+        disableKhoi: true,
+      },
+    });
+  }, []);
+
   // Đồng bộ thời gian nếu config thay đổi
   useEffect(() => {
     setTimeLeft(timeLimitMinutes * 60);
   }, [timeLimitMinutes]);
-
-  // Kiểm tra dữ liệu học sinh và redirect an toàn
-  useEffect(() => {
-    const hasStudentInfo =
-      (config?.fullname?.trim() || savedStudentInfo.fullname?.trim()) &&
-      (config?.lop?.trim() || savedStudentInfo.lop?.trim());
-
-    if (!hasStudentInfo) {
-      console.warn("❌ Thiếu dữ liệu học sinh, quay lại danh sách");
-      navigate("/hoc-sinh", { replace: true });
-    }
-  }, [config, savedStudentInfo, navigate]);
 
   // Lấy thông tin học sinh tiện dùng
   const studentInfo = {
@@ -607,6 +639,7 @@ export default function TracNghiem() {
     handleSubmitQuiz({
       studentName,
       studentClass,
+      tenBaiRutGon,
       studentId,
       studentInfo,
       studentResult,
@@ -725,6 +758,8 @@ const normalizeValue = (val) => {
   return String(val).trim();
 };
 
+const ratio = currentQuestion?.columnRatio || { left: 1, right: 1 };
+
 return (
   <Box
     id="quiz-container"
@@ -759,15 +794,26 @@ return (
       <Tooltip title="Thoát trắc nghiệm" arrow>
         <IconButton
           onClick={() => {
-            // Nếu thông báo chứa "❌ Không tìm thấy đề" → thoát ngay
+            const goToInfo = () => {
+              navigate("/info", {
+                replace: true,
+                state: {
+                  fromExam: true, // ⭐ cờ để disable menu
+                  khoi: `Khối ${lopHoc}`,
+                  target: location.pathname + location.search,
+                },
+              });
+            };
+
+            // ❌ Không tìm thấy đề → quay về Info luôn
             if (notFoundMessage?.includes("❌ Không tìm thấy đề trắc nghiệm!")) {
-              navigate(-1);
-            } 
-            // Nếu đã submit → thoát luôn
+              goToInfo();
+            }
+            // ✅ Đã nộp bài → quay về Info
             else if (submitted) {
-              navigate(-1);
-            } 
-            // Chưa submit → mở dialog xác nhận
+              goToInfo();
+            }
+            // ⚠️ Chưa nộp → hỏi xác nhận
             else {
               setOpenExitConfirm(true);
             }
@@ -784,6 +830,7 @@ return (
           <CloseIcon />
         </IconButton>
       </Tooltip>
+
 
 
 
@@ -816,7 +863,7 @@ return (
       <Typography
         variant="h6"
         fontWeight="bold"
-        sx={{ color: "#1976d2", mb: { xs: 1, sm: -1 }, textAlign: "center" }}
+        sx={{ color: "#1976d2", mt: { xs: 4, sm: -1 }, mb: { xs: 1, sm: -1 }, textAlign: "center" }}
       >
         {tenBai ? tenBai.toUpperCase() : "TRẮC NGHIỆM"}
       </Typography>
@@ -829,12 +876,12 @@ return (
           alignItems: "center",
           mt: 0.5,
           mb: -2,
-          minHeight: 40, // giữ khoảng trống luôn
+          minHeight: 10, // giữ khoảng trống luôn
           width: "100%",
         }}
       >
         {/* Nội dung đồng hồ chỉ hiển thị khi started && !loading */}
-        {started && !loading && (
+        {started && !loading && config.showTimer && (
           <Box
             sx={{
               display: "flex",
@@ -843,15 +890,19 @@ return (
               px: 3,
               py: 0.5,
               borderRadius: 2,
-              bgcolor: "#fff", // tùy chỉnh nếu muốn nền
+              bgcolor: "#fff",
             }}
           >
             <AccessTimeIcon sx={{ color: "#d32f2f" }} />
-            <Typography variant="h6" sx={{ fontWeight: "bold", color: "#d32f2f" }}>
+            <Typography
+              variant="h6"
+              sx={{ fontWeight: "bold", color: "#d32f2f" }}
+            >
               {formatTime(timeLeft)}
             </Typography>
           </Box>
         )}
+
 
         {/* Đường gạch ngang màu xám nhạt luôn hiển thị */}
         <Box
@@ -1146,7 +1197,8 @@ return (
                         {/* ================= LEFT ================= */}
                         <Paper
                           sx={{
-                            flex: 1,
+                             flexGrow: ratio.left,
+                            flexBasis: 0,
                             display: "flex",
                             alignItems: "center",
                             gap: 1.5,
@@ -1206,7 +1258,7 @@ return (
                             <Stack
                               ref={provided.innerRef}
                               {...provided.droppableProps}
-                              sx={{ flex: 1 }}
+                              sx={{ flexGrow: ratio.right, flexBasis: 0, }}
                             >
                               <Draggable
                                 key={rightIdx}
@@ -1732,7 +1784,7 @@ return (
                       border: "1px solid #90caf9",
                       cursor: submitted || !started ? "default" : "pointer",
 
-                      width: { xs: "100%", sm: 150 },
+                      width: { xs: 150, sm: 150 },
                       height: { xs: "auto", sm: 180 },
                       boxSizing: "border-box",
                     }}

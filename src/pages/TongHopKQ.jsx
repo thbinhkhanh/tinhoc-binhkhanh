@@ -80,32 +80,32 @@ export default function TongHopKQ() {
 
   // Load kết quả
   const loadResults = async () => {
-  if (!selectedLop) return;
+    if (!selectedLop) return;
 
-  const currentLop = selectedLop; // 🔒 chụp giá trị tại thời điểm gọi
-  setLoading(true);
+    const currentLop = selectedLop;
+    setLoading(true);
 
-  try {
-    const classKey = currentLop.replace(".", "_");
-    const hsColRef = collection(db, "DATA", classKey, "HOCSINH");
-    const hsSnap = await getDocs(hsColRef);
+    try {
+      const classKey = currentLop.replace(".", "_");
+      const hsColRef = collection(db, "DATA", classKey, "HOCSINH");
 
-    // ⚠️ nếu selectedLop đã đổi → bỏ kết quả
-    if (currentLop !== selectedLop) return;
+      // 1️⃣ Load danh sách học sinh
+      const hsSnap = await getDocs(hsColRef);
+      if (currentLop !== selectedLop) return;
 
-    if (hsSnap.empty) {
-      setResults([]);
-      setBaiList(["ALL"]);
-      setLoading(false);
-      return;
-    }
+      if (hsSnap.empty) {
+        setResults([]);
+        setBaiList(["ALL"]);
+        return;
+      }
 
-    const rows = [];
-    const baiSet = new Set();
+      const rows = [];
+      const baiSet = new Set();
 
-    await Promise.all(
-      hsSnap.docs.map(async (hsDoc) => {
+      // 2️⃣ Load BAITHI song song, nhưng xử lý GỌN
+      const tasks = hsSnap.docs.map(async (hsDoc) => {
         const hsData = hsDoc.data();
+        if (!hsData?.hoVaTen) return;
 
         const baiColRef = collection(
           db,
@@ -117,8 +117,7 @@ export default function TongHopKQ() {
         );
 
         const baiSnap = await getDocs(baiColRef);
-        if (currentLop !== selectedLop) return;
-        if (baiSnap.empty) return;
+        if (currentLop !== selectedLop || baiSnap.empty) return;
 
         baiSnap.forEach((baiDoc) => {
           const baiData = baiDoc.data();
@@ -126,46 +125,44 @@ export default function TongHopKQ() {
 
           baiSet.add(baiData.bai);
 
+          // ⚡ LỌC SỚM
           if (selectedBai !== "ALL" && baiData.bai !== selectedBai) return;
 
           rows.push({
-            hoVaTen: hsData.hoVaTen || "",
+            hoVaTen: hsData.hoVaTen,
             lop: currentLop,
             bai: baiData.bai,
             diem: baiData.diem ?? 0,
             thoiGianLamBai: baiData.thoiGianLamBai || "",
             ngayKiemTra: baiData.ngayKiemTra || "",
-            soLan: baiData.soLan ?? 1
+            soLan: baiData.soLan ?? 1,
           });
         });
-      })
-    );
+      });
 
-    // ⚠️ check lần cuối
-    if (currentLop !== selectedLop) return;
+      await Promise.all(tasks);
+      if (currentLop !== selectedLop) return;
 
-    rows.sort((a, b) => {
-      const soA = parseInt(a.bai.replace(/\D/g, ""), 10);
-      const soB = parseInt(b.bai.replace(/\D/g, ""), 10);
-      if (soA !== soB) return soA - soB;
+      // 3️⃣ SORT 1 LẦN DUY NHẤT
+      rows.sort((a, b) => {
+        const soA = parseInt(a.bai.replace(/\D/g, ""), 10);
+        const soB = parseInt(b.bai.replace(/\D/g, ""), 10);
+        if (soA !== soB) return soA - soB;
 
-      const na = a.hoVaTen.split(" ").reverse().join(" ");
-      const nb = b.hoVaTen.split(" ").reverse().join(" ");
-      return na.localeCompare(nb, "vi");
-    });
+        return a.hoVaTen.localeCompare(b.hoVaTen, "vi");
+      });
 
-    setResults(rows.map((r, i) => ({ stt: i + 1, ...r })));
-    setBaiList(["ALL", ...Array.from(baiSet)]);
+      // 4️⃣ SET STATE 1 LẦN
+      setResults(rows.map((r, i) => ({ stt: i + 1, ...r })));
+      setBaiList(["ALL", ...Array.from(baiSet)]);
 
-  } catch (err) {
-    console.error("❌ loadResults error:", err);
-    setResults([]);
-  }
-
-  setLoading(false);
-};
-
-
+    } catch (err) {
+      console.error("❌ loadResults error:", err);
+      setResults([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     loadResults();

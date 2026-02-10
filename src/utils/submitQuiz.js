@@ -151,6 +151,7 @@ export const handleSubmitQuiz = async ({
     // --- Hiển thị kết quả ---
     setStudentResult({
       hoVaTen: capitalizeName(studentName),
+      lop: studentClass, 
       bai: tenBaiRutGon,
       diem: total,
       diemTN: phanTram,

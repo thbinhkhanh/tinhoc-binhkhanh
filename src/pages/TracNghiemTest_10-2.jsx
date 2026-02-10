@@ -26,38 +26,27 @@ import { doc, getDoc, getDocs, setDoc, collection, updateDoc } from "firebase/fi
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 
 import { db } from "../firebase";
-//import { useContext } from "react";
-//import { ConfigContext } from "../context/ConfigContext";
-//import { exportQuizPDF } from "../utils/exportQuizPDF"; 
 import { handleSubmitQuiz } from "../utils/submitQuiz";
-//import { autoSubmitQuiz } from "../utils/autoSubmitQuiz";
 import { useConfig } from "../context/ConfigContext";
-import { useStudentQuizContext } from "../context/StudentQuizContext";
+import { useQuizContext } from "../context/QuizContext";
 
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import CloseIcon from "@mui/icons-material/Close";
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import HighlightOffIcon from '@mui/icons-material/HighlightOff';
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
-
-
-import Dialog from "@mui/material/Dialog";
-import DialogTitle from "@mui/material/DialogTitle";
-import DialogContent from "@mui/material/DialogContent";
-import DialogActions from "@mui/material/DialogActions";
 
 import { useLocation } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 
-//import { jsPDF } from "jspdf";
-//import html2canvas from "html2canvas";
-
 import IncompleteAnswersDialog from "../dialog/IncompleteAnswersDialog";
 import ExitConfirmDialog from "../dialog/ExitConfirmDialog";
+import OpenExamDialog from "../dialog/OpenExamDialog";
+import FolderOpenIcon from "@mui/icons-material/FolderOpen";
+
 import ResultDialog from "../dialog/ResultDialog";
-import { useSearchParams } from "react-router-dom";
 import ImageZoomDialog from "../dialog/ImageZoomDialog";
+
+import { useSearchParams } from "react-router-dom";
 
 
 // Hàm shuffle mảng
@@ -70,20 +59,20 @@ function shuffleArray(array) {
   return arr;
 }
 
-export default function TracNghiem() {
+export default function TracNghiemTest() {
   const location = useLocation();
   const navigate = useNavigate();
   const { config } = useConfig();
 
   // 🔹 Lấy học sinh từ context hoặc fallback localStorage
   const savedStudentInfo = JSON.parse(localStorage.getItem("studentInfo") || "{}");
-
+  const { quizCache, setQuizCache } = useQuizContext();
+  
   const studentId = config?.studentId || savedStudentInfo.studentId || "HS001";
   const fullname = config?.fullname || savedStudentInfo.fullname || "";
   const lop = config?.lop || savedStudentInfo.lop || "";
   const khoi = config?.khoi || savedStudentInfo.khoi || "";
   const mon = config?.mon || savedStudentInfo.mon || "Tin học";
-  const { quizCache, setQuizCache } = useStudentQuizContext();
 
   // 🔹 State quiz
   const [questions, setQuestions] = useState([]);
@@ -117,38 +106,52 @@ export default function TracNghiem() {
   const choXemDapAn = config?.choXemDapAn ?? false;
   const timeLimitMinutes = config?.timeLimit ?? 10;
 
+  // Lấy search params từ URL
   const [searchParams] = useSearchParams();
-  const tenBai = decodeURIComponent(searchParams.get("bai") || "");
-  const lopHoc = searchParams.get("lop");
+
+  // Collection và docId từ URL
+  const collectionName = searchParams.get("collection") || ""; 
+  const docId = searchParams.get("bai") || "";                 
+
+  // State lưu tên bài để hiển thị trong Typography
+  const [tenBaiParam, setTenBaiParam] = useState(docId); 
+  
+  useEffect(() => {
+    const bai = decodeURIComponent(searchParams.get("bai") || "");
+    setTenBaiParam(bai);
+  }, [searchParams]);
+
+  // Dialog mở đề
+  const [openExamDialog, setOpenExamDialog] = useState(false);
+  const handleOpenExamDialog = () => setOpenExamDialog(true);
+  const handleCloseExamDialog = () => setOpenExamDialog(false);
+
+  // Lớp và bài được chọn từ dialog
+  const [selectedLop, setSelectedLop] = useState("");
+  const [selectedBai, setSelectedBai] = useState("");
 
   // Đồng bộ thời gian nếu config thay đổi
   useEffect(() => {
     setTimeLeft(timeLimitMinutes * 60);
   }, [timeLimitMinutes]);
 
-  // Kiểm tra dữ liệu học sinh và redirect an toàn
-  useEffect(() => {
-    const hasStudentInfo =
-      (config?.fullname?.trim() || savedStudentInfo.fullname?.trim()) &&
-      (config?.lop?.trim() || savedStudentInfo.lop?.trim());
+  // Tên học sinh
+const studentName = "Tên học sinh";
 
-    if (!hasStudentInfo) {
-      console.warn("❌ Thiếu dữ liệu học sinh, quay lại danh sách");
-      navigate("/hoc-sinh", { replace: true });
-    }
-  }, [config, savedStudentInfo, navigate]);
+// Lấy số lớp từ selectedLop
+const lopSo = selectedLop ? selectedLop.slice(-1) : "";
 
-  // Lấy thông tin học sinh tiện dùng
-  const studentInfo = {
-    id: studentId,
-    name: fullname,
-    className: lop,
-    khoi,
-    mon,
-  };
+// Lớp hiển thị (in hoa)
+const studentClass = lopSo ? `${lopSo}` : "CHƯA CHỌN LỚP";
 
-  const studentClass = studentInfo.className;
-  const studentName = studentInfo.name;
+// Thông tin học sinh
+const studentInfo = {
+  id: "HS_TEST",
+  name: studentName.toUpperCase(),  // in hoa
+  className: studentClass,          // hiển thị "LỚP: 5"
+  khoi: lopSo,                      // số lớp thuần
+  mon: "TIN HỌC",                   // môn in hoa
+};
 
   useEffect(() => {
     if (started && !startTime) {
@@ -198,382 +201,355 @@ export default function TracNghiem() {
     return shuffled;
   }
 
-  function buildRuntimeQuestions(rawQuestions = []) {
-    // 🔥 1. SHUFFLE THỨ TỰ CÂU HỎI
-    let saved = shuffleArray([...rawQuestions]);
-
-    const loadedQuestions = saved.map((q, index) => {
-      const questionId = q.id ?? `q_${index}`;
-      const questionText =
-        typeof q.question === "string" ? q.question.trim() : "";
-
-      const rawType = (q.type || "").toString().trim().toLowerCase();
-      const type = [
-        "sort",
-        "matching",
-        "single",
-        "multiple",
-        "image",
-        "truefalse",
-        "fillblank",
-      ].includes(rawType)
-        ? rawType
-        : null;
-
-      if (!type) return null;
-
-      // ================= MATCHING =================
-      if (type === "matching") {
-        const pairs = Array.isArray(q.pairs) ? q.pairs : [];
-        if (pairs.length === 0) return null;
-
-        const leftOptions = pairs.map((p, idx) => {
-          if (p.leftImage && p.leftImage.url) {
-            return {
-              type: "image",
-              url: p.leftImage.url,
-              name: p.leftImage.name || `img-${idx}`,
-            };
-          }
-
-          if (
-            typeof p.left === "string" &&
-            /^https?:\/\//i.test(p.left.trim())
-          ) {
-            return {
-              type: "image",
-              url: p.left.trim(),
-              name: `img-${idx}`,
-            };
-          }
-
-          return p.left ?? "";
-        });
-
-        const rightOriginal = pairs.map((p, idx) => ({
-          opt: p.right,
-          idx,
-        }));
-
-        const processedRight =
-          q.sortType === "shuffle"
-            ? shuffleUntilDifferent(rightOriginal)
-            : rightOriginal;
-
-        const indexMap = {};
-        processedRight.forEach((item, newIndex) => {
-          indexMap[item.idx] = newIndex;
-        });
-
-        const correct = leftOptions.map((_, i) => indexMap[i]);
-
-        return {
-          ...q,
-          id: questionId,
-          type,
-          question: questionText,
-          image: q.image ?? null,
-          leftOptions,
-          rightOptions: processedRight.map(i => i.opt),
-          correct,
-          score: q.score ?? 1,
-        };
-      }
-
-      // ================= SORT =================
-      if (type === "sort") {
-        const options =
-          Array.isArray(q.options) && q.options.length > 0
-            ? [...q.options]
-            : ["", "", "", ""];
-
-        const indexed = options.map((opt, idx) => ({ opt, idx }));
-
-        const processed =
-          q.sortType === "shuffle"
-            ? shuffleUntilDifferent(indexed)
-            : indexed;
-
-        return {
-          ...q,
-          id: questionId,
-          type,
-          question: questionText,
-          image: q.image ?? null,
-          options: processed.map(i => i.opt),
-          initialSortOrder: processed.map(i => i.idx),
-          correctTexts: options,
-          score: q.score ?? 1,
-        };
-      }
-
-      // ================= SINGLE / MULTIPLE =================
-      if (type === "single" || type === "multiple") {
-        const options =
-          Array.isArray(q.options) && q.options.length > 0
-            ? q.options.map(opt => {
-                if (typeof opt === "string") {
-                  if (/^https?:\/\/.*\.(png|jpg|jpeg|gif)$/i.test(opt)) {
-                    return { text: "", image: opt };
-                  }
-                  return { text: opt, image: null };
-                }
-                if (typeof opt === "object") {
-                  return {
-                    text: opt.text ?? "",
-                    image: opt.image ?? null,
-                  };
-                }
-                return { text: "", image: null };
-              })
-            : [
-                { text: "", image: null },
-                { text: "", image: null },
-                { text: "", image: null },
-                { text: "", image: null },
-              ];
-
-        const indexed = options.map((opt, idx) => ({ opt, idx }));
-        const shouldShuffle =
-          q.sortType === "shuffle" || q.shuffleOptions === true;
-
-        const processed = shouldShuffle
-          ? shuffleArray(indexed)
-          : indexed;
-
-        return {
-          ...q,
-          id: questionId,
-          type,
-          question: questionText,
-          image: q.image ?? null,
-          options,
-          displayOrder: processed.map(i => i.idx),
-          correct: Array.isArray(q.correct)
-            ? q.correct.map(Number)
-            : typeof q.correct === "number"
-            ? [q.correct]
-            : [],
-          score: q.score ?? 1,
-        };
-      }
-
-      // ================= IMAGE =================
-      if (type === "image") {
-        const options =
-          Array.isArray(q.options) && q.options.length > 0
-            ? q.options
-            : ["", "", "", ""];
-
-        return {
-          ...q,
-          id: questionId,
-          type,
-          question: questionText,
-          image: q.image ?? null,
-          options,
-          displayOrder: shuffleArray(options.map((_, idx) => idx)),
-          correct: Array.isArray(q.correct) ? q.correct : [],
-          score: q.score ?? 1,
-        };
-      }
-
-      // ================= TRUE / FALSE =================
-      if (type === "truefalse") {
-        const options =
-          Array.isArray(q.options) && q.options.length >= 2
-            ? [...q.options]
-            : ["Đúng", "Sai"];
-
-        const indexed = options.map((opt, idx) => ({ opt, idx }));
-        const processed =
-          q.sortType === "shuffle" ? shuffleArray(indexed) : indexed;
-
-        return {
-          ...q,
-          id: questionId,
-          type,
-          question: questionText,
-          image: q.image ?? null,
-          options: processed.map(i => i.opt),
-          initialOrder: processed.map(i => i.idx),
-          correct:
-            Array.isArray(q.correct) && q.correct.length === options.length
-              ? q.correct
-              : options.map(() => ""),
-          score: q.score ?? 1,
-        };
-      }
-
-      // ================= FILL BLANK =================
-      if (type === "fillblank") {
-        const options = Array.isArray(q.options) ? q.options : [];
-
-        return {
-          ...q,
-          id: questionId,
-          type,
-          question: questionText,
-          image: q.image ?? null,
-          option: q.option,
-          options,
-          shuffledOptions: shuffleArray([...options]),
-          score: q.score ?? 1,
-        };
-      }
-
-      return null;
-    }).filter(Boolean);
-
-    // ================= VALIDATE =================
-    return loadedQuestions.filter(q => {
-      if (q.type === "matching")
-        return q.question.trim() && q.leftOptions.length && q.rightOptions.length;
-      if (q.type === "sort")
-        return q.question.trim() && q.options.length;
-      if (["single", "multiple", "image"].includes(q.type))
-        return q.question.trim() && q.options.length;
-      if (q.type === "truefalse")
-        return q.question.trim() && q.options.length >= 2;
-      if (q.type === "fillblank")
-        return q.question.trim() && q.options.length;
-      return false;
-    });
-  }
-
   useEffect(() => {
-    const fetchQuestions = async () => {
-      try {
-        setLoading(true);
+  const fetchQuestions = async () => {
+    try {
+      setLoading(true);
 
-        // =======================
-        // ❌ CHẶN LỖI NGAY ĐẦU
-        // =======================
-        if (!lopHoc || !tenBai) {
-          setSnackbar({
-            open: true,
-            message: "❌ Thiếu lớp hoặc tên bài học",
-            severity: "error",
-          });
-          setLoading(false);
-          return;
-        }
+      const lopHocParam = selectedLop;
+      const tenBaiParam = selectedBai;
 
-        const CACHE_KEY = `quiz_${lopHoc}_${tenBai}`;
-        const collectionName = `TRACNGHIEM${lopHoc}`;
-        const docId = tenBai;
+      if (!lopHocParam || !tenBaiParam) {
+        setSnackbar({
+          open: true,
+          message: "❌ Thiếu lớp hoặc tên bài học",
+          severity: "error",
+        });
+        setLoading(false);
+        return;
+      }
 
-        // =======================
-        // 🔥 1. LUÔN ĐỌC FIRESTORE TRƯỚC (LẤY updatedAt)
-        // =======================
-        const docRef = doc(db, collectionName, docId);
-        const docSnap = await getDoc(docRef);
+      const CACHE_KEY = `quiz_${lopHocParam}_${tenBaiParam}`;
+      const collectionName = `TRACNGHIEM${lopHocParam}`;
+      const docId = tenBaiParam;
 
-        if (!docSnap.exists()) {
-          const msg = "❌ Không tìm thấy đề trắc nghiệm!";
-          setSnackbar({ open: true, message: msg, severity: "error" });
-          setNotFoundMessage(msg);
-          setLoading(false);
-          return;
-        }
+      // =======================
+      // 🔥 1. LUÔN ĐỌC FIRESTORE TRƯỚC (lấy updatedAt)
+      // =======================
+      const docRef = doc(db, collectionName, docId);
+      const docSnap = await getDoc(docRef);
 
-        const data = docSnap.data();
-        const serverUpdatedAt =
-          typeof data.updatedAt === "number"
-            ? data.updatedAt
-            : data.updatedAt?.toMillis?.() ?? 0;
+      if (!docSnap.exists()) {
+        const msg = `❌ Không tìm thấy đề ${docId}!`;
+        setSnackbar({ open: true, message: msg, severity: "error" });
+        setNotFoundMessage(msg);
+        setLoading(false);
+        return;
+      }
 
-        // =======================
-        // ✅ 2. CONTEXT (VALIDATE)
-        // =======================
-        const cacheFromContext = quizCache?.[CACHE_KEY];
+      const data = docSnap.data();
+      const serverUpdatedAt =
+        typeof data.updatedAt === "number"
+          ? data.updatedAt
+          : data.updatedAt?.toMillis?.() ?? 0;
 
-        if (
-          cacheFromContext &&
-          cacheFromContext.updatedAt === serverUpdatedAt &&
-          Array.isArray(cacheFromContext.questions)
-        ) {
-          //console.log("🧠 LOAD FROM CONTEXT (VALID)", CACHE_KEY);
+      // =======================
+      // ✅ 2. CONTEXT (VALIDATE)
+      // =======================
+      const cacheFromContext = quizCache?.[CACHE_KEY];
+      if (
+        cacheFromContext &&
+        cacheFromContext.updatedAt === serverUpdatedAt &&
+        Array.isArray(cacheFromContext.questions)
+      ) {
+        //console.log("🧠 LOAD FROM CONTEXT (VALID)");
 
-          setQuestions(cacheFromContext.questions);
-          setQuizClass(cacheFromContext.class || "");
-          setStarted(true);
+        setQuestions(cacheFromContext.questions);
+        setQuizClass(cacheFromContext.class || "");
+        setAnswers({});
+        setSubmitted(false);
+        setCurrentIndex(0);
+        setFillBlankStatus({});
+        setProgress(100);
+        setStarted(true);
+        setLoading(false);
+        return;
+      }
+
+      //console.log("🧠 CONTEXT INVALID → SKIP");
+
+      // =======================
+      // ✅ 3. LOCALSTORAGE (VALIDATE)
+      // =======================
+      const cachedLocal = localStorage.getItem(CACHE_KEY);
+      if (cachedLocal) {
+        const parsed = JSON.parse(cachedLocal);
+
+        if (parsed.updatedAt === serverUpdatedAt) {
+          //console.log("💾 LOAD FROM LOCALSTORAGE (VALID)");
+
+          setQuestions(parsed.questions);
+          setQuizClass(parsed.class || "");
+          setAnswers({});
+          setSubmitted(false);
+          setCurrentIndex(0);
+          setFillBlankStatus({});
           setProgress(100);
+          setStarted(true);
+
+          // ⚠️ SYNC LẠI CONTEXT DẠNG MAP (KHÔNG GHI ĐÈ)
+          setQuizCache(prev => ({
+            ...prev,
+            [CACHE_KEY]: parsed,
+          }));
+
           setLoading(false);
           return;
+        } else {
+          //console.log("🗑 LOCALSTORAGE INVALID → REMOVE");
+          localStorage.removeItem(CACHE_KEY);
         }
-
-        // =======================
-        // ✅ 3. LOCALSTORAGE (VALIDATE)
-        // =======================
-        const stored = localStorage.getItem(CACHE_KEY);
-        if (stored) {
-          const parsed = JSON.parse(stored);
-
-          if (
-            parsed.updatedAt === serverUpdatedAt &&
-            Array.isArray(parsed.questions)
-          ) {
-            //console.log("💾 LOAD FROM LOCALSTORAGE (VALID)", CACHE_KEY);
-
-            setQuestions(parsed.questions);
-            setQuizClass(parsed.class || "");
-            setStarted(true);
-            setProgress(100);
-
-            // ✅ sync lại context (LƯU NHIỀU ĐỀ)
-            setQuizCache(prev => ({
-              ...prev,
-              [CACHE_KEY]: parsed,
-            }));
-
-            setLoading(false);
-            return;
-          } else {
-            // ❌ đề cũ → xoá
-            localStorage.removeItem(CACHE_KEY);
-          }
-        }
+      }
 
         // --- Xử lý câu hỏi ---
-        const runtimeQuestions = buildRuntimeQuestions(data.questions);
-        setQuestions(runtimeQuestions);
+        let saved = Array.isArray(data.questions) ? data.questions : [];
+        saved = shuffleArray(saved);
+
+        const loadedQuestions = saved.map((q, index) => {
+          const questionId = q.id ?? `q_${index}`;
+          const questionText = typeof q.question === "string" ? q.question.trim() : "";
+          const rawType = (q.type || "").toString().trim().toLowerCase();
+          const type = ["sort", "matching", "single", "multiple", "image", "truefalse", "fillblank"].includes(rawType)
+            ? rawType
+            : null;
+          if (!type) return null;
+
+          if (type === "matching") {
+            const pairs = Array.isArray(q.pairs) ? q.pairs : [];
+            if (pairs.length === 0) return null;
+
+            // Chuẩn hóa cột trái
+            const leftOptions = pairs.map((p, idx) => {
+              // CASE 1: leftImage
+              if (p.leftImage?.url) {
+                return { type: "image", url: p.leftImage.url, name: p.leftImage.name || `img-${idx}` };
+              }
+
+              // CASE 2: leftIconImage + optional text
+              if (p.leftIconImage?.url) {
+                return {
+                  type: "icon",
+                  url: p.leftIconImage.url,
+                  name: p.leftIconImage.name || `icon-${idx}`,
+                  text: p.left ?? "", // giữ text nếu có
+                };
+              }
+
+              // CASE 3: left là URL string
+              if (typeof p.left === "string" && /^https?:\/\//i.test(p.left.trim())) {
+                return { type: "image", url: p.left.trim(), name: `img-${idx}` };
+              }
+
+              // CASE 4: left là text bình thường
+              if (typeof p.left === "string") {
+                return { type: "text", text: p.left };
+              }
+
+              // fallback: trả về text rỗng
+              return { type: "text", text: "" };
+            });
+
+            // Cột phải: đảo nếu cần
+            const rightOptionsOriginal = pairs.map((p, idx) => ({ opt: p.right, idx }));
+            const processedRightOptions =
+              q.sortType === "shuffle"
+                ? shuffleUntilDifferent(rightOptionsOriginal)
+                : rightOptionsOriginal;
+
+            const originalRightIndexMap = {};
+            processedRightOptions.forEach((item, newIndex) => {
+              originalRightIndexMap[item.idx] = newIndex;
+            });
+
+            const newCorrect = leftOptions.map((_, i) => originalRightIndexMap[i]);
+
+            return {
+              ...q,
+              id: questionId,
+              type,
+              question: questionText,
+              image: q.image ?? null,
+              leftOptions, // chuẩn hóa: type = "image" | "icon" | "text"
+              rightOptions: processedRightOptions.map(i => i.opt),
+              correct: newCorrect,
+              score: q.score ?? 1,
+            };
+          }
+
+          if (type === "sort") {
+            const options = Array.isArray(q.options) && q.options.length > 0
+              ? [...q.options]
+              : ["", "", "", ""];
+
+            const indexed = options.map((opt, idx) => ({ opt, idx }));
+
+            // Nếu sortType là "shuffle" thì đảo, nếu là "fixed" thì giữ nguyên
+            const processed =
+              q.sortType === "shuffle"
+                ? shuffleUntilDifferent(indexed)
+                : indexed;
+
+            const shuffledOptions = processed.map(i => i.opt);
+
+            return {
+              ...q,
+              id: questionId,
+              type,
+              question: questionText,
+              image: q.image ?? null,
+              options: shuffledOptions,                    // hiển thị theo shuffle hoặc giữ nguyên
+              initialSortOrder: processed.map(i => i.idx), // thứ tự index sau shuffle/giữ nguyên
+              correctTexts: options,                       // đáp án đúng: text gốc Firestore
+              score: q.score ?? 1,
+            };
+          }
+
+          if (type === "single" || type === "multiple") {
+            // Chuẩn hóa options
+            const options = Array.isArray(q.options) && q.options.length > 0
+              ? q.options.map((opt) => {
+                  if (typeof opt === "string") {
+                    // Nếu là URL => đặt vào image, còn text để trống
+                    if (/^https?:\/\/.*\.(png|jpg|jpeg|gif)$/i.test(opt)) {
+                      return { text: "", image: opt };
+                    }
+                    return { text: opt, image: null };
+                  } else if (typeof opt === "object") {
+                    // Giữ text và image, nếu text là URL hình => vẫn giữ cả hai
+                    return {
+                      text: opt.text ?? "",
+                      image: opt.image ?? null
+                    };
+                  }
+                  return { text: "", image: null };
+                })
+              : [
+                  { text: "", image: null },
+                  { text: "", image: null },
+                  { text: "", image: null },
+                  { text: "", image: null },
+                ];
+
+            const indexed = options.map((opt, idx) => ({ opt, idx }));
+            const shouldShuffle = q.sortType === "shuffle" || q.shuffleOptions === true;
+            const shuffled = shouldShuffle ? shuffleArray(indexed) : indexed;
+
+            return { 
+              ...q,
+              id: questionId,
+              type,
+              question: questionText,
+              image: q.image ?? null,      // hình minh họa câu hỏi
+              options,                     // mảng chuẩn {text, image}
+              displayOrder: shuffled.map(i => i.idx),
+              correct: Array.isArray(q.correct) 
+                ? q.correct.map(Number) 
+                : typeof q.correct === "number" 
+                  ? [q.correct] 
+                  : [],
+              score: q.score ?? 1
+            };
+          }
+
+          if (type === "image") {
+            const options = Array.isArray(q.options) && q.options.length > 0 ? q.options : ["", "", "", ""];
+            const correct = Array.isArray(q.correct) ? q.correct : [];
+            return { 
+              ...q, 
+              id: questionId, 
+              type, 
+              question: questionText, 
+              image: q.image ?? null,          // ✅ Thêm image
+              options, 
+              displayOrder: shuffleArray(options.map((_, idx) => idx)), 
+              correct, 
+              score: q.score ?? 1 
+            };
+          }
+
+          if (type === "truefalse") {
+            const options = Array.isArray(q.options) && q.options.length >= 2
+              ? [...q.options]
+              : ["Đúng", "Sai"];
+
+            const indexed = options.map((opt, idx) => ({ opt, idx }));
+            const processed = q.sortType === "shuffle" ? shuffleArray(indexed) : indexed;
+
+            return {
+              ...q,
+              id: questionId,
+              type,
+              question: questionText,
+              image: q.image ?? null,
+              options: processed.map(i => i.opt),        // hiển thị theo shuffle
+              initialOrder: processed.map(i => i.idx),   // mapping: vị trí hiển thị -> index gốc
+              correct: Array.isArray(q.correct) && q.correct.length === options.length
+                ? q.correct                               // theo thứ tự gốc Firestore
+                : options.map(() => ""),
+              score: q.score ?? 1
+            };
+          }
+
+          if (type === "fillblank") {
+            const options = Array.isArray(q.options) ? q.options : []; // các đáp án đúng
+            const questionText = q.question || "";                     // câu có chỗ trống
+            return {
+              ...q,
+              id: questionId,
+              type,
+              question: questionText,
+              image: q.image ?? null,
+              option: q.option,               // giữ câu có dấu [...]
+              options,                        // đáp án đúng, giữ nguyên thứ tự gốc
+              shuffledOptions: shuffleArray([...options]), // shuffle một lần nếu cần
+              score: q.score ?? 1
+            };
+          }
+
+          return null;
+        }).filter(Boolean);
+
+        // --- Lọc câu hợp lệ bao gồm fillblank ---
+        const validQuestions = loadedQuestions.filter(q => {
+          if (q.type === "matching") return q.question.trim() !== "" && q.leftOptions.length > 0 && q.rightOptions.length > 0;
+          if (q.type === "sort") return q.question.trim() !== "" && q.options.length > 0;
+          if (["single", "multiple", "image"].includes(q.type)) return q.question.trim() !== "" && q.options.length > 0 && Array.isArray(q.correct);
+          if (q.type === "truefalse") return q.question.trim() !== "" && q.options.length >= 2 && Array.isArray(q.correct);
+          if (q.type === "fillblank") return q.question.trim() !== "" && q.options.length > 0;
+          return false;
+        });
+
+        setQuestions(validQuestions);
+        setProgress(100);
+        setStarted(true);
+
         // =======================
-        // ✅ LƯU CONTEXT + STORAGE
+        // ✅ LƯU CACHE SAU FETCH
         // =======================
         const cachePayload = {
-          key: CACHE_KEY,
-          lopHoc,
-          tenBai,
+          key: `quiz_${lopHocParam}_${tenBaiParam}`,
+          questions: validQuestions,
           class: data.class || "",
-
-          rawQuestions: data.questions,   // ✅ CHỈ LƯU RAW
-          updatedAt: serverUpdatedAt,     // ✅ BẮT BUỘC
-          savedAt: Date.now(),            // (tuỳ, debug)
+          updatedAt: serverUpdatedAt, // ⭐ BẮT BUỘC
         };
 
         setQuizCache(prev => ({
           ...prev,
-          [CACHE_KEY]: cachePayload
+          [CACHE_KEY]: cachePayload,
         }));
 
-        localStorage.setItem(CACHE_KEY, JSON.stringify(cachePayload));
+        localStorage.setItem(cachePayload.key, JSON.stringify(cachePayload));
 
-
-        setProgress(100);
-        setStarted(true);
 
         setAnswers(prev => {
           const next = { ...prev };
-
-          runtimeQuestions.forEach(q => {
+          validQuestions.forEach(q => {
             if (q.type === "sort" && Array.isArray(q.initialSortOrder)) {
               if (!Array.isArray(next[q.id])) {
                 next[q.id] = q.initialSortOrder;
               }
             }
           });
-
           return next;
         });
 
@@ -587,7 +563,7 @@ export default function TracNghiem() {
     };
 
     fetchQuestions();
-  }, [tenBai, lopHoc]);
+  }, [selectedLop, selectedBai]);
 
   // Hàm chuyển chữ đầu thành hoa
   const capitalizeName = (name = "") =>
@@ -597,21 +573,6 @@ export default function TracNghiem() {
       .filter(word => word.trim() !== "")
       .map(word => word[0].toUpperCase() + word.slice(1))
       .join(" ");
-
-  // Sử dụng:
-  const hoVaTen = capitalizeName(studentName);
-
-  /*function mapHocKyToDocKey(loaiKT) {
-    switch (loaiKT) {
-      case "Giữa kỳ I": return "GKI";
-      case "Cuối kỳ I": return "CKI";
-      case "Giữa kỳ II": return "GKII";
-      case "Cả năm": return "CN";
-      default:
-        console.warn("❌ Loại kiểm tra không xác định:", loaiKT);
-        return "UNKNOWN";
-    }
-  }*/
 
   const getQuestionMax = (q) => {
     // Nếu có scoreTotal thì dùng (tổng sẵn của câu)
@@ -664,6 +625,7 @@ export default function TracNghiem() {
       getQuestionMax,
       capitalizeName,
       formatTime,
+      isTestMode: true,
     });
 
   const handleNext = () => currentIndex < questions.length - 1 && setCurrentIndex(currentIndex + 1);
@@ -678,18 +640,12 @@ export default function TracNghiem() {
     return Math.ceil(raw);
   };
 
-/*useEffect(() => {
-    if (config.timeLimit) setTimeLeft(config.timeLimit * 60);
-  }, [config.timeLimit]);*/
-
   function reorder(list, startIndex, endIndex) {
     const result = Array.from(list);
     const [removed] = result.splice(startIndex, 1);
     result.splice(endIndex, 0, removed);
     return result;
   }
-
-  // Giả sử bạn đang dùng useState để lưu đáp án
 
 // Single: luôn lưu là số index
 const handleSingleSelect = (questionId, optionIndex) => {
@@ -775,7 +731,7 @@ return (
       flexDirection: "column",
       alignItems: "center",
       background: "linear-gradient(to bottom, #e3f2fd, #bbdefb)",
-      pt: { xs: 10, sm: 10 }, // <-- Thêm khoảng trống trên như trang mẫu
+      pt: { xs: 10, sm: 10 }, 
       px: { xs: 1, sm: 2 },
     }}
   >
@@ -785,23 +741,37 @@ return (
         borderRadius: 3,
         width: "100%",
         maxWidth: 1000,
-        minWidth: { xs: "auto", sm: 700 },   // sửa minWidth giống mẫu
-        minHeight: { xs: "auto", sm: 650 },  // sửa minHeight giống mẫu
+        minWidth: { xs: "auto", sm: 700 },   
+        minHeight: { xs: "auto", sm: 650 },  
         display: "flex",
         flexDirection: "column",
         gap: 2,
         position: "relative",
         boxSizing: "border-box",
-        backgroundColor: "#fff",             // thêm nền trắng giống mẫu
+        backgroundColor: "#fff",             
         pb: 3,
       }}
     >
+      <Tooltip title="Mở đề trắc nghiệm">
+        <IconButton
+          onClick={handleOpenExamDialog}
+          sx={{
+            position: "absolute", 
+            top: 8,
+            left: 8,
+            color: "#1976d2",
+          }}
+        >
+          <FolderOpenIcon fontSize="medium" />
+        </IconButton>
+      </Tooltip>
+
       {/* Nút thoát */}
       <Tooltip title="Thoát trắc nghiệm" arrow>
         <IconButton
           onClick={() => {
             // Nếu thông báo chứa "❌ Không tìm thấy đề" → thoát ngay
-            if (notFoundMessage?.includes("❌ Không tìm thấy đề trắc nghiệm!")) {
+            if (notFoundMessage?.includes("❌ Không tìm thấy đề")) {
               navigate(-1);
             } 
             // Nếu đã submit → thoát luôn
@@ -826,40 +796,15 @@ return (
         </IconButton>
       </Tooltip>
 
-
-
-      {/* Thông tin học sinh */}
-      {/*<Box
-        sx={{
-          p: 1.5,
-          border: "2px solid #1976d2",
-          borderRadius: 2,
-          color: "#1976d2",
-          width: "fit-content",
-          mb: 2,
-          position: { xs: "relative", sm: "absolute" },
-          top: { sm: 16 },
-          left: { sm: 16 },
-          alignSelf: { xs: "flex-start", sm: "auto" },
-          bgcolor: { xs: "#fff", sm: "transparent" },
-          zIndex: 2,
-        }}
-      >
-        <Typography variant="subtitle1" fontWeight="bold">
-          Tên: {capitalizeName(studentInfo.name)}
-        </Typography>
-        <Typography variant="subtitle1" fontWeight="bold">
-          Lớp: {studentInfo.className} 
-        </Typography>*
-      </Box>*/}
-
       {/* Tiêu đề */}
       <Typography
         variant="h6"
         fontWeight="bold"
         sx={{ color: "#1976d2", mt: { xs: 4, sm: -1 }, mb: { xs: 1, sm: -1 }, textAlign: "center" }}
       >
-        {tenBai ? tenBai.toUpperCase() : "TRẮC NGHIỆM"}
+        {selectedBai
+         ? `LỚP ${String(selectedLop).toUpperCase()} - ${String(selectedBai).toUpperCase()}`
+          : "TRẮC NGHIỆM"}
       </Typography>
 
       {/* Đồng hồ với vị trí cố định */}
@@ -904,6 +849,7 @@ return (
           }}
         />
       </Box>
+
 
       {/* Loading */}
       {loading && (
@@ -2098,26 +2044,6 @@ return (
         </Stack>
       )}
 
-
-      {/*{notFoundMessage && (
-        <Card
-          sx={{
-            bgcolor: "#ffebee",
-            border: "1px solid #f44336",
-            p: 2,
-            mb: 2,
-            width: "60%",    // chiếm 50% chiều rộng
-            mx: "auto",      // căn giữa ngang
-            mt: 4            // optional: thêm khoảng cách từ trên
-          }}
-        >
-          <Typography
-            sx={{ color: "#d32f2f", fontWeight: "bold", fontSize: "1.5rem", textAlign: "center" }}
-          >
-            {notFoundMessage}
-          </Typography>
-        </Card>
-      )}*/}
     </Paper>
 
     {/* Dialog câu chưa làm */}
@@ -2145,27 +2071,27 @@ return (
       convertPercentToScore={convertPercentToScore}
     />
 
+    <OpenExamDialog
+      open={openExamDialog}
+      onClose={() => setOpenExamDialog(false)}
+      onSelectExam={(lop, bai) => {
+        //console.log("🔥 Parent nhận:", { lop, bai });
+
+        // Chỉ update state để useEffect chạy
+        setSelectedLop(lop);
+        setSelectedBai(bai);
+
+        // Đóng dialog
+        setOpenExamDialog(false);
+      }}
+    />
+
     <ImageZoomDialog
       open={Boolean(zoomImage)}
       imageSrc={zoomImage}
       onClose={() => setZoomImage(null)}
     />
 
-    {/* Snackbar */}
-    <Snackbar
-      open={snackbar.open}
-      autoHideDuration={3000}
-      onClose={handleCloseSnackbar}
-      anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-    >
-      <Alert
-        onClose={handleCloseSnackbar}
-        severity={snackbar.severity}
-        sx={{ width: "100%" }}
-      >
-        {snackbar.message}
-      </Alert>
-    </Snackbar>
   </Box>
 );
 
