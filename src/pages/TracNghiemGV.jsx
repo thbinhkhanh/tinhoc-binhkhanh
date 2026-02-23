@@ -449,9 +449,24 @@ export default function TracNghiemGV() {
                     },
                   },
                 }}
-                onChange={(e) => {
+                onChange={async (e) => {
                   const value = e.target.value;
+
                   setLesson(value);
+
+                  try {
+                    await setDoc(
+                      doc(db, "CONFIG", "config"),
+                      {
+                        selectedClass,
+                        lesson: value,
+                      },
+                      { merge: true }
+                    );
+                  } catch (err) {
+                    console.error("❌ Không lưu CONFIG:", err);
+                  }
+
                   fetchExam({ selectedClass, lessonFullName: value });
                 }}
               >
