@@ -2128,8 +2128,31 @@ return (
               }}
             >
               {questions.map((q, index) => {
+                const status = getQuestionStatus({
+                  question: q,
+                  userAnswer: answers[q.id],
+                  submitted,
+                });
+
                 const active = currentIndex === index;
-                const answered = answers[q.id] != null;
+
+                let bgcolor = "#eeeeee";
+                let border = "1px solid transparent";
+
+                if (!submitted) {
+                  if (status === "answered") bgcolor = "#bbdefb";
+                } else {
+                  if (status === "correct") bgcolor = "#c8e6c9"; // xanh lá
+                  else if (status === "wrong") bgcolor = "#ffcdd2"; // đỏ
+                  else {
+                    bgcolor = "#fafafa";
+                    border = "1px dashed #bdbdbd";
+                  }
+                }
+
+                if (active) {
+                  border = "2px solid #1976d2";
+                }
 
                 return (
                   <IconButton
@@ -2141,10 +2164,8 @@ return (
                       borderRadius: "50%",
                       fontSize: "0.85rem",
                       fontWeight: 600,
-                      bgcolor: answered ? "#bbdefb" : "#eeeeee",
-                      border: active
-                        ? "2px solid #1976d2"
-                        : "1px solid transparent",
+                      bgcolor,
+                      border,
                     }}
                   >
                     {index + 1}

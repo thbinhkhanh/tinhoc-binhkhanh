@@ -1,11 +1,15 @@
-export function getQuestionStatus({
-  question,
-  userAnswer,
-  submitted = false,
-}) {
-  /* ===============================
-   * 1️⃣ CHƯA LÀM (CHỈ ÁP DỤNG KHI CHƯA NỘP)
-   * =============================== */
+const normalizeValue = (val) => {
+  if (typeof val === "object") {
+    if (val.image) return String(val.image).trim().toLowerCase();
+    if (val.text) return val.text.trim().toLowerCase();
+  }
+  if (typeof val === "string") {
+    return val.trim().toLowerCase();
+  }
+  return String(val).trim().toLowerCase();
+};
+
+export function getQuestionStatus({ question, userAnswer, submitted = false }) {
   const isUnanswered = () => {
     if (userAnswer === undefined || userAnswer === null) return true;
 
@@ -20,30 +24,26 @@ export function getQuestionStatus({
       case "fillblank":
         return (
           !Array.isArray(userAnswer) ||
-          userAnswer.every(v => !v || v.trim() === "")
+          userAnswer.every((v) => !v || v.trim() === "")
         );
 
-      case "sort":
-        return (
-          Array.isArray(question.initialSortOrder) &&
-          Array.isArray(userAnswer) &&
-          JSON.stringify(userAnswer) ===
-            JSON.stringify(question.initialSortOrder)
-        );
+      case "sort": {
+        if (!Array.isArray(userAnswer) || userAnswer.length === 0) return true;
+
+        // mặc định nếu chưa kéo thì thứ tự = [0,1,2,3...]
+        const defaultOrder = question.options.map((_, i) => i);
+
+        return userAnswer.every((val, i) => val === defaultOrder[i]);
+      }
 
       case "matching":
-        return (
-          Array.isArray(question.correct) &&
-          Array.isArray(userAnswer) &&
-          JSON.stringify(userAnswer) ===
-            JSON.stringify(question.correct)
-        );
+        return !Array.isArray(userAnswer) || userAnswer.length === 0;
 
       case "truefalse": {
         const defaultOrder = question.options.map((_, i) => i);
         return (
           Array.isArray(userAnswer) &&
-          JSON.stringify(userAnswer) === JSON.stringify(defaultOrder)
+          userAnswer.every((val, i) => val === defaultOrder[i])
         );
       }
 
@@ -52,17 +52,9 @@ export function getQuestionStatus({
     }
   };
 
-  // 🔑 CHỈ coi là unanswered KHI CHƯA NỘP
   if (!submitted && isUnanswered()) return "unanswered";
-
-  /* ===============================
-   * 2️⃣ ĐÃ LÀM – CHƯA NỘP
-   * =============================== */
   if (!submitted) return "answered";
 
-  /* ===============================
-   * 3️⃣ SAU KHI NỘP → ĐÚNG / SAI
-   * =============================== */
   let isCorrect = false;
 
   switch (question.type) {
@@ -76,15 +68,13 @@ export function getQuestionStatus({
 
     case "multiple":
     case "image": {
-      const userSet = new Set(userAnswer);
+      const userSet = new Set(Array.isArray(userAnswer) ? userAnswer : []);
       const correctSet = new Set(
-        Array.isArray(question.correct)
-          ? question.correct
-          : [question.correct]
+        Array.isArray(question.correct) ? question.correct : [question.correct]
       );
       isCorrect =
         userSet.size === correctSet.size &&
-        [...correctSet].every(v => userSet.has(v));
+        [...correctSet].every((x) => userSet.has(x));
       break;
     }
 
@@ -95,39 +85,46 @@ export function getQuestionStatus({
         ua.length === ca.length &&
         ua.every((val, i) => {
           const originalIdx = question.initialOrder?.[i] ?? i;
-          return val === ca[originalIdx];
+          return normalizeValue(val) === normalizeValue(ca[originalIdx]);
         });
       break;
     }
 
     case "fillblank": {
       const ua = Array.isArray(userAnswer) ? userAnswer : [];
-      const ca = question.options || [];
+      const ca = Array.isArray(question.options) ? question.options : [];
       isCorrect =
         ua.length === ca.length &&
-        ca.every((opt, i) =>
-          ua[i]?.trim().toLowerCase() ===
-          opt.text?.trim().toLowerCase()
+        ca.every(
+          (correct, i) =>
+            ua[i] &&
+            normalizeValue(ua[i]) ===
+              normalizeValue(typeof correct === "object" ? correct.text : correct)
         );
       break;
     }
 
     case "sort": {
       const ua = Array.isArray(userAnswer) ? userAnswer : [];
-      const userTexts = ua.map(i => question.options[i]);
-      const correctTexts = question.correctTexts || [];
+      const userTexts = ua.map((idx) => question.options[idx]);
+      const correctTexts = Array.isArray(question.correctTexts)
+        ? question.correctTexts
+        : [];
       isCorrect =
         userTexts.length === correctTexts.length &&
-        userTexts.every((t, i) => t === correctTexts[i]);
+        userTexts.every(
+          (val, i) => normalizeValue(val) === normalizeValue(correctTexts[i])
+        );
       break;
     }
 
     case "matching": {
       const ua = Array.isArray(userAnswer) ? userAnswer : [];
-      const ca = question.correct || [];
+      const ca = Array.isArray(question.correct) ? question.correct : [];
       isCorrect =
+        ua.length > 0 &&
         ua.length === ca.length &&
-        ua.every((v, i) => v === ca[i]);
+        ua.every((val, i) => normalizeValue(val) === normalizeValue(ca[i]));
       break;
     }
   }

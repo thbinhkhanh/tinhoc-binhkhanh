@@ -109,23 +109,11 @@ export const handleSubmitQuiz = async ({
       } else if (q.type === "truefalse") {
         const userArray = Array.isArray(rawAnswer) ? rawAnswer : [];
         const correctArray = Array.isArray(q.correct) ? q.correct : [];
-
         if (userArray.length === correctArray.length) {
-          const isAllCorrect = userArray.every((val, i) => {
-            const originalIdx = Array.isArray(q.initialOrder)
-              ? q.initialOrder[i]
-              : i;
-
-            const normalizedVal =
-              val === "Đúng" ? "Đ" :
-              val === "Sai" ? "S" :
-              val;
-
-            return normalizedVal === correctArray[originalIdx];
-          });
-
+          const isAllCorrect = userArray.every((val, i) => val === correctArray[i]);
           if (isAllCorrect) total += q.score ?? 1;
         }
+
       } else if (q.type === "fillblank") {
         const userAnswers = Array.isArray(rawAnswer) ? rawAnswer : [];
         const correctAnswers = Array.isArray(q.options) ? q.options : [];
