@@ -20,7 +20,6 @@ import {
   Select,
   MenuItem,
   Card,
-  InputLabel, 
 } from "@mui/material";
 import { doc, getDoc, getDocs, setDoc, collection, updateDoc } from "firebase/firestore";
 // Thay cho react-beautiful-dnd
@@ -115,10 +114,6 @@ export default function TracNghiemTest() {
   const choXemDiem = config?.choXemDiem ?? false;
   const choXemDapAn = config?.choXemDapAn ?? false;
   const timeLimitMinutes = config?.timeLimit ?? 10;
-
-  const [dropdownClass, setDropdownClass] = useState("");
-  const [dropdownLesson, setDropdownLesson] = useState("");
-  const [lessonsFromFirestore, setLessonsFromFirestore] = useState([]);
 
   // Lấy search params từ URL
   const [searchParams] = useSearchParams();
@@ -761,39 +756,6 @@ const sidebarConfig = React.useMemo(() => {
 const hasSidebar = sidebarConfig && questions.length > 0;
 const isSidebarVisible = hasSidebar && showSidebar;
 
-useEffect(() => {
-  const fetchLessons = async () => {
-    if (!dropdownClass) return;
-
-    try {
-      const lopSo = dropdownClass.replace("Lớp ", "");
-      const collectionName = `TRACNGHIEM${lopSo}`;
-
-      const snapshot = await getDocs(collection(db, collectionName));
-
-      const lessonNames = snapshot.docs.map(doc => doc.id);
-
-      setLessonsFromFirestore(lessonNames);
-    } catch (err) {
-      console.error("Lỗi load bài:", err);
-      setLessonsFromFirestore([]);
-    }
-  };
-
-  fetchLessons();
-}, [dropdownClass]);
-
-const handleOpenExamFromDropdown = (lop, bai) => {
-  // chỉ set state
-  setSelectedLop(lop);
-  setSelectedBai(bai);
-
-  // reset trạng thái làm bài
-  setAnswers({});
-  setCurrentIndex(0);
-  setSubmitted(false);
-};
-
 return (
   <Box
     id="quiz-container"
@@ -875,79 +837,12 @@ return (
           <Typography
             variant="h6"
             fontWeight="bold"
-            sx={{ color: "#1976d2", mt: { xs: 4, sm: -1 }, mb: { xs: 1, sm: 1 }, textAlign: "center" }}
+            sx={{ color: "#1976d2", mt: { xs: 4, sm: -1 }, mb: { xs: 1, sm: -1 }, textAlign: "center" }}
           >
             {selectedBai
             ? `LỚP ${String(selectedLop).toUpperCase()} - ${String(selectedBai).toUpperCase()}`
               : "TRẮC NGHIỆM"}
           </Typography>
-
-          {/* ===== DROPDOWN CHỌN LỚP + BÀI ===== */}
-          <Box sx={{ mt: 2, mb: 2 }}>
-            <Stack
-              direction={{ xs: "column", sm: "row" }}
-              spacing={2}
-              justifyContent="center"
-            >
-              {/* ===== Chọn lớp ===== */}
-              <FormControl size="small" sx={{ minWidth: 100 }}>
-                <InputLabel>Lớp</InputLabel>
-                <Select
-                  value={dropdownClass}
-                  label="Lớp"
-                  onChange={(e) => {
-                    setDropdownClass(e.target.value);
-                    setDropdownLesson("");
-                    setLessonsFromFirestore([]);
-                  }}
-                >
-                  <MenuItem value="">Chọn</MenuItem>
-                  {[3, 4, 5].map((n) => (
-                    <MenuItem key={n} value={`Lớp ${n}`}>
-                      Lớp {n}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-
-              {/* ===== Chọn bài học ===== */}
-              <FormControl
-                size="small"
-                sx={{ minWidth: 260 }}
-                disabled={!dropdownClass}
-              >
-                <InputLabel>Bài học</InputLabel>
-                <Select
-                  value={dropdownLesson}
-                  label="Bài học"
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setDropdownLesson(value);
-
-                    if (!value) return;
-
-                    const lopSo = dropdownClass.replace("Lớp ", "");
-
-                    handleOpenExamFromDropdown(lopSo, value);
-                  }}
-                  sx={{
-                    '& .MuiSelect-select': {
-                      whiteSpace: 'normal',
-                      wordBreak: 'break-word',
-                    },
-                  }}
-                >
-                  <MenuItem value="">Chọn</MenuItem>
-
-                  {lessonsFromFirestore.map((bai) => (
-                    <MenuItem key={bai} value={bai}>
-                      {bai}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Stack>
-          </Box>  
 
           {/* Đồng hồ với vị trí cố định */}
           <Box
