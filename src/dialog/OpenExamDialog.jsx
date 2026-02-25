@@ -125,7 +125,6 @@ const OpenExamDialog = ({ open, onClose, onSelectExam }) => {
     }
   };
 
-
   return (
     <>
       <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
@@ -207,7 +206,7 @@ const OpenExamDialog = ({ open, onClose, onSelectExam }) => {
                     "&:hover": { backgroundColor: "#f5f5f5" },
                   }}
                   onClick={() => setSelectedDoc(docItem.id)}
-                  onDoubleClick={() => handleOpenSelected(docItem.id)}
+                  //onDoubleClick={() => handleOpenSelected(docItem.id)}
                 >
                   <Typography>{docItem.id}</Typography>
                 </Stack>
