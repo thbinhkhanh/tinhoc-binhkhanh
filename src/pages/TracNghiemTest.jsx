@@ -877,9 +877,7 @@ return (
             fontWeight="bold"
             sx={{ color: "#1976d2", mt: { xs: 4, sm: -1 }, mb: { xs: 1, sm: 1 }, textAlign: "center" }}
           >
-            {selectedBai
-            ? `LỚP ${String(selectedLop).toUpperCase()} - ${String(selectedBai).toUpperCase()}`
-              : "TRẮC NGHIỆM"}
+            TEST ĐỀ TRẮC NGHIỆM
           </Typography>
 
           {/* ===== DROPDOWN CHỌN LỚP + BÀI ===== */}
