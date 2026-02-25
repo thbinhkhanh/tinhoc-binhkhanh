@@ -835,7 +835,8 @@ return (
             backgroundColor: "#fff",
           }}
         >          
-          <Tooltip title="Mở đề trắc nghiệm">
+          {/*<Tooltip title="Mở đề trắc nghiệm">*/}
+          <Tooltip title="Xóa đề trắc nghiệm">
             <IconButton
               onClick={handleOpenExamDialog}
               sx={{
