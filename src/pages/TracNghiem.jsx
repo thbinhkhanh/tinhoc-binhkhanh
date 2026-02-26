@@ -138,10 +138,9 @@ export default function TracNghiem() {
       localStorage.setItem(
         "lastExam",
         JSON.stringify({
-          khoi,
           lop: lopHoc,
           bai: tenBai,
-          bai: tenBaiRutGon, // ✅ dùng rút gọn
+          baiRutGon: tenBaiRutGon,
           path: location.pathname + location.search,
         })
       );
