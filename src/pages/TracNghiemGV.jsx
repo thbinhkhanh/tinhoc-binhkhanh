@@ -24,15 +24,7 @@ import {
 } from "@mui/material";
 
 import { db } from "../firebase";
-import {
-  doc,
-  getDoc,
-  getDocs,
-  updateDoc,
-  setDoc,
-  collection,
-  writeBatch,
-} from "firebase/firestore";
+import { doc, getDoc, getDocs, updateDoc, setDoc, collection, writeBatch } from "firebase/firestore";
 
 import SaveIcon from "@mui/icons-material/Save";
 //import FileUploadIcon from "@mui/icons-material/FileUpload";
