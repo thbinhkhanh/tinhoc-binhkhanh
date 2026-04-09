@@ -36,7 +36,6 @@ import { useTeacherQuizContext } from "../context/TeacherQuizContext";
 import DeleteIcon from "@mui/icons-material/Delete";
 import OpenExamDialog from "../dialog/OpenExamDialog";
 import ExitAddLessonDialog from "../dialog/ExitAddLessonDialog";
-import ExportDialog from "../dialog/ExportDialog";
 
 import { exportQuestionsToJSON } from "../utils/exportJson_importJson.js";
 import { importQuestionsFromJSON } from "../utils/exportJson_importJson.js";
@@ -766,6 +765,7 @@ const handleSaveAll = async () => {
           />
         </Stack>
 
+
         <Typography variant="h5" fontWeight="bold" textAlign="center" sx={{ mt: 3, mb: 2, color: "#1976d2" }}>
           SOẠN ĐỀ TRẮC NGHIỆM
         </Typography>
@@ -906,14 +906,48 @@ const handleSaveAll = async () => {
           onClose={() => setOpenExitDialog(false)}
           onConfirmExit={onConfirmExit}
         />
-
-        <ExportDialog
+        <Dialog
           open={openExportDialog}
           onClose={() => setOpenExportDialog(false)}
-          fileName={fileName}
-          setFileName={setFileName}
-          onConfirm={handleConfirmExport}
-        />
+          fullWidth
+          maxWidth="sm" // sm | md | lg (bạn có thể đổi md nếu muốn rộng hơn nữa)
+        >
+          <DialogTitle sx={{ fontWeight: "bold", pb: 1 }}>
+            📥 Xuất đề kiểm tra
+          </DialogTitle>
+
+          <DialogContent sx={{ pt: 1 }}>
+            <Typography variant="body2" sx={{ mb: 2, color: "text.secondary" }}>
+              Nhập tên file để lưu 
+            </Typography>
+
+            <TextField
+              fullWidth
+              value={fileName}
+              onChange={(e) => setFileName(e.target.value)}
+              label="Tên file"
+              placeholder="vd: de_trac_nghiem_lop_3"
+              autoFocus
+            />
+          </DialogContent>
+
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button
+              onClick={() => setOpenExportDialog(false)}
+              variant="outlined"
+            >
+              Hủy
+            </Button>
+
+            <Button
+              onClick={handleConfirmExport}
+              variant="contained"
+              sx={{ px: 3 }}
+            >
+              Xuất file
+            </Button>
+          </DialogActions>
+        </Dialog>
 
         <Snackbar
           open={snackbar.open}

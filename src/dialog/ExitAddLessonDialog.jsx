@@ -19,22 +19,20 @@ const ExitAddLessonDialog = ({
     <Dialog
       open={open}
       onClose={onClose}
-      // fullWidth bỏ đi, maxWidth không cần thiết nữa
       PaperProps={{
         sx: {
-          width: "fit-content",  // tự co theo nội dung
-          minWidth: 300,         // có thể set minWidth nếu muốn
-          borderRadius: 3,
+          width: 450,                             // chiều rộng cố định giống ExportDialog
+          borderRadius: 2,                        // bo góc nhẹ
           p: 3,
-          bgcolor: "#e3f2fd",
-          boxShadow: "0 4px 12px rgba(33, 150, 243, 0.15)",
+          bgcolor: "#fff",                         // nền trắng
+          boxShadow: "0px 8px 24px rgba(0,0,0,0.12)", // shadow hiện đại
         },
       }}
     >
       <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
         <Box
           sx={{
-            bgcolor: "#42a5f5",
+            bgcolor: "#42a5f5",    // icon xanh đậm
             color: "#fff",
             borderRadius: "50%",
             width: 36,
@@ -54,9 +52,9 @@ const ExitAddLessonDialog = ({
         </DialogTitle>
       </Box>
 
-      <DialogContent>
+      <DialogContent sx={{ pt: 0 }}>
         <Typography
-          sx={{ fontSize: 16, color: "#0d47a1", whiteSpace: "nowrap" }} // ngăn xuống dòng
+          sx={{ fontSize: 16, color: "#0d47a1", whiteSpace: "nowrap" }}
         >
           Dữ liệu chưa lưu sẽ mất. Bạn có chắc chắn muốn thoát?
         </Typography>
