@@ -22,6 +22,7 @@ import {
   DialogContent,
   DialogActions,
 } from "@mui/material";
+import Autocomplete from "@mui/material/Autocomplete";
 
 import { db } from "../firebase";
 import { doc, getDoc, getDocs, updateDoc, setDoc, collection, writeBatch } from "firebase/firestore";
@@ -39,6 +40,7 @@ import { exportQuestionsToJSON } from "../utils/exportJson_importJson.js";
 import { importQuestionsFromJSON } from "../utils/exportJson_importJson.js";
 import DownloadIcon from "@mui/icons-material/Download";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
+import AddIcon from "@mui/icons-material/Add";
 
 
 export default function TracNghiemGV() {
@@ -62,6 +64,8 @@ export default function TracNghiemGV() {
   const [isAddingLesson, setIsAddingLesson] = useState(false);
   const [newLessonName, setNewLessonName] = useState("");
   const [week, setWeek] = useState("");
+  const [lessonInput, setLessonInput] = useState("");
+
   const weeks =
     String(semester) === "1"
       ? Array.from({ length: 18 }, (_, i) => i + 1)      // HK I: 1 → 18
@@ -115,8 +119,22 @@ export default function TracNghiemGV() {
     return num ? `TRACNGHIEM${num}` : null;
   };
 
+  useEffect(() => {
+    const flag = localStorage.getItem("isAddingLesson") === "true";
+    setIsAddingLesson(flag);
+  }, []);
+
   // ===== FETCH EXAM =====
   const fetchExam = async ({ selectedClass, lessonFullName }) => {
+    // 🔥 CHẶN NGAY TỪ ĐẦU (an toàn hơn)
+    const isAdding =
+      isAddingLesson || localStorage.getItem("isAddingLesson") === "true";
+
+    if (isAdding) {
+      console.log("🚫 Đang thêm bài → bỏ qua fetchExam");
+      return;
+    }
+
     if (!selectedClass || !lessonFullName) return;
 
     const CACHE_KEY = `teacher_quiz_${selectedClass}_${lessonFullName}`;
@@ -283,6 +301,15 @@ export default function TracNghiemGV() {
   // ===== LOAD LAST OPENED EXAM =====
   useEffect(() => {
     const loadLastOpenedExam = async () => {
+      // 🔥 CHẶN NGAY TỪ ĐẦU
+      const isAdding =
+        isAddingLesson || localStorage.getItem("isAddingLesson") === "true";
+
+      if (isAdding) {
+        console.log("🚫 loadLastOpenedExam bị chặn (đang thêm bài)");
+        return;
+      }
+
       try {
         const snap = await getDoc(doc(db, "CONFIG", "config"));
         if (!snap.exists()) return;
@@ -303,7 +330,7 @@ export default function TracNghiemGV() {
     };
 
     loadLastOpenedExam();
-  }, []);
+  }, [isAddingLesson]); // 🔥 thêm dependency cho chắc
 
   // ===== WHEN CLASS CHANGES: ONLY LOAD LESSON LIST =====
   useEffect(() => {
@@ -369,64 +396,82 @@ export default function TracNghiemGV() {
 
   
 const handleSaveAll = async () => {
-  // 🔴 CẢNH BÁO THIẾU DỮ LIỆU KHI THÊM BÀI HỌC
-  if (isAddingLesson && (!week || !newLessonName.trim())) {
+  // 🔴 kiểm tra lớp + bài học
+  const finalLesson = (lesson || lessonInput || "").trim();
+
+  if (!selectedClass || !finalLesson) {
     setSnackbar({
       open: true,
       severity: "warning",
-      message: "⚠️ Vui lòng chọn tuần và nhập tên bài học mới",
+      message: "⚠️ Vui lòng chọn lớp và nhập bài học",
     });
-    return; // ⛔ không cho lưu
+    return;
   }
 
-  const lessonToSave =
-    isAddingLesson
-      ? `Tuần ${week}. ${newLessonName.trim()}`
-      : lesson;
+  const lessonName = finalLesson;
 
-  // 1. Lưu đề trắc nghiệm
+  // 🔴 nếu là bài tuần → validate format
+  const isWeekLesson = lessonName.toLowerCase().startsWith("tuần");
+
+  if (isWeekLesson) {
+    const isValid = /^Tuần\s\d+\.\s.+/.test(lessonName);
+
+    if (!isValid) {
+      setSnackbar({
+        open: true,
+        severity: "warning",
+        message: "⚠️ Định dạng phải: Tuần X. Tên bài",
+      });
+      return;
+    }
+  }
+
+  // ===== LƯU ĐỀ =====
   await saveAllQuestions({
     questions,
     db,
     selectedClass,
     semester,
-    lesson: lessonToSave,
+    lesson: lessonName,
     setSnackbar,
   });
 
   localStorage.setItem("teacherQuiz", JSON.stringify(questions));
 
-  // 2. Nếu đang thêm bài học → thêm vào TENBAI_LopX
-  if (isAddingLesson) {
-    const lopNumber = selectedClass.replace("Lớp ", "");
-    const lessonDocRef = doc(db, `TENBAI_Lop${lopNumber}`, lessonToSave);
+  // 🔥 TẮT CỜ
+  setIsAddingLesson(false);
+  localStorage.removeItem("isAddingLesson");
 
-    await setDoc(lessonDocRef, {
-      tenBai: lessonToSave, // ⭐ bắt buộc để hiển thị
-      createdAt: new Date(),
-    });
+  // ===== AUTO THÊM BÀI MỚI NẾU CHƯA CÓ =====
+  if (!lessonsFromFirestore.includes(lessonName)) {
+    try {
+      const lopNumber = selectedClass.replace("Lớp ", "");
 
-    // 3. Reload danh sách bài học
-    await fetchLessonsFromFirestore(selectedClass);
+      await setDoc(
+        doc(db, `TENBAI_Lop${lopNumber}`, lessonName),
+        {
+          tenBai: lessonName,
+          createdAt: new Date(),
+        }
+      );
 
-    // 4. Lưu vào CONFIG/config
-    await setDoc(
-      doc(db, "CONFIG", "config"),
-      {
-        selectedClass,
-        lesson: lessonToSave,
-      },
-      { merge: true }
-    );
+      // reload list
+      await fetchLessonsFromFirestore(selectedClass);
 
-    // 5. Chọn bài học mới
-    setLesson(lessonToSave);
-
-    // 6. Thoát chế độ thêm
-    setIsAddingLesson(false);
-    setWeek("");
-    setNewLessonName("");
+    } catch (err) {
+      console.error("❌ Lỗi thêm bài:", err);
+    }
   }
+
+  // ===== LƯU CONFIG =====
+  await setDoc(
+    doc(db, "CONFIG", "config"),
+    {
+      selectedClass,
+      lesson: lessonName,
+    },
+    { merge: true }
+  );
 };
 
   // ===== UPLOAD EXCEL =====
@@ -481,12 +526,16 @@ const handleSaveAll = async () => {
 
     // 2. Thoát bài học hiện tại
     setLesson("");
+    setLessonInput("");
 
     // 3. Clear toàn bộ câu hỏi, tạo 1 câu mới
     setQuestions([createEmptyQuestion()]);
 
     // 4. Vào chế độ thêm bài học
     setIsAddingLesson(true);
+
+    // 🔥 QUAN TRỌNG: lưu cờ để khi quay lại không load lại dữ liệu
+    localStorage.setItem("isAddingLesson", "true");
   };
 
   const handleExportJSON = () => {
@@ -580,17 +629,34 @@ const handleSaveAll = async () => {
           spacing={1}
           sx={{ position: "absolute", top: 8, left: 8 }}
         >
+          <Tooltip title="Thêm bài học">
+            <IconButton
+              onClick={handleAddLesson} // reuse logic nút Thêm bài học
+              sx={{ color: "#1976d2" }}
+            >
+              <Box
+                sx={{
+                  fontSize: 24,
+                  fontWeight: "bold",
+                  lineHeight: 1,
+                }}
+              >
+                +
+              </Box>
+            </IconButton>
+          </Tooltip>
+
           <Tooltip title="Lưu đề">
             <IconButton onClick={handleSaveAll} sx={{ color: "#1976d2" }}>
               <SaveIcon />
             </IconButton>
           </Tooltip>
 
-          <Tooltip title="Tải tên bài học từ Excel">
+          {/*<Tooltip title="Tải tên bài học từ Excel">
             <IconButton onClick={handleUploadClick} sx={{ color: "#1976d2" }}>
-              <UploadFileIcon /> {/* thay icon cũ bằng icon mới */}
+              <UploadFileIcon /> 
             </IconButton>
-          </Tooltip>
+          </Tooltip>*/}
 
           {/* 🗑️ ICON XÓA ĐỀ */}
           <Tooltip title="Xóa đề trắc nghiệm">
@@ -644,9 +710,15 @@ const handleSaveAll = async () => {
 
         <Paper elevation={2} sx={{ p: 2, mb: 3 }}>
           <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
+
+            {/* LỚP */}
             <FormControl size="small" sx={{ minWidth: 150 }}>
               <InputLabel>Lớp</InputLabel>
-              <Select value={selectedClass} label="Lớp" onChange={(e) => setSelectedClass(e.target.value)}>
+              <Select
+                value={selectedClass}
+                label="Lớp"
+                onChange={(e) => setSelectedClass(e.target.value)}
+              >
                 <MenuItem value="">Chọn</MenuItem>
                 {classes.map((c) => (
                   <MenuItem key={c} value={c}>{c}</MenuItem>
@@ -654,146 +726,59 @@ const handleSaveAll = async () => {
               </Select>
             </FormControl>
 
-          {/* ================= BÀI HỌC ================= */}
-          <Stack direction="row" spacing={2} alignItems="flex-end">
-            {/* Ô Bài học – GIỮ NGUYÊN WIDTH GỐC */}
-            <FormControl
-              size="small"
-              sx={{ width: { xs: "100%", md: 600 } }}
-              disabled={!selectedClass}
-            >
-              {!isAddingLesson ? (
-                <>
-                  <InputLabel>Bài học</InputLabel>
-                  <Select
-                    value={lesson}
-                    label="Bài học"
-                    onChange={async (e) => {
-                      const value = e.target.value;
+            {/* BÀI HỌC */}
+            <Autocomplete
+  freeSolo
+  options={lessonsFromFirestore || []}
+  value={lesson || ""}
+  inputValue={lessonInput}
 
-                      // 1. set state
-                      setLesson(value);
+  onChange={async (event, newValue) => {
+    const value = newValue || "";
 
-                      // 2. lưu vào CONFIG/config
-                      try {
-                        await setDoc(
-                          doc(db, "CONFIG", "config"),
-                          {
-                            selectedClass,
-                            lesson: value,
-                          },
-                          { merge: true }
-                        );
-                      } catch (err) {
-                        console.error("❌ Không lưu lesson vào CONFIG:", err);
-                      }
+    setLesson(value);
+    setLessonInput(value);
 
-                      // 3. load đề
-                      fetchExam({
-                        selectedClass,
-                        lessonFullName: value,
-                      });
-                    }}
-                    sx={{
-                      "& .MuiSelect-select": {
-                        whiteSpace: "normal",
-                        wordBreak: "break-word",
-                      },
-                    }}
-                  >
-                    <MenuItem value="">Chọn</MenuItem>
-                    {lessonsFromFirestore.map((bai) => (
-                      <MenuItem
-                        key={bai}
-                        value={bai}
-                        sx={{ whiteSpace: "normal", wordBreak: "break-word" }}
-                      >
-                        {bai}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </>
-              ) : (
-                /* ===== THÊM BÀI HỌC – 1 HÀNG (TỔNG = 600px) ===== */
-                <Stack
-                  direction={{ xs: "column", md: "row" }}
-                  spacing={2}
-                  alignItems={{ xs: "stretch", md: "center" }}
-                  sx={{ width: "100%" }} // = 600px
-                >
-                  {/* Ô TUẦN – 110px */}
-                  <FormControl
-                    size="small"
-                    sx={{
-                      width: { xs: "100%", md: 110 },
-                      flexShrink: 0,
-                    }}
-                  >
-                    <InputLabel>Tuần</InputLabel>
-                    <Select
-                      value={week}
-                      label="Tuần"
-                      onChange={(e) => setWeek(e.target.value)}
-                    >
-                      {weeks.map((w) => (
-                        <MenuItem key={w} value={w}>
-                          Tuần {w}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
+    // 🔥 TẮT CỜ
+    setIsAddingLesson(false);
+    localStorage.removeItem("isAddingLesson");
 
-                  {/* Ô TÊN BÀI HỌC MỚI – 474px CHUẨN */}
-                  <TextField
-                    size="small"
-                    label="Tên bài học mới"
-                    value={newLessonName}
-                    onChange={(e) => setNewLessonName(e.target.value)}
-                    autoFocus
-                    sx={{
-                      width: { xs: "100%", md: 474 },
-                      flex: "0 0 auto",   // ❗ giữ cứng 474px
-                    }}
-                  />
+    if (!value) return;
 
-                  {/* Hủy */}
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    sx={{
-                      alignSelf: { xs: "flex-end", md: "center" },
-                      flexShrink: 0,
-                    }}
-                    onClick={() => {
-                      setIsAddingLesson(false);
-                      setNewLessonName("");
-                      setWeek("");
-                    }}
-                  >
-                    Hủy
-                  </Button>
-                </Stack>
+    await setDoc(doc(db, "CONFIG", "config"), {
+      selectedClass,
+      lesson: value,
+    }, { merge: true });
 
-              )}
-            </FormControl>
+    fetchExam({
+      selectedClass,
+      lessonFullName: value,
+    });
+  }}
 
-            {/* NÚT THÊM BÀI HỌC – GIỐNG NÚT THÊM CÂU HỎI */}
-            {!isAddingLesson && (
-              <Button
-                variant="contained"
-                onClick={handleAddLesson}
-                sx={{ height: 40, whiteSpace: "nowrap" }}
-              >
-                <Box sx={{ display: { xs: "inline", md: "none" } }}>
-                  Thêm
-                </Box>
-                <Box sx={{ display: { xs: "none", md: "inline" } }}>
-                  Thêm bài học
-                </Box>
-              </Button>
+  onInputChange={(event, newInputValue, reason) => {
+    // 🔥 CHỈ update khi user gõ thật
+    if (reason !== "input") return;
 
-            )}
-          </Stack>
+    // 🔥 Nếu đang thêm bài → update nhẹ (tránh trigger nặng)
+    if (isAddingLesson) {
+      // dùng requestAnimationFrame để không block UI
+      requestAnimationFrame(() => {
+        setLessonInput(newInputValue);
+      });
+    } else {
+      setLessonInput(newInputValue);
+    }
+  }}
+
+  renderInput={(params) => (
+    <TextField {...params} label="Bài học" size="small" />
+  )}
+
+  sx={{ flex: 1 }}
+  disabled={!selectedClass}
+/>
+
           </Stack>
         </Paper>
 
