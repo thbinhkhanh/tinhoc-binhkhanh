@@ -112,7 +112,7 @@ export const saveAllQuestions = async ({
 
     setSnackbar({
       open: true,
-      message: "✅ Đã lưu bài học thành công!",
+      message: "✅ Lưu đề thành công",
       severity: "success",
     });
   } catch (err) {

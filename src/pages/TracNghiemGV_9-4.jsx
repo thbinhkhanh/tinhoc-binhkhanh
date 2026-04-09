@@ -70,7 +70,6 @@ export default function TracNghiemGV() {
   const [lessonInput, setLessonInput] = useState("");
   const [openExitDialog, setOpenExitDialog] = useState(false);
   const [onConfirmExit, setOnConfirmExit] = useState(() => () => {});
-  const [justSaved, setJustSaved] = useState(false);
 
   const weeks =
     String(semester) === "1"
@@ -102,6 +101,7 @@ export default function TracNghiemGV() {
   });
 
   // ===== INIT QUESTIONS (FIX MẤT DỮ LIỆU KHI ĐANG SOẠN) =====
+  // ===== INIT QUESTIONS (FIX LOAD 2 LẦN) =====
   useEffect(() => {
     const isAdding = localStorage.getItem("isAddingLesson") === "true";
 
@@ -338,33 +338,43 @@ export default function TracNghiemGV() {
 
   // ===== LOAD LAST OPENED EXAM =====
   useEffect(() => {
-    const loadLastOpenedExam = async () => {
-      if (justSaved) return; // 🔥 chặn fetch sau khi vừa lưu
-      if (!lesson && lessonInput) return;
-      if (isAddingLesson || localStorage.getItem("isAddingLesson") === "true") return;
+  const loadLastOpenedExam = async () => {
+    const isAdding =
+      isAddingLesson || localStorage.getItem("isAddingLesson") === "true";
 
-      try {
-        const snap = await getDoc(doc(db, "CONFIG", "config"));
-        if (!snap.exists()) return;
+    // 🔥 CHẶN nếu đang gõ (lessonInput có nhưng lesson rỗng)
+    if (!lesson && lessonInput) {
+      console.log("🚫 Đang nhập tay → không load config");
+      return;
+    }
 
-        const { selectedClass, lesson } = snap.data();
-        if (!selectedClass || !lesson) return;
+    if (isAdding) {
+      console.log("🚫 loadLastOpenedExam bị chặn (đang thêm bài)");
+      return;
+    }
 
-        setSelectedClass(selectedClass);
-        const lessons = await fetchLessonsFromFirestore(selectedClass);
+    try {
+      const snap = await getDoc(doc(db, "CONFIG", "config"));
+      if (!snap.exists()) return;
 
-        if (lessons.includes(lesson)) {
-          setLesson(lesson);
-          setLessonInput(lesson);
-          fetchExam({ selectedClass, lessonFullName: lesson });
-        }
-      } catch (err) {
-        console.error(err);
+      const { selectedClass, lesson } = snap.data();
+      if (!selectedClass || !lesson) return;
+
+      setSelectedClass(selectedClass);
+      const lessons = await fetchLessonsFromFirestore(selectedClass);
+
+      if (lessons.includes(lesson)) {
+        setLesson(lesson);
+        setLessonInput(lesson);
+        fetchExam({ selectedClass, lessonFullName: lesson });
       }
-    };
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
-    loadLastOpenedExam();
-  }, [isAddingLesson, lessonInput, justSaved]);
+  loadLastOpenedExam();
+}, [isAddingLesson, lessonInput]); // 🔥 thêm lessonInput
 
   // ===== WHEN CLASS CHANGES: ONLY LOAD LESSON LIST =====
   useEffect(() => {
@@ -428,6 +438,7 @@ export default function TracNghiemGV() {
     localStorage.setItem("teacherQuiz", JSON.stringify(questions));
   };*/
 
+  
 const handleSaveAll = async () => {
   // 🔴 kiểm tra lớp + bài học
   const finalLesson = (lesson || lessonInput || "").trim();
@@ -445,8 +456,10 @@ const handleSaveAll = async () => {
 
   // 🔴 nếu là bài tuần → validate format
   const isWeekLesson = lessonName.toLowerCase().startsWith("tuần");
+
   if (isWeekLesson) {
     const isValid = /^Tuần\s\d+\.\s.+/.test(lessonName);
+
     if (!isValid) {
       setSnackbar({
         open: true,
@@ -457,80 +470,78 @@ const handleSaveAll = async () => {
     }
   }
 
-  try {
-    // ===== LƯU ĐỀ =====
-    await saveAllQuestions({
-      questions,
-      db,
-      selectedClass,
-      semester,
-      lesson: lessonName,
-      setSnackbar,
-    });
+  // ===== LƯU ĐỀ =====
+  await saveAllQuestions({
+    questions,
+    db,
+    selectedClass,
+    semester,
+    lesson: lessonName,
+    setSnackbar,
+  });
 
-    // ✅ SET LẠI LESSON
-    setLesson(lessonName);
-    setLessonInput(lessonName);
+  await saveAllQuestions({
+  questions,
+  db,
+  selectedClass,
+  semester,
+  lesson: lessonName,
+  setSnackbar,
+});
 
-    // 🔥 Chặn fetchExam sau khi vừa lưu
-    setJustSaved(true);
+// ✅ SET LẠI LESSON
+setLesson(lessonName);
+setLessonInput(lessonName);
 
-    // 🔥 XÓA CACHE CŨ
-    const CACHE_KEY = `teacher_quiz_${selectedClass}_${lessonName}`;
-    localStorage.removeItem(CACHE_KEY);
-    setQuizCache((prev) => {
-      if (!prev) return {};
-      const next = { ...prev };
-      delete next[CACHE_KEY];
-      return next;
-    });
+// 🔥 XÓA CACHE CŨ (RẤT QUAN TRỌNG)
+const CACHE_KEY = `teacher_quiz_${selectedClass}_${lessonName}`;
 
-    localStorage.setItem("teacherQuiz", JSON.stringify(questions));
+localStorage.removeItem(CACHE_KEY);
 
-    // 🔥 TẮT CỜ thêm bài
-    setIsAddingLesson(false);
-    localStorage.removeItem("isAddingLesson");
-    localStorage.removeItem("draftQuestions");
+setQuizCache(prev => {
+  if (!prev) return {};
+  const next = { ...prev };
+  delete next[CACHE_KEY];
+  return next;
+});
 
-    // ===== AUTO THÊM BÀI MỚI NẾU CHƯA CÓ =====
-    if (!lessonsFromFirestore.includes(lessonName)) {
+localStorage.setItem("teacherQuiz", JSON.stringify(questions));
+
+// 🔥 TẮT CỜ
+setIsAddingLesson(false);
+localStorage.removeItem("isAddingLesson");
+localStorage.removeItem("draftQuestions");
+
+  // ===== AUTO THÊM BÀI MỚI NẾU CHƯA CÓ =====
+  if (!lessonsFromFirestore.includes(lessonName)) {
+    try {
       const lopNumber = selectedClass.replace("Lớp ", "");
-      const stt = lessonsFromFirestore.length + 1; // gán stt cho bài mới
-      await setDoc(doc(db, `TENBAI_Lop${lopNumber}`, lessonName), {
-        tenBai: lessonName,
-        createdAt: new Date(),
-        stt,
-      });
 
-      // reload list lessons & set state đúng
-      const lessons = await fetchLessonsFromFirestore(selectedClass);
-      setLessonsFromFirestore(lessons);
+      await setDoc(
+        doc(db, `TENBAI_Lop${lopNumber}`, lessonName),
+        {
+          tenBai: lessonName,
+          createdAt: new Date(),
+        }
+      );
+
+      // reload list
+      await fetchLessonsFromFirestore(selectedClass);
+
+    } catch (err) {
+      console.error("❌ Lỗi thêm bài:", err);
     }
-
-    // ===== LƯU CONFIG =====
-    await setDoc(
-      doc(db, "CONFIG", "config"),
-      {
-        selectedClass,
-        lesson: lessonName,
-      },
-      { merge: true }
-    );
-
-    {/*setSnackbar({
-      open: true,
-      message: "✅ Lưu đề thành công",
-      severity: "success",
-    });*/}
-
-  } catch (err) {
-    console.error("❌ Lỗi lưu đề:", err);
-    setSnackbar({
-      open: true,
-      message: "❌ Lưu đề thất bại",
-      severity: "error",
-    });
   }
+
+  // ===== LƯU CONFIG =====
+  await setDoc(
+    doc(db, "CONFIG", "config"),
+    {
+      selectedClass,
+      lesson: lessonName,
+    },
+    { merge: true }
+  );
 };
 
   // ===== UPLOAD EXCEL =====
@@ -666,7 +677,7 @@ const handleSaveAll = async () => {
 
       setSnackbar({
         open: true,
-        message: "✅ Nhập đề thành công!",
+        message: "✅ Nhập đề thành công! Hãy nhập tên bài học mới",
         severity: "success",
       });
     } else {
@@ -837,7 +848,7 @@ const handleSaveAll = async () => {
                 InputProps={{
                   endAdornment: (
                     <InputAdornment position="end">
-                      <Tooltip title="Thoát chế độ nhập" arrow>
+                      <Tooltip title="Thoát chế độ nhập (dữ liệu chưa lưu sẽ mất)" arrow>
                         <IconButton
                           size="small"
                           edge="end"

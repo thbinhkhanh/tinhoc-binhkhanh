@@ -70,7 +70,6 @@ export default function TracNghiemGV() {
   const [lessonInput, setLessonInput] = useState("");
   const [openExitDialog, setOpenExitDialog] = useState(false);
   const [onConfirmExit, setOnConfirmExit] = useState(() => () => {});
-  const [justSaved, setJustSaved] = useState(false);
 
   const weeks =
     String(semester) === "1"
@@ -102,6 +101,7 @@ export default function TracNghiemGV() {
   });
 
   // ===== INIT QUESTIONS (FIX MẤT DỮ LIỆU KHI ĐANG SOẠN) =====
+  // ===== INIT QUESTIONS (FIX LOAD 2 LẦN) =====
   useEffect(() => {
     const isAdding = localStorage.getItem("isAddingLesson") === "true";
 
@@ -165,14 +165,7 @@ export default function TracNghiemGV() {
 
   // ===== FETCH EXAM =====
   const fetchExam = async ({ selectedClass, lessonFullName }) => {
-    // 🔥 CHẶN NGAY TỪ ĐẦU (an toàn hơn)
-    const isAdding =
-      isAddingLesson || localStorage.getItem("isAddingLesson") === "true";
-
-    if (isAdding) {
-      console.log("🚫 Đang thêm bài → bỏ qua fetchExam");
-      return;
-    }
+    
 
     if (!selectedClass || !lessonFullName) return;
 
@@ -339,24 +332,27 @@ export default function TracNghiemGV() {
   // ===== LOAD LAST OPENED EXAM =====
   useEffect(() => {
     const loadLastOpenedExam = async () => {
-      if (justSaved) return; // 🔥 chặn fetch sau khi vừa lưu
-      if (!lesson && lessonInput) return;
-      if (isAddingLesson || localStorage.getItem("isAddingLesson") === "true") return;
+      if (isAddingLesson) return; // chặn khi thêm bài
 
       try {
         const snap = await getDoc(doc(db, "CONFIG", "config"));
         if (!snap.exists()) return;
 
-        const { selectedClass, lesson } = snap.data();
-        if (!selectedClass || !lesson) return;
+        const { selectedClass: savedClass, lesson: savedLesson } = snap.data();
+        if (!savedClass || !savedLesson) return;
 
-        setSelectedClass(selectedClass);
-        const lessons = await fetchLessonsFromFirestore(selectedClass);
+        setSelectedClass(savedClass);
+        const lessons = await fetchLessonsFromFirestore(savedClass);
 
-        if (lessons.includes(lesson)) {
-          setLesson(lesson);
-          setLessonInput(lesson);
-          fetchExam({ selectedClass, lessonFullName: lesson });
+        if (lessons.includes(savedLesson)) {
+          setLesson(savedLesson);
+          setLessonInput(savedLesson);
+
+          // ⚠️ chỉ fetch nếu chưa có cache
+          const CACHE_KEY = `teacher_quiz_${savedClass}_${savedLesson}`;
+          if (!quizCache?.[CACHE_KEY]) {
+            fetchExam({ selectedClass: savedClass, lessonFullName: savedLesson });
+          }
         }
       } catch (err) {
         console.error(err);
@@ -364,7 +360,7 @@ export default function TracNghiemGV() {
     };
 
     loadLastOpenedExam();
-  }, [isAddingLesson, lessonInput, justSaved]);
+  }, []); // ✅ bỏ lessonInput khỏi dependency
 
   // ===== WHEN CLASS CHANGES: ONLY LOAD LESSON LIST =====
   useEffect(() => {
@@ -428,6 +424,7 @@ export default function TracNghiemGV() {
     localStorage.setItem("teacherQuiz", JSON.stringify(questions));
   };*/
 
+  
 const handleSaveAll = async () => {
   // 🔴 kiểm tra lớp + bài học
   const finalLesson = (lesson || lessonInput || "").trim();
@@ -458,7 +455,7 @@ const handleSaveAll = async () => {
   }
 
   try {
-    // ===== LƯU ĐỀ =====
+    // ===== LƯU ĐỀ (chỉ 1 lần) =====
     await saveAllQuestions({
       questions,
       db,
@@ -468,17 +465,14 @@ const handleSaveAll = async () => {
       setSnackbar,
     });
 
-    // ✅ SET LẠI LESSON
+    // ✅ SET lại lesson & input
     setLesson(lessonName);
     setLessonInput(lessonName);
-
-    // 🔥 Chặn fetchExam sau khi vừa lưu
-    setJustSaved(true);
 
     // 🔥 XÓA CACHE CŨ
     const CACHE_KEY = `teacher_quiz_${selectedClass}_${lessonName}`;
     localStorage.removeItem(CACHE_KEY);
-    setQuizCache((prev) => {
+    setQuizCache(prev => {
       if (!prev) return {};
       const next = { ...prev };
       delete next[CACHE_KEY];
@@ -487,7 +481,7 @@ const handleSaveAll = async () => {
 
     localStorage.setItem("teacherQuiz", JSON.stringify(questions));
 
-    // 🔥 TẮT CỜ thêm bài
+    // 🔥 TẮT CỜ thêm bài mới
     setIsAddingLesson(false);
     localStorage.removeItem("isAddingLesson");
     localStorage.removeItem("draftQuestions");
@@ -495,40 +489,35 @@ const handleSaveAll = async () => {
     // ===== AUTO THÊM BÀI MỚI NẾU CHƯA CÓ =====
     if (!lessonsFromFirestore.includes(lessonName)) {
       const lopNumber = selectedClass.replace("Lớp ", "");
-      const stt = lessonsFromFirestore.length + 1; // gán stt cho bài mới
       await setDoc(doc(db, `TENBAI_Lop${lopNumber}`, lessonName), {
         tenBai: lessonName,
         createdAt: new Date(),
-        stt,
       });
 
-      // reload list lessons & set state đúng
-      const lessons = await fetchLessonsFromFirestore(selectedClass);
-      setLessonsFromFirestore(lessons);
+      // reload danh sách bài học
+      const updatedLessons = await fetchLessonsFromFirestore(selectedClass);
+      setLessonsFromFirestore(updatedLessons);
     }
 
     // ===== LƯU CONFIG =====
     await setDoc(
       doc(db, "CONFIG", "config"),
-      {
-        selectedClass,
-        lesson: lessonName,
-      },
+      { selectedClass, lesson: lessonName },
       { merge: true }
     );
 
-    {/*setSnackbar({
-      open: true,
-      message: "✅ Lưu đề thành công",
-      severity: "success",
-    });*/}
-
-  } catch (err) {
-    console.error("❌ Lỗi lưu đề:", err);
     setSnackbar({
       open: true,
-      message: "❌ Lưu đề thất bại",
+      severity: "success",
+      message: "✅ Lưu đề thành công!",
+    });
+
+  } catch (err) {
+    console.error("❌ Lỗi khi lưu đề:", err);
+    setSnackbar({
+      open: true,
       severity: "error",
+      message: "❌ Lưu đề thất bại!",
     });
   }
 };
@@ -666,7 +655,7 @@ const handleSaveAll = async () => {
 
       setSnackbar({
         open: true,
-        message: "✅ Nhập đề thành công!",
+        message: "✅ Nhập đề thành công! Hãy nhập tên bài học mới",
         severity: "success",
       });
     } else {
@@ -789,90 +778,62 @@ const handleSaveAll = async () => {
             </FormControl>
 
             {/* BÀI HỌC */}
-            {!isAddingLesson ? (
-              // ===== DROPDOWN =====
-              <FormControl size="small" sx={{ flex: 1 }}>
-                <InputLabel>Bài học</InputLabel>
-                <Select
-                  value={lesson}
-                  label="Bài học"
-                  onChange={async (e) => {
-                    const value = e.target.value;
-
-                    setLesson(value);
-                    setLessonInput(value); // 🔥 sync luôn
-
-                    if (!value) {
-                      setQuestions([createEmptyQuestion()]);
-                      return;
-                    }
-
-                    await setDoc(doc(db, "CONFIG", "config"), {
-                      selectedClass,
-                      lesson: value,
-                    }, { merge: true });
-
-                    fetchExam({
-                      selectedClass,
-                      lessonFullName: value,
-                    });
-                  }}
-                >
-                  <MenuItem value="">Chọn</MenuItem>
-                  {lessonsFromFirestore.map((l) => (
-                    <MenuItem key={l} value={l}>
-                      {l}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            ) : (
-              // ===== INPUT NHẬP TÊN + NÚT X =====
-              <TextField
-                label="Nhập tên bài học mới"
-                size="small"
+            <FormControl size="small" sx={{ flex: 1 }}>
+              <Autocomplete
+                freeSolo
+                options={lessonsFromFirestore}
                 value={lessonInput}
-                onChange={(e) => setLessonInput(e.target.value)}
-                sx={{ flex: 1 }}
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <Tooltip title="Thoát chế độ nhập" arrow>
-                        <IconButton
-                          size="small"
-                          edge="end"
-                          onClick={() => {
-                            // gán callback reset dữ liệu
-                            setOnConfirmExit(() => () => {
-                              setIsAddingLesson(false);
-                              localStorage.removeItem("isAddingLesson");
+                onChange={async (e, newValue, reason) => {
+  if (!newValue) return;
 
-                              setLessonInput("");
+  const finalLesson = newValue.trim();
+  setLessonInput(finalLesson);
 
-                              if (prevLesson) {
-                                setLesson(prevLesson);
-                                setQuestions(prevQuestions);
-                              } else {
-                                setLesson("");
-                                setQuestions([createEmptyQuestion()]);
-                              }
+  // Nếu bài đã có trong Firestore → fetch bình thường
+  if (selectedClass && finalLesson && lessonsFromFirestore.includes(finalLesson)) {
+    fetchExam({ selectedClass, lessonFullName: finalLesson });
+    setIsAddingLesson(false); // reset cờ nếu đang thêm bài
+    setLesson(finalLesson);
+  }
 
-                              setOpenExitDialog(false); // đóng dialog
-                            });
+  // Nếu là bài mới → bật chế độ thêm bài
+  if (reason === "createOption" && !lessonsFromFirestore.includes(finalLesson)) {
+    setIsAddingLesson(true);
+    setLesson(""); // ẩn dropdown
+    setQuestions([createEmptyQuestion()]);
 
-                            // mở dialog cảnh báo
-                            setOpenExitDialog(true);
-                          }}
-                        >
-                          <CloseIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    </InputAdornment>
-                  ),
+    const lopNumber = selectedClass.replace("Lớp ", "");
+    await setDoc(doc(db, `TENBAI_Lop${lopNumber}`, finalLesson), {
+      tenBai: finalLesson,
+      createdAt: new Date(),
+    });
+
+    const updatedLessons = await fetchLessonsFromFirestore(selectedClass);
+    setLessonsFromFirestore(updatedLessons);
+  }
+
+  // Lưu config bất kể chọn hay nhập
+  await setDoc(doc(db, "CONFIG", "config"), {
+    selectedClass,
+    lesson: finalLesson,
+  }, { merge: true });
+}}
+                onInputChange={(e, newInput, reason) => {
+                  // chỉ cập nhật input khi gõ
+                  if (reason === "input") {
+                    setLessonInput(newInput);
+                  }
                 }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Bài học"
+                    size="small"
+                    placeholder="Chọn hoặc nhập tên bài mới"
+                  />
+                )}
               />
-
-            )}
+            </FormControl>
 
           </Stack>
         </Paper>
