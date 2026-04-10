@@ -51,7 +51,7 @@ const ExportDialog = ({ open, onClose, fileName, setFileName, onConfirm }) => {
 
       <DialogContent sx={{ pt: 0 }}>
         <Typography sx={{ fontSize: 14, color: "text.secondary", mb: 2 }}>
-          Nhập tên file để lưu
+          {/*Nhập tên file để lưu*/}
         </Typography>
 
         <TextField
@@ -59,22 +59,38 @@ const ExportDialog = ({ open, onClose, fileName, setFileName, onConfirm }) => {
           value={fileName}
           onChange={(e) => setFileName(e.target.value)}
           label="Tên file"
-          placeholder="vd: de_trac_nghiem_lop_3"
+          placeholder={
+            fileName?.trim()
+              ? ""
+              : "Ví dụ: Đề kiểm tra lớp 5..."
+          }
           autoFocus
           variant="outlined"
+
+          // ✅ FIX CHÍNH
+          InputLabelProps={{
+            shrink: true,
+          }}
+
           sx={{
-            bgcolor: "#fff",            // nền ô nhập
-            borderRadius: 1,            // bo góc nhẹ
+            bgcolor: "#fff",
+            borderRadius: 1,
+
+            // 👇 QUAN TRỌNG: giúp label không bị cắt bởi fieldset
+            "& .MuiOutlinedInput-notchedOutline": {
+              transition: "all 0.2s ease",
+            },
+
             "& .MuiOutlinedInput-root": {
               "& fieldset": {
-                borderColor: "#ccc",   // viền xám nhẹ
+                borderColor: "#ccc",
               },
               "&:hover fieldset": {
-                borderColor: "#1976d2", // viền xanh khi hover
+                borderColor: "#1976d2",
               },
               "&.Mui-focused fieldset": {
-                borderColor: "#1976d2", // viền xanh khi focus
-                boxShadow: "0 0 0 2px rgba(25,118,210,0.2)", // shadow focus
+                borderColor: "#1976d2",
+                boxShadow: "0 0 0 2px rgba(25,118,210,0.2)",
               },
             },
           }}

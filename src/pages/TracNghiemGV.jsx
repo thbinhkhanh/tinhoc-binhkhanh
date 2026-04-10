@@ -58,7 +58,7 @@ export default function TracNghiemGV() {
   const { quizCache, setQuizCache } = useTeacherQuizContext();
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
 
-  const [fileName, setFileName] = useState("de_trac_nghiem");
+  const [fileName, setFileName] = useState("");
   const [openExportDialog, setOpenExportDialog] = useState(false); // dialog export
 
   const classes = ["Lớp 1", "Lớp 2", "Lớp 3", "Lớp 4", "Lớp 5"];
@@ -592,12 +592,12 @@ const handleSaveAll = async () => {
   };
 
   const handleExportJSON = () => {
-    let defaultName = "de_trac_nghiem";
+    let defaultName = "";
 
     if (selectedClass && lesson) {
       // thay khoảng trắng bằng "_", bỏ dấu chấm
-      const lop = selectedClass.replace(/\s+/g, "_");
-      const bai = lesson.replace(/\s+/g, "_").replace(/\./g, "");
+      const lop = selectedClass.replace(/\s+/g, " ");
+      const bai = lesson.replace(/\s+/g, " ").replace(/\./g, "");
       defaultName = `${lop}_${bai}`;
     }
 
