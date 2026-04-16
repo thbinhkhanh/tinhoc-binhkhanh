@@ -37,6 +37,8 @@ export const exportQuestionsToJSON = ({
         columnRatio: q.columnRatio || { left: 1, right: 1 },
 
         answers: Array.isArray(q.answers) ? [...q.answers] : [],
+
+        option: q.option || "",
       };
     });
 
@@ -69,192 +71,247 @@ export const exportQuestionsToJSON = ({
 
 export const importQuestionsFromJSON = (file) => {
   return new Promise((resolve) => {
-    try {
-      const reader = new FileReader();
+    const reader = new FileReader();
 
-      reader.onload = (event) => {
-        try {
-          const jsonData = JSON.parse(event.target.result);
-          if (!Array.isArray(jsonData)) throw new Error("JSON không đúng format");
+    reader.onload = (event) => {
+      try {
+        const jsonData = JSON.parse(event.target.result);
 
-          const questions = jsonData.map((q, index) => {
-            const base = {
-              id: q.id || `q_${Date.now()}_${index}`,
-              question: q.question || "",
-              questionImage: q.questionImage || "",
-              type: q.type || "single",
+        if (!Array.isArray(jsonData)) {
+          throw new Error("INVALID_FORMAT");
+        }
+
+        // =========================
+        // detect NEW format
+        // =========================
+        const isNewFormat = (q) => {
+          return (
+            Array.isArray(q?.options) &&
+            q.options.length > 0 &&
+            typeof q.options[0] === "object"
+          );
+        };
+
+        // =========================
+        // convert option NEW → OLD
+        // giữ HTML + URL + text
+        // =========================
+        const toOldOption = (opt) => {
+          if (!opt) return "";
+
+          if (typeof opt === "string") return opt;
+
+          const text = opt.text ?? "";
+          const image = opt.image ?? "";
+
+          if (typeof text === "string" && text.includes("<")) return text;
+          if (typeof text === "string" && text.startsWith("http")) return text;
+          if (image) return image;
+
+          return text || "";
+        };
+
+        // =========================
+        // MAP QUESTIONS
+        // =========================
+        const questions = jsonData.map((q, index) => {
+          const base = {
+            id: q.id || `q_${Date.now()}_${index}`,
+            question: q.question || "",
+            questionImage: q.questionImage || "",
+            type: q.type || "single",
+            score: q.score ?? 0.5,
+            option: q.option || "",
+          };
+
+          // =========================
+          // OLD → OLD (GIỮ NGUYÊN 100%)
+          // =========================
+          if (!isNewFormat(q)) {
+            return {
+              ...base,
               options: q.options || [],
               correct: q.correct || [],
-              score: q.score ?? 0.5,
+              pairs: q.pairs || [],
+              columnRatio: q.columnRatio || { left: 1, right: 1 },
+              sortType: q.sortType || "fixed",
+              answers: q.answers || [],
             };
-
-            switch (q.type) {
-              case "image":
-                // Convert tất cả các object option sang URL string
-                const optionsArray = base.options.map((opt) => {
-                  if (typeof opt === "string") return opt; // App 1 đã đúng format
-                  // Nếu là object App 2, lấy URL từ text hoặc image
-                  return opt.image || opt.text || "";
-                });
-                return {
-                  ...base,
-                  options: optionsArray,
-                  correct: Array.isArray(base.correct) ? base.correct : [],
-                };
-
-              case "truefalse":
-                return {
-                  ...base,
-                  options: base.options.length ? base.options : ["Đúng", "Sai"],
-                  correct: base.correct.length ? base.correct : ["Đúng"],
-                };
-
-              case "matching":
-                return {
-                  ...base,
-                  pairs: q.pairs || [],
-                  columnRatio: q.columnRatio || { left: 1, right: 1 },
-                };
-
-              case "sort":
-                return {
-                  ...base,
-                  options: base.options.length ? base.options : ["", "", "", ""],
-                  correct: base.correct.length ? base.correct : base.options.map((_, i) => i),
-                  sortType: q.sortType || "fixed",
-                };
-
-              case "fillblank":
-                return {
-                  ...base,
-                  options: base.options || [],
-                  answers: q.answers || [],
-                };
-
-              case "multiple":
-              case "single":
-              default:
-                return {
-                  ...base,
-                  options: base.options.length ? base.options : ["", "", "", ""],
-                  correct: base.correct || [],
-                };
-            }
-          });
-
-          resolve({ success: true, data: questions });
-        } catch (parseErr) {
-          resolve({
-            success: false,
-            error: "❌ File JSON không hợp lệ hoặc sai cấu trúc",
-          });
-        }
-      };
-
-      reader.onerror = () => {
-        resolve({
-          success: false,
-          error: "❌ Không thể đọc file",
-        });
-      };
-
-      reader.readAsText(file);
-    } catch (err) {
-      resolve({ success: false, error: err.message });
-    }
-  });
-};
-export const importQuestionsFromJSON_1 = (file) => {
-  return new Promise((resolve) => {
-    try {
-      const reader = new FileReader();
-
-      reader.onload = (event) => {
-        try {
-          const jsonData = JSON.parse(event.target.result);
-
-          if (!Array.isArray(jsonData)) {
-            throw new Error("JSON không đúng format");
           }
 
-          const questions = jsonData.map((q, index) => {
-            const base = {
-              id: q.id || `q_${Date.now()}_${index}`,
-              question: q.question || "",
-              questionImage: q.questionImage || "",
-              type: q.type || "single",
-              options: q.options || [],
-              correct: q.correct || [],
-              score: q.score ?? 0.5,
-            };
+          // =========================
+          // NEW → OLD
+          // =========================
+          const options = (q.options || []).map(toOldOption);
 
-            switch (q.type) {
-              case "image":
-                return {
-                  ...base,
-                  options: Array.from({ length: 4 }, (_, i) => q.options?.[i] || ""),
-                  correct: Array.isArray(q.correct) ? q.correct : [],
-                };
+          switch (q.type) {
+            // ================= SINGLE =================
+            case "single":
+            case "multiple":
+              return {
+                ...base,
+                options: options.map((t) =>
+                  typeof t === "string" && t.startsWith("http")
+                    ? { text: "", image: t }
+                    : { text: t, image: "" }
+                ),
+                correct: Array.isArray(q.correct)
+                  ? q.correct.map(Number).filter((n) => !isNaN(n))
+                  : [],
+                sortType: q.sortType || "shuffle",
+              };
 
-              case "truefalse":
-                return {
-                  ...base,
-                  options: q.options?.length ? q.options : ["Đúng", "Sai"],
-                  correct: q.correct?.length ? q.correct : ["Đúng"],
-                };
+            // ================= SORT =================
+            case "sort":
+              return {
+                ...base,
+                options: options.map((t) =>
+                  typeof t === "string" && t.startsWith("http")
+                    ? { text: "", image: t }
+                    : { text: t, image: "" }
+                ),
+                correct:
+                  Array.isArray(q.correct) && q.correct.length
+                    ? q.correct
+                    : options.map((_, i) => i),
+                sortType: q.sortType || "shuffle",
+              };
 
-              case "matching":
-                return {
-                  ...base,
-                  pairs: q.pairs || [],
-                  columnRatio: q.columnRatio || { left: 1, right: 1 },
-                };
+            // ================= TRUEFALSE =================
+            case "truefalse":
+              return {
+                ...base,
+                options: options.map((t) =>
+                  typeof t === "string" && t.startsWith("http")
+                    ? { text: "", image: t }
+                    : { text: t, image: "" }
+                ),
+                correct: Array.isArray(q.correct)
+                  ? q.correct
+                  : ["Đ", "S", "Đ", "S"],
+                sortType: q.sortType || "shuffle",
+              };
 
-              case "sort":
-                return {
-                  ...base,
-                  options: q.options || ["", "", "", ""],
-                  correct: q.correct || q.options?.map((_, i) => i) || [],
-                  sortType: q.sortType || "fixed",
-                };
+            // ================= IMAGE =================
+            case "image":
+              return {
+                ...base,
 
-              case "fillblank":
-                return {
-                  ...base,
-                  options: q.options || [],
-                  answers: q.answers || [],
-                };
+                // 🔥 QUAN TRỌNG: giữ đúng format CŨ (string array có thể là URL)
+                options: Array.isArray(q.options)
+                  ? q.options.map((o) => {
+                      if (typeof o === "string") return o;
 
-              case "multiple":
-              case "single":
-              default:
-                return {
-                  ...base,
-                  options: q.options || ["", "", "", ""],
-                  correct: q.correct || [],
-                };
-            }
-          });
+                      const text = o?.text ?? "";
+                      const image = o?.image ?? "";
 
-          resolve({ success: true, data: questions });
-        } catch (parseErr) {
-          resolve({
-            success: false,
-            error: "❌ File JSON không hợp lệ hoặc sai cấu trúc",
-          });
-        }
-      };
+                      // 🔥 ưu tiên image trước (QUAN TRỌNG)
+                      if (image) return image;
 
-      reader.onerror = () => {
+                      // nếu text là URL ảnh
+                      if (typeof text === "string" && text.startsWith("http")) {
+                        return text;
+                      }
+
+                      return text || "";
+                    })
+                  : [],
+
+                correct: Array.isArray(q.correct)
+                  ? q.correct.map(Number).filter((n) => !isNaN(n))
+                  : [],
+              };
+
+            // ================= FILLBLANK =================
+            case "fillblank":
+              return {
+                ...base,
+
+                // giữ nguyên format cũ
+                option: q.option || "",
+
+                // convert options: giữ đúng text/image như dữ liệu cũ yêu cầu
+                options: (q.options || []).map((o) => {
+                  if (typeof o === "string") return o;
+
+                  // ưu tiên text (giống hàm cũ handleImportQuiz)
+                  if (o?.text) return o.text;
+
+                  // fallback image nếu không có text
+                  if (o?.image) return o.image;
+
+                  return "";
+                }),
+
+                // QUAN TRỌNG: giữ answers nguyên như cũ
+                answers: Array.isArray(q.answers) ? q.answers : [],
+
+                // fillblank luôn không dùng correct
+                correct: [],
+              };
+
+            // ================= MATCHING =================
+            case "matching":
+              return {
+                ...base,
+                pairs: (q.pairs || []).map((p) => ({
+                  left: p.left || "",
+                  right: p.right || "",
+                  leftImage: p.leftImage?.url
+                    ? {
+                        url: p.leftImage.url,
+                        name: p.leftImage.name || "",
+                      }
+                    : p.leftImage || "",
+                  rightImage: p.rightImage?.url
+                    ? {
+                        url: p.rightImage.url,
+                        name: p.rightImage.name || "",
+                      }
+                    : p.rightImage || "",
+                })),
+                columnRatio: q.columnRatio || {
+                  left: 1,
+                  right: 3,
+                },
+              };
+
+            // ================= DEFAULT =================
+            default:
+              return {
+                ...base,
+                options: options.map((t) =>
+                  typeof t === "string" && t.startsWith("http")
+                    ? { text: "", image: t }
+                    : { text: t, image: "" }
+                ),
+                correct: q.correct || [],
+              };
+          }
+        });
+
+        // =========================
+        // FIX CRITICAL: ALWAYS RETURN ARRAY
+        // =========================
+        resolve({
+          success: true,
+          data: questions, // <-- QUAN TRỌNG NHẤT
+        });
+      } catch (err) {
         resolve({
           success: false,
-          error: "❌ Không thể đọc file",
+          error: "❌ JSON lỗi hoặc sai cấu trúc",
         });
-      };
+      }
+    };
 
-      reader.readAsText(file);
-    } catch (err) {
-      resolve({ success: false, error: err.message });
-    }
+    reader.onerror = () => {
+      resolve({
+        success: false,
+        error: "❌ Không thể đọc file",
+      });
+    };
+
+    reader.readAsText(file);
   });
 };

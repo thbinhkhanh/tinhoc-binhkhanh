@@ -45,6 +45,7 @@ import UploadFileIcon from "@mui/icons-material/UploadFile";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
 import InputAdornment from "@mui/material/InputAdornment";
+import { cleanAnswersFieldInAllQuizzes } from "../utils/cleanAnswersField";
 
 
 export default function TracNghiemGV() {
@@ -682,6 +683,27 @@ const handleSaveAll = async () => {
     e.target.value = "";
   };
 
+  const handleCleanAnswers = async () => {
+    if (!window.confirm("Xóa toàn bộ answers trong tất cả đề?")) return;
+
+    try {
+      await cleanAnswersFieldInAllQuizzes(db);
+
+      setSnackbar({
+        open: true,
+        message: "✅ Đã xóa toàn bộ answers",
+        severity: "success",
+      });
+    } catch (err) {
+      console.error(err);
+      setSnackbar({
+        open: true,
+        message: "❌ Lỗi khi xóa answers",
+        severity: "error",
+      });
+    }
+  };
+
   // ===== RENDER =====
   return (
     <Box sx={{ minHeight: "100vh", pt: 10, px: 3, backgroundColor: "#e3f2fd", display: "flex", justifyContent: "center" }}>
@@ -764,6 +786,16 @@ const handleSaveAll = async () => {
             style={{ display: "none" }}
             onChange={handleImportJSON}
           />
+
+          {/* Xóa answers [] */}
+          <Tooltip title="Xóa toàn bộ answers">
+            <IconButton
+              onClick={handleCleanAnswers}
+              sx={{ color: "#d32f2f" }}
+            >
+              🧹
+            </IconButton>
+          </Tooltip>
         </Stack>
 
         <Typography variant="h5" fontWeight="bold" textAlign="center" sx={{ mt: 3, mb: 2, color: "#1976d2" }}>
