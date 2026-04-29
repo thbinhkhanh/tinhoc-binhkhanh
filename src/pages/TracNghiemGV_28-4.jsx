@@ -38,8 +38,6 @@ import OpenExamDialog from "../dialog/OpenExamDialog";
 import ExitAddLessonDialog from "../dialog/ExitAddLessonDialog";
 import ExportDialog from "../dialog/ExportDialog";
 import ImportModeDialog from "../dialog/ImportModeDialog";
-import ImportSourceDialog from "../dialog/ImportSourceDialog";
-import ImportFromFirestoreDialog from "../dialog/ImportFromFirestoreDialog";
 
 import { exportQuestionsToJSON } from "../utils/exportJson_importJson.js";
 import { importQuestionsFromJSON } from "../utils/exportJson_importJson.js";
@@ -50,7 +48,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import InputAdornment from "@mui/material/InputAdornment";
 import { cleanAnswersFieldInAllQuizzes } from "../utils/cleanAnswersField";
 import { handleUploadExcel } from "../utils/uploadExcel";
-import mammoth from "mammoth";
+
 
 export default function TracNghiemGV() {
   const fileInputRef = useRef(null);
@@ -81,9 +79,6 @@ export default function TracNghiemGV() {
   const [namHoc, setNamHoc] = useState("");
   const [openImportModeDialog, setOpenImportModeDialog] = useState(false);
   const [importData, setImportData] = useState([]);
-  const [openImportSourceDialog, setOpenImportSourceDialog] = useState(false);
-  const [openFirestoreDialog, setOpenFirestoreDialog] = useState(false);
-  const wordInputRef = useRef(null);
 
   const weeks =
     String(semester) === "1"
@@ -670,9 +665,9 @@ const handleSaveAll = async () => {
 
     setQuestions(importData);
 
-    //setIsAddingLesson(true);
-    //setLesson("");
-    //setLessonInput("");
+    setIsAddingLesson(true);
+    setLesson("");
+    setLessonInput("");
 
     setOpenImportModeDialog(false);
   };
@@ -770,100 +765,6 @@ const handleSaveAll = async () => {
     }
   };
 
-  const handleImportWord = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    try {
-      const arrayBuffer = await file.arrayBuffer();
-      const result = await mammoth.extractRawText({ arrayBuffer });
-      const text = result.value;
-
-      console.log("📄 Nội dung Word:", text);
-
-      // ===== TÁCH THEO "Câu X:" =====
-      const blocks = text
-        .split(/Câu\s*\d+\s*:/i)
-        .map(b => b.trim())
-        .filter(Boolean);
-
-      const questionsParsed = blocks.map((block, index) => {
-        if (!block) return null;
-
-        const lines = block.split("\n").map(l => l.trim()).filter(Boolean);
-
-        const question = lines[0];
-        const options = [];
-        const correct = [];
-
-        lines.slice(1).forEach(line => {
-          if (/^[A-D][\.\)]/.test(line)) {
-            let text = line.replace(/^[A-D][\.\)]\s*/, "").trim();
-            if (text.endsWith("*")) {
-              text = text.replace(/\*$/, "").trim();
-              correct.push(options.length);
-            }
-            options.push(text);
-          }
-        });
-
-        while (options.length < 4) options.push("");
-
-        return {
-          id: `q_${Date.now()}_${index}`,
-          question: `<p>${question}</p>`,
-          questionImage: "",
-          options: options.slice(0, 4).map(opt => ({
-            text: `<p>${opt}</p>`,
-            image: ""
-          })),
-          correct,
-          type: correct.length > 1 ? "multiple" : "single",
-          score: 0.5,
-          sortType: "shuffle",
-          title: "",
-          pairs: []
-        };
-      }).filter(Boolean);
-
-      console.log("Parsed questions:", questionsParsed);
-
-      const isEmpty =
-        !questions ||
-        questions.length === 0 ||
-        (questions.length === 1 && !questions[0].question);
-
-      if (isEmpty) {
-        setQuestions(questionsParsed);
-        //setIsAddingLesson(true);
-        // ❌ bỏ setLesson để giữ nguyên tên bài học hiện có
-        setLessonInput(lesson || "");
-      } else {
-        setImportData(questionsParsed);
-        setOpenImportModeDialog(true);
-      }
-
-      setSnackbar({
-        open: true,
-        message: "✅ Import Word thành công",
-        severity: "success",
-      });
-
-    } catch (err) {
-      console.error(err);
-      setSnackbar({
-        open: true,
-        message: "❌ Lỗi đọc file Word",
-        severity: "error",
-      });
-    }
-
-    e.target.value = "";
-  };
-
-
-
-
   // ===== RENDER =====
   return (
     <Box sx={{ minHeight: "100vh", pt: 10, px: 3, backgroundColor: "#e3f2fd", display: "flex", justifyContent: "center" }}>
@@ -929,9 +830,9 @@ const handleSaveAll = async () => {
           </Tooltip>
 
           {/* Import */} 
-          <Tooltip title="Nhập đề kiểm tra">
+          <Tooltip title="Nhập đề kiểm tra (JSON)">
             <IconButton
-              onClick={() => setOpenImportSourceDialog(true)}
+              onClick={() => fileInputRef.current.click()}
               sx={{ color: "#ed6c02" }}
             >
               <UploadFileIcon />
@@ -947,14 +848,6 @@ const handleSaveAll = async () => {
             onChange={handleImportJSON}
           />
 
-          <input
-            type="file"
-            accept=".docx"
-            ref={wordInputRef}
-            style={{ display: "none" }}
-            onChange={handleImportWord}
-          />
-
           {/* Xóa answers [] */}
           {/*<Tooltip title="Xóa toàn bộ answers">
             <IconButton
@@ -967,7 +860,7 @@ const handleSaveAll = async () => {
         </Stack>
 
         <Typography variant="h5" fontWeight="bold" textAlign="center" sx={{ mt: 3, mb: 2, color: "#1976d2" }}>
-          SOẠN ĐỀ KIỂM TRA
+          SOẠN ĐỀ TRẮC NGHIỆM
         </Typography>
 
         <Paper elevation={2} sx={{ p: 2, mb: 3 }}>
@@ -1120,47 +1013,6 @@ const handleSaveAll = async () => {
           onClose={() => setOpenImportModeDialog(false)}
           onOverwrite={handleImportOverwrite}
           onAppend={handleImportAppend}
-        />
-
-        <ImportSourceDialog
-          open={openImportSourceDialog}
-          onClose={() => setOpenImportSourceDialog(false)}
-
-          onSelectJSON={() => {
-            setOpenImportSourceDialog(false);
-            fileInputRef.current?.click();
-          }}
-
-          onSelectWord={() => {
-            setOpenImportSourceDialog(false);
-            wordInputRef.current?.click(); // 👈 thêm
-          }}
-
-          onSelectFirestore={() => {
-            setOpenImportSourceDialog(false);
-            setOpenFirestoreDialog(true);
-          }}
-        />
-
-        <ImportFromFirestoreDialog
-          open={openFirestoreDialog}
-          onClose={() => setOpenFirestoreDialog(false)}
-          onImport={(importedQuestions) => {
-            const isEmpty =
-              questions.length === 0 ||
-              (questions.length === 1 && !questions[0].question);
-
-            if (isEmpty) {
-              setQuestions(importedQuestions);
-            } else {
-              const mapped = importedQuestions.map(q => ({
-                ...q,
-                id: `q_${Date.now()}_${Math.random()}`
-              }));
-
-              setQuestions(prev => [...prev, ...mapped]);
-            }
-          }}
         />
 
         <Snackbar

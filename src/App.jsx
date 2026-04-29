@@ -151,10 +151,10 @@ function Navigation() {
       const soKhoi = item.khoi.replace('Khối ', '');
 
       // ✅ HỆ THỐNG CŨ → VÀO LỚP CŨ
-      if (config.heThong === 'old') {
+      /*if (config.heThong === 'old') {
         navigate(`/lop${soKhoi}`);
         return;
-      }
+      }*/
 
       // ✅ HỆ THỐNG MỚI → VÀO LỚP MỚI (KHÔNG QUA INFO)
       navigate(`/lop${soKhoi}-new`);

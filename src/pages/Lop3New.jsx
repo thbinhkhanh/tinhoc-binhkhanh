@@ -123,24 +123,40 @@ export default function Lop3() {
   // ===== LOAD FIRESTORE =====
   useEffect(() => {
     const fetchLessons = async () => {
-      const snapshot = await getDocs(collection(db, 'TENBAI_Lop3'));
+      try {
+        const snapConfig = await getDocs(collection(db, "CONFIG"));
+        const configDoc = snapConfig.docs.find(d => d.id === "config");
+        const namHoc = configDoc?.data()?.namHoc;
 
-      const data = snapshot.docs
-        .map(doc => ({
-          title: doc.id,
-          stt: doc.data().stt,
-        }))
-        .sort((a, b) => a.stt - b.stt);
+        const collectionName =
+          namHoc === "2025-2026"
+            ? "TENBAI_Lop3"
+            : "TENBAI_Lop3_New";
 
-      setLessons(data);
+        const snapshot = await getDocs(collection(db, collectionName));
+
+        const data = snapshot.docs
+          .map(doc => ({
+            title: doc.id,
+            stt: doc.data().stt,
+          }))
+          .sort((a, b) => a.stt - b.stt);
+
+        setLessons(data);
+      } catch (err) {
+        console.error("❌ Lỗi load bài:", err);
+      }
     };
 
     fetchLessons();
   }, []);
 
   // ===== LỌC THEO HỌC KÌ =====
+  const [namHoc, setNamHoc] = useState("");
   const lessonsByHocKi = lessons.filter(lesson =>
-    hocKi === 1 ? lesson.stt <= 9 : lesson.stt > 9
+    namHoc === "2025-2026"
+      ? (hocKi === 1 ? lesson.stt <= 9 : lesson.stt > 9)
+      : (hocKi === 1 ? lesson.stt <= 10 : lesson.stt > 10)
   );
 
   // ===== CLICK CARD =====

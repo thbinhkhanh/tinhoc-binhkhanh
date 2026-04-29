@@ -259,7 +259,13 @@ export default function TracNghiem() {
           return;
         }
 
-        const collectionName = `TRACNGHIEM${lopHoc}`;
+        const snapConfig = await getDoc(doc(db, "CONFIG", "config"));
+        const namHoc = snapConfig.exists() ? snapConfig.data().namHoc : "";
+
+        const collectionName =
+          namHoc === "2025-2026"
+            ? `TRACNGHIEM${lopHoc}`
+            : `TRACNGHIEM${lopHoc}_New`;
         const docId = tenBai;
 
         const docRef = doc(db, collectionName, docId);

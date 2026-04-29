@@ -245,7 +245,13 @@ const studentInfo = {
           return;
         }
 
-        const collectionName = `TRACNGHIEM${selectedLop}`;
+        const snapConfig = await getDoc(doc(db, "CONFIG", "config"));
+        const namHoc = snapConfig.exists() ? snapConfig.data().namHoc : "";
+
+        const collectionName =
+          namHoc === "2025-2026"
+            ? `TRACNGHIEM${selectedLop}`
+            : `TRACNGHIEM${selectedLop}_New`;
         const docId = selectedBai;
 
         // 🔥 Luôn đọc từ Firestore
@@ -480,8 +486,15 @@ useEffect(() => {
     if (!dropdownClass) return;
 
     try {
+      const snapConfig = await getDoc(doc(db, "CONFIG", "config"));
+      const namHoc = snapConfig.exists() ? snapConfig.data().namHoc : "";
+
       const lopSo = dropdownClass.replace("Lớp ", "");
-      const collectionName = `TRACNGHIEM${lopSo}`;
+
+      const collectionName =
+        namHoc === "2025-2026"
+          ? `TRACNGHIEM${lopSo}`
+          : `TRACNGHIEM${lopSo}_New`;
 
       const snapshot = await getDocs(collection(db, collectionName));
 

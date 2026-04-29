@@ -20,9 +20,8 @@ import { collection, getDocs, getDoc, doc } from "firebase/firestore";
 import { db } from "../firebase";
 import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
-import { onSnapshot } from "firebase/firestore";
 
-// ================== BACKUP KEYS ==================
+// ====== CHỈ GIỮ DỮ LIỆU CẦN BACKUP ======
 const BACKUP_KEYS = [
   { key: "DANHSACHLOP", label: "Danh sách lớp", group: "Dữ liệu" },
   { key: "DATA", label: "Kết quả đánh giá", group: "Dữ liệu" },
@@ -48,22 +47,18 @@ const TENBAI_MAP = {
   5: "Lop5",
 };
 
-// ================== FIX LOGIC THEO NAM HỌC ==================
-const isOldYear = (namHoc) => namHoc === "2025-2026";
+// ================== NEW / OLD ==================
+const isNewYear = (namHoc) => namHoc && namHoc !== "2025-2026";
 
-// nếu là 2025-2026 => CŨ
-// ngược lại => MỚI
-const getCollectionName = (base, namHoc) => {
-  return isOldYear(namHoc) ? base : `${base}_New`;
-};
+const getCollectionName = (base, namHoc) =>
+  isNewYear(namHoc) ? `${base}_New` : base;
 
 const getTenBaiCollection = (lop, namHoc) => {
   const lopKey = TENBAI_MAP[lop];
   if (!lopKey) return null;
-
-  return isOldYear(namHoc)
-    ? `TENBAI_${lopKey}`
-    : `TENBAI_${lopKey}_New`;
+  return isNewYear(namHoc)
+    ? `TENBAI_${lopKey}_New`
+    : `TENBAI_${lopKey}`;
 };
 
 export default function BackupPage({ open, onClose }) {
@@ -78,13 +73,13 @@ export default function BackupPage({ open, onClose }) {
     severity: "success",
   });
 
+  // ================== GET NAM HOC ==================
   useEffect(() => {
-    const unsub = onSnapshot(doc(db, "CONFIG", "config"), (snap) => {
-      if (snap.exists()) {
-        setNamHoc(snap.data().namHoc);
-      }
-    });
-    return () => unsub();
+    const fetchNamHoc = async () => {
+      const snap = await getDoc(doc(db, "CONFIG", "config"));
+      if (snap.exists()) setNamHoc(snap.data().namHoc);
+    };
+    fetchNamHoc();
   }, []);
 
   // ================== INIT ==================
@@ -101,9 +96,12 @@ export default function BackupPage({ open, onClose }) {
 
       newState[key] = nextValue;
 
+      // ================== SYNC TRẮC NGHIỆM ↔ BÀI HỌC ==================
       const match = key.match(/TRACNGHIEM(\d)/);
+
       if (match) {
         const lop = match[1];
+
         const baiKey = `TENBAI_Lop${lop}`;
         if (newState[baiKey] !== undefined) {
           newState[baiKey] = nextValue;
@@ -114,7 +112,7 @@ export default function BackupPage({ open, onClose }) {
     });
   };
 
-  // ================== BACKUP DATA ==================
+  // ================== FETCH BACKUP ==================
   const fetchAllBackup = async (onProgress, selected) => {
     const backupData = {};
     let progressCount = 0;
@@ -126,39 +124,33 @@ export default function BackupPage({ open, onClose }) {
     const OTHER_WEIGHT = hasDATA ? 20 : 100;
     const step = others.length ? OTHER_WEIGHT / others.length : 0;
 
-    // ================== OTHER ==================
+    // ================== OTHER COLLECTIONS ==================
     for (const col of others) {
-      let realCol;
-
-      // Nếu là TENBAI_LopX thì dùng getTenBaiCollection
-      if (col.startsWith("TENBAI_Lop")) {
-        const lop = col.replace("TENBAI_Lop", "");
-        realCol = getTenBaiCollection(lop, namHoc);
-      } else {
-        realCol = getCollectionName(col, namHoc);
-      }
-
-      if (!realCol) continue;
+      const realCol = getCollectionName(col, namHoc);
 
       const snap = await getDocs(collection(db, realCol));
-      backupData[realCol] = {};
+
+      if (!snap.empty) backupData[realCol] = {};
 
       snap.forEach((d) => {
-        backupData[realCol][d.id] = d.data();
+        const data = d.data();
+        backupData[realCol][d.id] = data;
       });
 
-      // ===== TENBAI auto theo TRACNGHIEM =====
+      // 👉 AUTO BACKUP TENBAI NGAY KHI GẶP TRACNGHIEM
       if (col.startsWith("TRACNGHIEM")) {
         const lop = col.replace("TRACNGHIEM", "");
         const tenBaiCol = getTenBaiCollection(lop, namHoc);
 
         if (tenBaiCol) {
           const snapTB = await getDocs(collection(db, tenBaiCol));
-          backupData[tenBaiCol] = {};
 
-          snapTB.forEach((d) => {
-            backupData[tenBaiCol][d.id] = d.data();
-          });
+          if (!snapTB.empty) {
+            backupData[tenBaiCol] = {};
+            snapTB.forEach((d) => {
+              backupData[tenBaiCol][d.id] = d.data();
+            });
+          }
         }
       }
 
@@ -171,33 +163,32 @@ export default function BackupPage({ open, onClose }) {
       const dataKey = getCollectionName("DATA", namHoc);
       backupData[dataKey] = {};
 
-      // Sửa chỗ này: dùng getCollectionName cho DANHSACHLOP
-      const listSnap = await getDocs(collection(db, getCollectionName("DANHSACHLOP", namHoc)));
+      const listSnap = await getDocs(collection(db, "DANHSACHLOP"));
       const listDoc = listSnap.docs.find((d) => d.id === "list");
       const classList = listDoc?.data()?.list || [];
 
       const perClass = DATA_WEIGHT / (classList.length || 1);
 
-      const results = await Promise.all(
-        classList.map(async (lop) => {
-          const classKey = lop.replace(".", "_");
+      const tasks = classList.map(async (lop) => {
+        const classKey = lop.replace(".", "_");
 
-          const snap = await getDocs(
-            collection(db, dataKey, classKey, "HOCSINH")
-          );
+        const snap = await getDocs(
+          collection(db, dataKey, classKey, "HOCSINH")
+        );
 
-          const hs = {};
-          snap.forEach((d) => (hs[d.id] = d.data()));
+        const hs = {};
+        snap.forEach((d) => (hs[d.id] = d.data()));
 
-          return { classKey, hs };
-        })
-      );
+        return { classKey, hs };
+      });
+
+      const results = await Promise.all(tasks);
 
       for (const r of results) {
-        backupData[dataKey][r.classKey] = { HOCSINH: r.hs };
-
         progressCount += perClass;
         onProgress((p) => Math.max(p, Math.round(progressCount)));
+
+        backupData[dataKey][r.classKey] = { HOCSINH: r.hs };
       }
     }
 
@@ -205,19 +196,8 @@ export default function BackupPage({ open, onClose }) {
     return backupData;
   };
 
-
   // ================== EXPORT ==================
   const exportBackupToJson = (data) => {
-    const now = new Date();
-
-    // Tạo chuỗi ngày/giờ: dd-mm-yyyy hh-mm-ss
-    const dateStr = `${String(now.getDate()).padStart(2, "0")}-${String(
-      now.getMonth() + 1
-    ).padStart(2, "0")}-${now.getFullYear()}`;
-    const timeStr = `${String(now.getHours()).padStart(2, "0")}-${String(
-      now.getMinutes()
-    ).padStart(2, "0")}-${String(now.getSeconds()).padStart(2, "0")}`;
-
     const blob = new Blob([JSON.stringify(data, null, 2)], {
       type: "application/json",
     });
@@ -226,18 +206,16 @@ export default function BackupPage({ open, onClose }) {
     const a = document.createElement("a");
     a.href = url;
 
-    // Đặt tên file: Backup_<namHoc> (dd-mm-yyyy hh-mm-ss).json
-    a.download = `LTTH_${namHoc} (${dateStr} ${timeStr}).json`;
+    a.download = isNewYear(namHoc)
+      ? "Backup_New.json"
+      : "Backup_2025-2026.json";
 
     a.click();
   };
 
-
   // ================== HANDLE ==================
   const handleBackup = async () => {
-    const selected = Object.keys(backupOptions).filter(
-      (k) => backupOptions[k]
-    );
+    const selected = Object.keys(backupOptions).filter((k) => backupOptions[k]);
 
     if (!selected.length) {
       setSnackbar({
@@ -267,7 +245,7 @@ export default function BackupPage({ open, onClose }) {
     onClose();
   };
 
-  /* ================= UI GIỮ NGUYÊN ================= */
+  // ================== UI ==================
   return (
   <>
     <Dialog

@@ -3,12 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
-  Button,
   Card,
+  Button,
 } from '@mui/material';
+
 import {
   BookOpen, Search, FileText, Folder, Lock, Brush, Smile, ShieldCheck,
-  Globe, FileCode2, GitCompare, Repeat, Calculator, PlayCircle, ScrollText
+  Globe, FileCode2, GitCompare, Repeat, Calculator, PlayCircle, ScrollText, 
+  HelpingHand,
+  ClipboardList
 } from 'lucide-react';
 
 import { collection, getDocs } from 'firebase/firestore';
@@ -16,29 +19,32 @@ import { db } from '../firebase';
 import Banner from '../pages/Banner';
 import { ConfigContext } from '../context/ConfigContext';
 
+
 // ================= ICON + COLOR THEO STT =================
 const lessonUIByStt = {
-  1: { icon: <BookOpen size={32} color="#1976d2" />, color: 'primary' },
-  2: { icon: <Search size={32} color="#1976d2" />, color: 'success' },
-  3: { icon: <FileText size={32} color="#1976d2" />, color: 'warning' },
-  4: { icon: <Folder size={32} color="#1976d2" />, color: 'primary' },
-  5: { icon: <Lock size={32} color="#1976d2" />, color: 'error' },
-  6: { icon: <Brush size={32} color="#1976d2" />, color: 'success' },
-  7: { icon: <Smile size={32} color="#1976d2" />, color: 'warning' },
-  8: { icon: <Brush size={32} color="#1976d2" />, color: 'primary' },
-  9: { icon: <Globe size={32} color="#1976d2" />, color: 'success' },
+  1:  { icon: <BookOpen size={32} color="#1976d2" />, color: 'primary' },
+  2:  { icon: <Search size={32} color="#1976d2" />, color: 'success' },
+  3:  { icon: <FileText size={32} color="#1976d2" />, color: 'warning' },
+  4:  { icon: <Folder size={32} color="#1976d2" />, color: 'primary' },
+  5:  { icon: <Lock size={32} color="#1976d2" />, color: 'error' },
+  6:  { icon: <Brush size={32} color="#1976d2" />, color: 'success' },
+  7:  { icon: <Smile size={32} color="#1976d2" />, color: 'warning' },
+  8:  { icon: <Brush size={32} color="#1976d2" />, color: 'primary' },
+  9:  { icon: <Globe size={32} color="#1976d2" />, color: 'success' },
   
-  10:{ icon: <FileCode2 size={32} color="#1976d2" />, color: 'warning' },
-  11:{ icon: <GitCompare size={32} color="#1976d2" />, color: 'primary' },
-  12:{ icon: <Repeat size={32} color="#1976d2" />, color: 'success' },
-  13:{ icon: <Calculator size={32} color="#1976d2" />, color: 'warning' },
-  14:{ icon: <PlayCircle size={32} color="#1976d2" />, color: 'primary' },
-  15:{ icon: <ScrollText size={32} color="#1976d2" />, color: 'success' },
-  16:{ icon: <PlayCircle size={32} color="#1976d2" />, color: 'warning' },
-  17:{ icon: <ShieldCheck size={32} color="#1976d2" />, color: 'error' },
-  18:{ icon: <ShieldCheck size={32} color="#1976d2" />, color: 'error' },
-  19: { icon: <Brush size={32} color="#1976d2" />, color: 'primary' },
-  20: { icon: <Globe size={32} color="#1976d2" />, color: 'success' },
+  10: { icon: <FileCode2 size={32} color="#1976d2" />, color: 'warning' },
+  11: { icon: <GitCompare size={32} color="#1976d2" />, color: 'primary' },
+  12: { icon: <Repeat size={32} color="#1976d2" />, color: 'success' },
+  13: { icon: <Calculator size={32} color="#1976d2" />, color: 'warning' },
+  14: { icon: <PlayCircle size={32} color="#1976d2" />, color: 'primary' },
+  15: { icon: <ScrollText size={32} color="#1976d2" />, color: 'success' },
+  16: { icon: <PlayCircle size={32} color="#1976d2" />, color: 'warning' },
+  17: { icon: <ShieldCheck size={32} color="#1976d2" />, color: 'error' },
+  18: { icon: <ShieldCheck size={32} color="#1976d2" />, color: 'error' },
+  19: { icon: <GitCompare size={32} color="#1976d2" />, color: 'primary' },
+  20: { icon: <HelpingHand size={32} color="#1976d2" />, color: 'success' },
+  21: { icon: <Brush size={32} color="#1976d2" />, color: 'primary' },
+  22: { icon: <Globe size={32} color="#1976d2" />, color: 'success' },
 };
 
 
@@ -59,8 +65,8 @@ const LessonCard = ({ title, icon, color, onClick }) => {
         borderRadius: 3,
         textAlign: 'center',
         cursor: 'pointer',
-        transition: 'transform 0.2s',
-        '&:hover': { transform: 'scale(1.02)', boxShadow: 6 },
+        transition: '0.2s',
+        '&:hover': { transform: 'scale(1.03)', boxShadow: 6 },
       }}
       onClick={onClick}
     >
@@ -84,7 +90,12 @@ const LessonCard = ({ title, icon, color, onClick }) => {
         {title.toUpperCase()}
       </Typography>
 
-      <Button variant="contained" color={color} size="small" sx={{ mt: 2 }}>
+      <Button
+        variant="contained"
+        color={color || 'primary'}
+        size="small"
+        sx={{ mt: 2 }}
+      >
         VÀO
       </Button>
     </Card>
@@ -96,8 +107,8 @@ const LessonCard = ({ title, icon, color, onClick }) => {
 export default function Lop5() {
   const navigate = useNavigate();
   const { config, setConfig } = useContext(ConfigContext);
+
   const [lessons, setLessons] = useState([]);
-  //const [hocKi, setHocKi] = useState(1); // ✅ HỌC KÌ
 
   // 1️⃣ Khởi tạo state hocKi từ localStorage hoặc context
   const [hocKi, setHocKi] = useState(
@@ -112,24 +123,40 @@ export default function Lop5() {
   // ===== LOAD FIRESTORE =====
   useEffect(() => {
     const fetchLessons = async () => {
-      const snapshot = await getDocs(collection(db, 'TENBAI_Lop5'));
+      try {
+        const snapConfig = await getDocs(collection(db, "CONFIG"));
+        const configDoc = snapConfig.docs.find(d => d.id === "config");
+        const namHoc = configDoc?.data()?.namHoc;
 
-      const data = snapshot.docs
-        .map(doc => ({
-          title: doc.id,
-          stt: doc.data().stt,
-        }))
-        .sort((a, b) => a.stt - b.stt);
+        const collectionName =
+          namHoc === "2025-2026"
+            ? "TENBAI_Lop5"
+            : "TENBAI_Lop5_New";
 
-      setLessons(data);
+        const snapshot = await getDocs(collection(db, collectionName));
+
+        const data = snapshot.docs
+          .map(doc => ({
+            title: doc.id,
+            stt: doc.data().stt,
+          }))
+          .sort((a, b) => a.stt - b.stt);
+
+        setLessons(data);
+      } catch (err) {
+        console.error("❌ Lỗi load bài:", err);
+      }
     };
 
     fetchLessons();
   }, []);
 
   // ===== LỌC THEO HỌC KÌ =====
+  const [namHoc, setNamHoc] = useState("");
   const lessonsByHocKi = lessons.filter(lesson =>
-    hocKi === 1 ? lesson.stt <= 9 : lesson.stt > 9
+    namHoc === "2025-2026"
+      ? (hocKi === 1 ? lesson.stt <= 9 : lesson.stt > 9)
+      : (hocKi === 1 ? lesson.stt <= 11 : lesson.stt > 11)
   );
 
   // ===== CLICK CARD =====
@@ -137,20 +164,13 @@ export default function Lop5() {
     navigate(`/trac-nghiem?lop=5&bai=${encodeURIComponent(title)}`);
   };
 
-  // Hàm xử lý thay đổi Học kì
+  // ===== XỬ LÝ THAY ĐỔI HỌC KÌ =====
   const handleHocKiChange = (hk) => {
-    // 1️⃣ Cập nhật state local để UI đổi nút
-    setHocKi(hk);
-
-    // 2️⃣ Cập nhật context (biến toàn cục)
-    setConfig((prev) => ({ ...prev, hocKi: hk }));
-    localStorage.setItem('hocKi', hk); // ← thêm dòng này
-
-    // 3️⃣ Log ra để kiểm tra
+    setHocKi(hk); // cập nhật state local
+    setConfig(prev => ({ ...prev, hocKi: hk })); // cập nhật context
+    localStorage.setItem('hocKi', hk); // lưu vào localStorage
     console.log("Học kì đã chọn:", hk);
-    console.log("Config hiện tại:", { ...config, hocKi: hk });
   };
-
 
   return (
     <>
@@ -175,9 +195,9 @@ export default function Lop5() {
           >
             HỌC KÌ II
           </Button>
-
         </Box>
 
+        {/* ===== DANH SÁCH BÀI HỌC ===== */}
         <Box textAlign="center" mb={3}>
           <Typography
             variant="h6"
@@ -197,7 +217,6 @@ export default function Lop5() {
           />
         </Box>
 
-        {/* ===== DANH SÁCH BÀI ===== */}
         <Box
           sx={{
             display: 'grid',
