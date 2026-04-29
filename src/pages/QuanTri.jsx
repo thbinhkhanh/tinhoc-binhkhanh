@@ -12,7 +12,7 @@ import VpnKeyIcon from "@mui/icons-material/VpnKey";
 import CloseIcon from "@mui/icons-material/Close";
 
 import { ConfigContext } from "../context/ConfigContext";
-import { doc, setDoc, getDoc } from "firebase/firestore";
+import { doc, setDoc, getDoc, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase";
 
 // Import Backup & Restore Page
@@ -41,6 +41,22 @@ export default function QuanTri() {
   const [openRestore, setOpenRestore] = useState(false);
 
   const heThong = config.heThong || "old";
+
+  useEffect(() => {
+    const ref = doc(db, "CONFIG", "config");
+
+    const unsubscribe = onSnapshot(ref, (snap) => {
+      if (snap.exists()) {
+        setConfig(snap.data());
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (config?.namHoc) setSelectedYear(config.namHoc);
+  }, [config?.namHoc]);
 
   // ===== Lấy danh sách lớp =====
   useEffect(() => {

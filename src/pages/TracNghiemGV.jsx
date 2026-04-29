@@ -675,6 +675,12 @@ const handleSaveAll = async () => {
     //setLessonInput("");
 
     setOpenImportModeDialog(false);
+
+    setSnackbar({
+      open: true,
+      message: "✅ Nhập đề thành công",
+      severity: "success",
+    });
   };
 
   const handleImportAppend = () => {
@@ -693,6 +699,12 @@ const handleSaveAll = async () => {
     });
 
     setOpenImportModeDialog(false);
+
+    setSnackbar({
+      open: true,
+      message: "✅ Nhập đề thành công",
+      severity: "success",
+    });
   };
 
   const handleImportJSON = async (e) => {
@@ -783,7 +795,8 @@ const handleSaveAll = async () => {
 
       // ===== TÁCH THEO "Câu X:" =====
       const blocks = text
-        .split(/Câu\s*\d+\s*:/i)
+        //.split(/Câu\s*\d+\s*:/i)
+        .split(/Câu\s*\d+\s*[:\.\-)]?/gi)
         .map(b => b.trim())
         .filter(Boolean);
 
@@ -843,12 +856,6 @@ const handleSaveAll = async () => {
         setOpenImportModeDialog(true);
       }
 
-      setSnackbar({
-        open: true,
-        message: "✅ Import Word thành công",
-        severity: "success",
-      });
-
     } catch (err) {
       console.error(err);
       setSnackbar({
@@ -860,9 +867,6 @@ const handleSaveAll = async () => {
 
     e.target.value = "";
   };
-
-
-
 
   // ===== RENDER =====
   return (
@@ -1150,16 +1154,20 @@ const handleSaveAll = async () => {
               questions.length === 0 ||
               (questions.length === 1 && !questions[0].question);
 
+            setImportData(importedQuestions);
+
             if (isEmpty) {
               setQuestions(importedQuestions);
-            } else {
-              const mapped = importedQuestions.map(q => ({
-                ...q,
-                id: `q_${Date.now()}_${Math.random()}`
-              }));
+              setIsAddingLesson(true);
+              setLesson("");
+              setLessonInput("");
 
-              setQuestions(prev => [...prev, ...mapped]);
+            } else {
+              setOpenImportModeDialog(true); // 👈 giống JSON / Word
             }
+
+            // 🔥 QUAN TRỌNG: KHÔNG bỏ qua confirm flow
+            setOpenFirestoreDialog(false);
           }}
         />
 
