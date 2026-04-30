@@ -291,10 +291,8 @@ function Navigation() {
           {/* Khung trắng */}
           <div
             style={{
-              width: '360px',
+              width: '360px',          // ✅ tăng kích thước
               height: '360px',
-              maxWidth: '80vw',   // ✅ không vượt quá 80% màn hình
-              maxHeight: '80vw',
               background: 'white',
               borderRadius: '16px',
               display: 'flex',
@@ -303,7 +301,7 @@ function Navigation() {
               boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
               animation: 'zoomIn 0.3s ease'
             }}
-            onClick={() => setOpenLogo(false)}
+            onClick={() => setOpenLogo(false)} // ✅ bấm logo cũng đóng luôn
           >
             <img
               src="/Logo.png"
