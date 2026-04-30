@@ -291,10 +291,8 @@ function Navigation() {
           {/* Khung trắng */}
           <div
             style={{
-              width: '360px',
-              height: '360px',
-              maxWidth: '80vw',   // ✅ không vượt quá 80% màn hình
-              maxHeight: '80vw',
+              width: 'min(320px, 70vw)',
+              height: 'min(320px, 70vw)',
               background: 'white',
               borderRadius: '16px',
               display: 'flex',
