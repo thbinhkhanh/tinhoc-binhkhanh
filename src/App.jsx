@@ -291,8 +291,8 @@ function Navigation() {
           {/* Khung trắng */}
           <div
             style={{
-              width: 'min(320px, 70vw)',
-              height: 'min(320px, 70vw)',
+              width: 'min(260px, 55vw)',
+              height: 'min(260px, 55vw)',
               background: 'white',
               borderRadius: '16px',
               display: 'flex',
