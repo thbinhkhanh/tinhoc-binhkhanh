@@ -37,11 +37,11 @@ const BACKUP_KEYS = [
   { key: "TENBAI_Lop4", label: "Bài lớp 4", group: "Bài học" },
   { key: "TENBAI_Lop5", label: "Bài lớp 5", group: "Bài học" },
 
-  { key: "TRACNGHIEM1", label: "Trắc nghiệm lớp 1", group: "Trắc nghiệm" },
-  { key: "TRACNGHIEM2", label: "Trắc nghiệm lớp 2", group: "Trắc nghiệm" },
-  { key: "TRACNGHIEM3", label: "Trắc nghiệm lớp 3", group: "Trắc nghiệm" },
-  { key: "TRACNGHIEM4", label: "Trắc nghiệm lớp 4", group: "Trắc nghiệm" },
-  { key: "TRACNGHIEM5", label: "Trắc nghiệm lớp 5", group: "Trắc nghiệm" },
+  { key: "TRACNGHIEM1", label: "Lớp 1", group: "Trắc nghiệm" },
+  { key: "TRACNGHIEM2", label: "Lớp 2", group: "Trắc nghiệm" },
+  { key: "TRACNGHIEM3", label: "Lớp 3", group: "Trắc nghiệm" },
+  { key: "TRACNGHIEM4", label: "Lớp 4", group: "Trắc nghiệm" },
+  { key: "TRACNGHIEM5", label: "Lớp 5", group: "Trắc nghiệm" },
 ];
 
 /* ================= FIX: map cũ / new ================= */
