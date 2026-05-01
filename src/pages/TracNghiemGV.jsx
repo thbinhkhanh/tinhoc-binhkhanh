@@ -782,91 +782,319 @@ const handleSaveAll = async () => {
     }
   };
 
+  const escapeHTML = (str = "") => {
+    return str
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  };
+    
   const handleImportWord = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
     try {
       const arrayBuffer = await file.arrayBuffer();
-      const result = await mammoth.extractRawText({ arrayBuffer });
-      const text = result.value;
+      const htmlResult = await mammoth.convertToHtml({ arrayBuffer });
+      const html = htmlResult.value;
 
-      console.log("📄 Nội dung Word:", text);
+      const textResult = await mammoth.extractRawText({ arrayBuffer });
+      const text = textResult.value;
 
-      // ===== TÁCH THEO "Câu X:" =====
-      const blocks = text
-        //.split(/Câu\s*\d+\s*:/i)
-        .split(/Câu\s*\d+\s*[:\.\-)]?/gi)
-        .map(b => b.trim())
-        .filter(Boolean);
+      const escapeHTML = (str = "") =>
+        str
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
 
-      const questionsParsed = blocks.map((block, index) => {
-        if (!block) return null;
-
+      // ===== Detect type =====
+      const detectType = (block) => {
+        const normalized = block.replace(/\s+/g, " ");
         const lines = block.split("\n").map(l => l.trim()).filter(Boolean);
 
-        const question = lines[0];
+        // ✅ FIX: fillblank ưu tiên cao nhất
+        if (
+          /\[\s*\.\.\.\s*\]/.test(block) ||   // [...]
+          /\[…\]/.test(block) ||             // […] (Unicode)
+          /…/.test(block)                    // ellipsis
+        ) {
+          return "fillblank";
+        }
+
+        if (lines.some(l => /^[A-D][\.\)]/.test(l))) return "choice";
+        if (lines.some(l => /^\d+\./.test(l))) return "sort";
+        if (lines.some(l => /^[ĐS][\.\)]/.test(l))) return "truefalse";
+
+        return "matching";
+      };
+
+      // ===== Choice parser =====
+      const parseChoice = (block, index) => {
+        const lines = block.split("\n").map(l => l.trim()).filter(Boolean);
+        if (!lines.length) return null;
+
+        const questionText = lines[0].replace(/^Câu\s*\d+\s*[:\.\-)]?\s*/i, "");
         const options = [];
         const correct = [];
 
         lines.slice(1).forEach(line => {
-          if (/^[A-D][\.\)]/.test(line)) {
-            let text = line.replace(/^[A-D][\.\)]\s*/, "").trim();
-            if (text.endsWith("*")) {
-              text = text.replace(/\*$/, "").trim();
-              correct.push(options.length);
-            }
-            options.push(text);
+          const match = line.match(/^([A-D])[\.\)\:\-\s]*/i);
+          if (match) {
+            let text = line.replace(/^([A-D])[\.\)\:\-\s]*/i, "").trim();
+            const isCorrect = /\*/.test(text);
+
+            text = text.replace(/\*/g, "").trim();
+
+            if (isCorrect) correct.push(options.length);
+
+            options.push({
+              text: `<p>${escapeHTML(text)}</p>`,
+              image: ""
+            });
           }
         });
 
-        while (options.length < 4) options.push("");
+        while (options.length < 4) {
+          options.push({ text: "", image: "" });
+        }
 
         return {
           id: `q_${Date.now()}_${index}`,
-          question: `<p>${question}</p>`,
-          questionImage: "",
-          options: options.slice(0, 4).map(opt => ({
-            text: `<p>${opt}</p>`,
-            image: ""
-          })),
-          correct,
+          question: `<p>${escapeHTML(questionText)}</p>`,
           type: correct.length > 1 ? "multiple" : "single",
+          options: options.slice(0, 4),
+          correct,
           score: 0.5,
           sortType: "shuffle",
-          title: "",
           pairs: []
         };
-      }).filter(Boolean);
+      };
 
-      console.log("Parsed questions:", questionsParsed);
+      // ===== Sort parser =====
+      const parseSort = (block, index) => {
+        const lines = block.split("\n").map(l => l.trim()).filter(Boolean);
+        const questionText = lines[0].replace(/^Câu\s*\d+\s*[:\.\-)]?\s*/i, "");
+        const items = [];
 
-      const isEmpty =
-        !questions ||
-        questions.length === 0 ||
-        (questions.length === 1 && !questions[0].question);
+        lines.slice(1).forEach(line => {
+          const match = line.match(/^\d+\.\s*(.+)/);
+          if (match) {
+            items.push({
+              text: `<p>${escapeHTML(match[1])}</p>`,
+              image: ""
+            });
+          }
+        });
 
-      if (isEmpty) {
-        setQuestions(questionsParsed);
-        //setIsAddingLesson(true);
-        // ❌ bỏ setLesson để giữ nguyên tên bài học hiện có
-        setLessonInput(lesson || "");
+        if (items.length < 2) return null;
+
+        return {
+          id: `q_${Date.now()}_${index}`,
+          question: `<p>${escapeHTML(questionText)}</p>`,
+          type: "sort",
+          options: items,
+          correct: [],
+          sortType: "shuffle",
+          pairs: []
+        };
+      };
+
+      // ===== True/False parser =====
+      const parseTrueFalse = (block, index) => {
+        const lines = block.split("\n").map(l => l.trim()).filter(Boolean);
+        if (!lines.length) return null;
+
+        const questionText = lines[0].replace(/^Câu\s*\d+\s*[:\.\-)]?\s*/i, "");
+        const options = [];
+        const correct = [];
+
+        lines.slice(1).forEach(line => {
+          let text = line;
+
+          let isTrue = /\*/.test(text);
+
+          const match = line.match(/^([ĐS])[\.\)\:\-\s]*/i);
+          if (!isTrue && match) {
+            isTrue = match[1].toUpperCase() === "Đ";
+          }
+
+          text = text
+            .replace(/\*/g, "")
+            .replace(/^([ĐS])[\.\)\:\-\s]*/i, "")
+            .replace(/\)+$/g, "") // ✅ FIX CHÍNH
+            .trim();
+
+          if (!text) return;
+
+          // ✅ STRING (đúng với UI của bạn)
+          options.push(`<p>${escapeHTML(text)}</p>`);
+
+          correct.push(isTrue ? "Đ" : "S");
+        });
+
+        if (!options.length) return null;
+
+        return {
+          id: `q_${Date.now()}_${index}`,
+          question: `<p>${escapeHTML(questionText)}</p>`,
+          type: "truefalse",
+          options,
+          correct,
+          score: 0.5,
+          sortType: "shuffle",
+          pairs: []
+        };
+      };
+
+      // ===== FillBlank parser (FIXED) =====
+      const parseFillBlank = (block, index) => {
+      const lines = block.split("\n").map(l => l.trim()).filter(Boolean);
+      if (!lines.length) return null;
+
+      let rawText = lines.join(" ");
+
+      rawText = rawText.split(/Từ cần điền/i)[0].trim();
+
+      const colonIndex = rawText.indexOf(":");
+
+      let questionText = "";
+      let optionText = "";
+
+      if (colonIndex !== -1) {
+        questionText = rawText.slice(0, colonIndex + 1).trim();
+        optionText = rawText.slice(colonIndex + 1).trim();
       } else {
-        setImportData(questionsParsed);
-        setOpenImportModeDialog(true);
+        questionText = rawText;
+        optionText = rawText;
       }
 
-    } catch (err) {
-      console.error(err);
-      setSnackbar({
-        open: true,
-        message: "❌ Lỗi đọc file Word",
-        severity: "error",
+      // ✅ FIX BLANK
+      optionText = optionText.replace(/\[\s*(?:\.{3,}|…)\s*\]/g, "[...]");
+
+      // ===== LẤY ĐÁP ÁN =====
+      let answers = [];
+
+      const answerLine = lines.find(l => /^Từ cần điền/i.test(l));
+
+      if (answerLine) {
+        answers = answerLine
+          .replace(/^Từ cần điền\s*:\s*/i, "")
+          .split(/[\/,;]/)
+          .map(a => a.replace(/\u00a0/g, " ").trim())
+          .filter(Boolean);
+      }
+
+      return {
+        id: `q_${Date.now()}_${index}`,
+        question: `<p>${escapeHTML(questionText)}</p>`,
+        type: "fillblank",
+
+        // ✅ dùng cho ReactQuill
+        option: `<p>${escapeHTML(optionText)}</p>`,
+
+        // ✅ STRING ARRAY (QUAN TRỌNG)
+        options: answers,
+
+        correct: answers,
+        score: 0.5,
+        sortType: "shuffle",
+        pairs: [],
+        title: "",
+        questionImage: ""
+      };
+    };
+
+    // ===== Matching parser =====
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, "text/html");
+    const tables = doc.querySelectorAll("table");
+    let tableIndex = 0;
+
+    const parseMatchingFromTable = (index) => {
+      if (!tables[tableIndex]) return null;
+
+      const table = tables[tableIndex++];
+      const rows = table.querySelectorAll("tr");
+
+      const pairs = [];
+
+      rows.forEach(row => {
+        const cells = row.querySelectorAll("td, th");
+        if (cells.length < 2) return;
+
+        const l = cells[0].innerText.trim();
+        const r = cells[1].innerText.trim();
+
+        if (!l || !r) return;
+
+        pairs.push({
+          left: `<p>${escapeHTML(l)}</p>`,
+          right: `<p>${escapeHTML(r)}</p>`
+        });
       });
+
+      if (pairs.length < 2) return null;
+
+      return {
+        id: `q_${Date.now()}_table_${index}`,
+        question: `<p>Câu ghép cột A với cột B</p>`,
+        type: "matching",
+        questionType: "matching",
+        pairs,
+        options: [],
+        correct: [],
+        sortType: "shuffle",
+        score: 0.5
+      };
+    };
+
+    // ===== Split blocks =====
+    const blocks = text
+      .split(/Câu\s*\d+\s*[:\.\-)]?/gi)
+      .map(b => b.trim())
+      .filter(Boolean);
+
+    // ===== Parse all =====
+    const finalQuestions = blocks
+      .map((block, index) => {
+        const type = detectType(block);
+
+        if (type === "choice") return parseChoice(block, index);
+        if (type === "sort") return parseSort(block, index);
+        if (type === "truefalse") return parseTrueFalse(block, index);
+        if (type === "fillblank") return parseFillBlank(block, index);
+        if (type === "matching") return parseMatchingFromTable(index);
+
+        return null;
+      })
+      .filter(Boolean);
+
+    console.log("✅ FINAL:", finalQuestions);
+
+    const isEmpty =
+      !questions ||
+      questions.length === 0 ||
+      (questions.length === 1 && !questions[0].question);
+
+    if (isEmpty) {
+      setQuestions(finalQuestions);
+      setLessonInput(lesson || "");
+    } else {
+      setImportData(finalQuestions);
+      setOpenImportModeDialog(true);
     }
 
-    e.target.value = "";
-  };
+  } catch (err) {
+    console.error(err);
+    setSnackbar({
+      open: true,
+      message: "❌ Lỗi đọc file Word",
+      severity: "error"
+    });
+  }
+
+  e.target.value = "";
+};
 
   // ===== RENDER =====
   return (
