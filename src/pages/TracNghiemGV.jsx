@@ -1011,11 +1011,25 @@ const handleSaveAll = async () => {
     let tableIndex = 0;
 
     const parseMatchingFromTable = (index) => {
-      if (!tables[tableIndex]) return null;
+      const table = tables[index];
+      if (!table) return null;
 
-      const table = tables[tableIndex++];
+      // ✅ LẤY QUESTION THẬT TỪ WORD
+      let questionText = "";
+      let prev = table.previousElementSibling;
+
+      while (prev) {
+        if (prev.tagName === "P" && prev.innerText.trim()) {
+          questionText = prev.innerText.trim();
+          break;
+        }
+        prev = prev.previousElementSibling;
+      }
+
+      // 🔥 FIX: CẮT "Câu 1."
+      questionText = questionText.replace(/^Câu\s*\d+\s*[:\.\-)]?\s*/i, "");
+
       const rows = table.querySelectorAll("tr");
-
       const pairs = [];
 
       rows.forEach(row => {
@@ -1036,8 +1050,11 @@ const handleSaveAll = async () => {
       if (pairs.length < 2) return null;
 
       return {
-        id: `q_${Date.now()}_table_${index}`,
-        question: `<p>Câu ghép cột A với cột B</p>`,
+        id: `q_${Date.now()}_${index}`,
+
+        // ✅ QUESTION ĐÃ BỎ "Câu 1."
+        question: `<p>${escapeHTML(questionText)}</p>`,
+
         type: "matching",
         questionType: "matching",
         pairs,
