@@ -40,8 +40,6 @@ import ExportDialog from "../dialog/ExportDialog";
 import ImportModeDialog from "../dialog/ImportModeDialog";
 import ImportSourceDialog from "../dialog/ImportSourceDialog";
 import ImportFromFirestoreDialog from "../dialog/ImportFromFirestoreDialog";
-import ExportSourceDialog from "../dialog/ExportSourceDialog";
-import { exportQuestionsToWord } from "../utils/exportWord";
 
 import { exportQuestionsToJSON } from "../utils/exportJson_importJson.js";
 import { importQuestionsFromJSON } from "../utils/exportJson_importJson.js";
@@ -86,7 +84,6 @@ export default function TracNghiemGV() {
   const [openImportSourceDialog, setOpenImportSourceDialog] = useState(false);
   const [openFirestoreDialog, setOpenFirestoreDialog] = useState(false);
   const wordInputRef = useRef(null);
-  const [openExport, setOpenExport] = useState(false);
 
   const weeks =
     String(semester) === "1"
@@ -612,18 +609,17 @@ const handleSaveAll = async () => {
   };
 
   const handleExportJSON = () => {
-    const result = exportQuestionsToJSON({
-      questions,
-      fileName: "questions.json",
-    });
+    let defaultName = "";
 
-    if (result.success) {
-      setSnackbar({
-        open: true,
-        message: "✅ Xuất JSON thành công",
-        severity: "success",
-      });
+    if (selectedClass && lesson) {
+      // thay khoảng trắng bằng "_", bỏ dấu chấm
+      const lop = selectedClass.replace(/\s+/g, " ");
+      const bai = lesson.replace(/\s+/g, " ").replace(/\./g, "");
+      defaultName = `${lop}_${bai}`;
     }
+
+    setFileName(defaultName);
+    setOpenExportDialog(true);
   };
   
   const handleConfirmExport = () => {
@@ -1117,22 +1113,6 @@ const handleSaveAll = async () => {
   e.target.value = "";
 };
 
-const handleExportWord = (fileName) => {
-  if (!fileName || !fileName.trim()) {
-    fileName = "questions";
-  }
-
-  exportQuestionsToWord(questions, fileName.trim());
-  setOpenExport(false);
-};
-
-const getDefaultName = () => {
-  const cls = selectedClass || "";
-  const les = (lesson || lessonInput || "").trim();
-
-  return `${cls} - ${les}`;
-};
-
   // ===== RENDER =====
   return (
     <Box sx={{ minHeight: "100vh", pt: 10, px: 3, backgroundColor: "#e3f2fd", display: "flex", justifyContent: "center" }}>
@@ -1191,11 +1171,8 @@ const getDefaultName = () => {
           />
 
           {/* Export */}
-          <Tooltip title="Xuất đề kiểm tra">
-            <IconButton
-              onClick={() => setOpenExport(true)}
-              sx={{ color: "#2e7d32" }}
-            >
+          <Tooltip title="Xuất đề kiểm tra (JSON)">
+            <IconButton onClick={handleExportJSON} sx={{ color: "#2e7d32" }}>
               <DownloadIcon />
             </IconButton>
           </Tooltip>
@@ -1379,13 +1356,13 @@ const getDefaultName = () => {
           onConfirmExit={onConfirmExit}
         />
 
-        {/*<ExportDialog
+        <ExportDialog
           open={openExportDialog}
           onClose={() => setOpenExportDialog(false)}
           fileName={fileName}
           setFileName={setFileName}
           onConfirm={handleConfirmExport}
-        />*/}
+        />
 
         <ImportModeDialog
           open={openImportModeDialog}
@@ -1411,36 +1388,6 @@ const getDefaultName = () => {
           onSelectFirestore={() => {
             setOpenImportSourceDialog(false);
             setOpenFirestoreDialog(true);
-          }}
-        />
-
-        <ExportSourceDialog
-          open={openExport}
-          onClose={() => setOpenExport(false)}
-
-          onSelectJSON={() => {
-            const fileName = `${selectedClass || "Lop"} - ${lessonInput || lesson || "Bai hoc"}`;
-
-            setOpenExport(false);
-
-            exportQuestionsToJSON({
-              questions,
-              fileName: fileName.trim(),
-            });
-
-            setSnackbar({
-              open: true,
-              message: "✅ Xuất JSON thành công",
-              severity: "success",
-            });
-          }}
-
-          onSelectWord={() => {
-            // 🔥 TÊN FILE WORD = Lớp + Bài
-            const fileName = `${selectedClass || "Lop"} - ${lessonInput || lesson || "Bai hoc"}`;
-
-            setOpenExport(false);
-            handleExportWord(fileName); // 👈 truyền tên vào
           }}
         />
 
