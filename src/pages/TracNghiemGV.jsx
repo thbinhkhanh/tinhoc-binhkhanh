@@ -41,7 +41,7 @@ import ImportModeDialog from "../dialog/ImportModeDialog";
 import ImportSourceDialog from "../dialog/ImportSourceDialog";
 import ImportFromFirestoreDialog from "../dialog/ImportFromFirestoreDialog";
 import ExportSourceDialog from "../dialog/ExportSourceDialog";
-import { exportQuestionsToWord } from "../utils/exportWord";
+import { exportQuestionsToWord } from "../utils/exportQuizWORD";
 
 import { exportQuestionsToJSON } from "../utils/exportJson_importJson.js";
 import { importQuestionsFromJSON } from "../utils/exportJson_importJson.js";

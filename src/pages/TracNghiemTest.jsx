@@ -497,8 +497,13 @@ useEffect(() => {
           : `TRACNGHIEM${lopSo}_New`;
 
       const snapshot = await getDocs(collection(db, collectionName));
-
-      const lessonNames = snapshot.docs.map(doc => doc.id);
+      const lessonNames = snapshot.docs
+        .map(d => d.id)
+        .sort((a, b) => {
+          const numA = parseInt(a.match(/\d+/)?.[0] || 0);
+          const numB = parseInt(b.match(/\d+/)?.[0] || 0);
+          return numA - numB; // tăng dần (Bài 1 → Bài 2 → Bài 10)
+        });
 
       setLessonsFromFirestore(lessonNames);
     } catch (err) {
@@ -520,6 +525,7 @@ const handleOpenExamFromDropdown = (lop, bai) => {
   setCurrentIndex(0);
   setSubmitted(false);
 };
+
 
 return (
   <Box

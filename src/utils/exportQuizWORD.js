@@ -342,7 +342,7 @@ export const exportQuestionsToWord = async (
       if (q.correct?.length) {
         children.push(
           createText(
-            `Từ cần điền: ${q.correct.join(", ")}`,
+            `Từ cần điền: ${q.correct.join(" / ")}`,
             true
           )
         );
