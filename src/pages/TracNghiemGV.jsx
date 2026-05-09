@@ -952,61 +952,66 @@ const handleSaveAll = async () => {
 
       // ===== FillBlank parser (FIXED) =====
       const parseFillBlank = (block, index) => {
-      const lines = block.split("\n").map(l => l.trim()).filter(Boolean);
-      if (!lines.length) return null;
+        const lines = block.split("\n").map(l => l.trim()).filter(Boolean);
+        if (!lines.length) return null;
 
-      let rawText = lines.join(" ");
+        // ===== tìm dòng đáp án =====
+        const answerLine =
+          lines.find(l => /^Từ cần điền/i.test(l)) || "";
 
-      rawText = rawText.split(/Từ cần điền/i)[0].trim();
+        // ===== question =====
+        const questionText = lines[0]
+          .replace(/^Câu\s*\d+\s*[:\.\-)]?\s*/i, "");
 
-      const colonIndex = rawText.indexOf(":");
+        // ===== option =====
+        const optionLines = lines
+          .slice(1)
+          .filter(l => !/^Từ cần điền/i.test(l));
 
-      let questionText = "";
-      let optionText = "";
+        let optionText = optionLines.join("\n");
 
-      if (colonIndex !== -1) {
-        questionText = rawText.slice(0, colonIndex + 1).trim();
-        optionText = rawText.slice(colonIndex + 1).trim();
-      } else {
-        questionText = rawText;
-        optionText = rawText;
-      }
+        optionText = optionText
+          // chuẩn hóa blank
+          .replace(/\[\s*(?:\.{3,}|…)\s*\]/g, "[...]")
 
-      // ✅ FIX BLANK
-      optionText = optionText.replace(/\[\s*(?:\.{3,}|…)\s*\]/g, "[...]");
+          // nối chữ bị tách dòng sai
+          .replace(/([a-zà-ỹ])\s*\n\s*([a-zà-ỹ])/gi, "$1$2")
 
-      // ===== LẤY ĐÁP ÁN =====
-      let answers = [];
+          // hỗ trợ #
+          .replace(/\s*#\s*/g, "\n")
 
-      const answerLine = lines.find(l => /^Từ cần điền/i.test(l));
+          // bỏ nhiều dòng trống
+          .replace(/\n{2,}/g, "\n")
 
-      if (answerLine) {
-        answers = answerLine
+          .trim();
+
+        // ===== answers =====
+        const answers = answerLine
           .replace(/^Từ cần điền\s*:\s*/i, "")
           .split(/[\/,;]/)
           .map(a => a.replace(/\u00a0/g, " ").trim())
           .filter(Boolean);
-      }
 
-      return {
-        id: `q_${Date.now()}_${index}`,
-        question: `<p>${escapeHTML(questionText)}</p>`,
-        type: "fillblank",
+        return {
+          id: `q_${Date.now()}_${index}`,
+          question: `<p>${escapeHTML(questionText)}</p>`,
+          type: "fillblank",
 
-        // ✅ dùng cho ReactQuill
-        option: `<p>${escapeHTML(optionText)}</p>`,
+          // ✅ GIỮ XUỐNG DÒNG
+          option: `<p>${escapeHTML(optionText).replace(/\n/g, "<br>")}</p>`,
 
-        // ✅ STRING ARRAY (QUAN TRỌNG)
-        options: answers,
+          // ✅ FORMAT CŨ (QUAN TRỌNG)
+          options: answers,
 
-        correct: answers,
-        score: 0.5,
-        sortType: "shuffle",
-        pairs: [],
-        title: "",
-        questionImage: ""
+          correct: answers,
+
+          score: 0.5,
+          sortType: "shuffle",
+          pairs: [],
+          title: "",
+          questionImage: ""
+        };
       };
-    };
 
     // ===== Matching parser =====
     const parser = new DOMParser();
@@ -1014,11 +1019,8 @@ const handleSaveAll = async () => {
     const tables = doc.querySelectorAll("table");
     let tableIndex = 0;
 
-    const parseMatchingFromTable = (index) => {
-      const table = tables[index];
-      if (!table) return null;
-
-      // ✅ LẤY QUESTION THẬT TỪ WORD
+    const parseMatchingFromTable = (table, index) => {
+      // ===== lấy question thật =====
       let questionText = "";
       let prev = table.previousElementSibling;
 
@@ -1030,20 +1032,40 @@ const handleSaveAll = async () => {
         prev = prev.previousElementSibling;
       }
 
-      // 🔥 FIX: CẮT "Câu 1."
-      questionText = questionText.replace(/^Câu\s*\d+\s*[:\.\-)]?\s*/i, "");
+      // ===== clean "Câu 1:" =====
+      questionText = questionText.replace(
+        /^Câu\s*\d+\s*[:\.\-)]?\s*/i,
+        ""
+      );
 
       const rows = table.querySelectorAll("tr");
       const pairs = [];
 
       rows.forEach(row => {
         const cells = row.querySelectorAll("td, th");
+
         if (cells.length < 2) return;
 
-        const l = cells[0].innerText.trim();
-        const r = cells[1].innerText.trim();
+        const getCellContent = (cell) => {
+          let text = cell.innerText.trim();
 
-        if (!l || !r) return;
+          const img = cell.querySelector("img");
+
+          if (img) {
+            const alt = img.getAttribute("alt")?.trim();
+
+            text = alt
+              ? `[Hình: ${alt}]`
+              : "[Hình]";
+          }
+
+          return text;
+        };
+
+        const l = getCellContent(cells[0]);
+        const r = getCellContent(cells[1]);
+
+        if (!l && !r) return;
 
         pairs.push({
           left: `<p>${escapeHTML(l)}</p>`,
@@ -1054,11 +1076,8 @@ const handleSaveAll = async () => {
       if (pairs.length < 2) return null;
 
       return {
-        id: `q_${Date.now()}_${index}`,
-
-        // ✅ QUESTION ĐÃ BỎ "Câu 1."
+        id: `q_${Date.now()}_table_${index}`,
         question: `<p>${escapeHTML(questionText)}</p>`,
-
         type: "matching",
         questionType: "matching",
         pairs,
@@ -1070,25 +1089,107 @@ const handleSaveAll = async () => {
     };
 
     // ===== Split blocks =====
-    const blocks = text
-      .split(/Câu\s*\d+\s*[:\.\-)]?/gi)
-      .map(b => b.trim())
-      .filter(Boolean);
-
-    // ===== Parse all =====
-    const finalQuestions = blocks
-      .map((block, index) => {
+    // ===== Parse theo thứ tự DOM =====
+    const elements = [...doc.body.querySelectorAll("p, table")];
+    const finalQuestions = [];
+    let index = 0;
+    elements.forEach(el => {
+      // ===== TEXT QUESTIONS =====
+      if (el.tagName === "P") {
+        const textBlock = el.innerText.trim();
+        if (!/^Câu\s*\d+/i.test(textBlock)) return;
+        let block = textBlock;
+        let next = el.nextElementSibling;
+        while (
+          next &&
+          next.tagName === "P" &&
+          !/^Câu\s*\d+/i.test(next.innerText)
+        ) {
+          block += "\n" + next.innerText.trim();
+          next = next.nextElementSibling;
+        }
         const type = detectType(block);
+        if (type === "choice") {
+          finalQuestions.push(parseChoice(block, index++));
+        }
+        else if (type === "sort") {
+          finalQuestions.push(parseSort(block, index++));
+        }
+        else if (type === "truefalse") {
+          finalQuestions.push(parseTrueFalse(block, index++));
+        }
+        else if (type === "fillblank") {
+          finalQuestions.push(parseFillBlank(block, index++));
+        }
+      }
+      // ===== TABLE QUESTIONS =====
+      if (el.tagName === "TABLE") {
+        const rows = el.querySelectorAll("tr");
+        // ===== đếm số cột tối đa =====
+        let maxCols = 0;
+        rows.forEach(r => {
+          const cols = r.querySelectorAll("td, th").length;
+          if (cols > maxCols) {
+            maxCols = cols;
+          }
+        });
 
-        if (type === "choice") return parseChoice(block, index);
-        if (type === "sort") return parseSort(block, index);
-        if (type === "truefalse") return parseTrueFalse(block, index);
-        if (type === "fillblank") return parseFillBlank(block, index);
-        if (type === "matching") return parseMatchingFromTable(index);
+        // =====================================================
+        // IMAGE QUESTION
+        // =====================================================
+        if (maxCols > 2) {
+          // ===== lấy câu hỏi thực tế =====
+          let questionText = "";
+          let prev = el.previousElementSibling;
 
-        return null;
-      })
-      .filter(Boolean);
+          while (prev) {
+            if (prev.tagName === "P" && prev.innerText.trim()) {
+              questionText = prev.innerText.trim();
+              break;
+            }
+            prev = prev.previousElementSibling;
+          }
+
+          if (!questionText) {
+            questionText = "Câu hỏi hình ảnh";
+          }
+
+          // clean "Câu 5: ..."
+          questionText = questionText.replace(
+            /^Câu\s*\d+\s*[:\.\-)]?\s*/i,
+            ""
+          );
+
+          // 👇 KHÔNG import ảnh từ Word nữa
+          // chỉ tạo 4 ô upload giống thêm mới
+          finalQuestions.push({
+            id: `q_${Date.now()}_image_${index++}`,
+            question: `<p>${escapeHTML(questionText)}</p>`,
+            type: "image",
+
+            // 👇 GIỐNG create mới
+            options: ["", "", "", ""],
+
+            correct: [],
+            score: 0.5,
+            sortType: "shuffle",
+            pairs: [],
+            questionImage: ""
+          });
+
+          return; // ⛔ skip matching parser
+        }
+
+        // =====================================================
+        // MATCHING
+        // =====================================================
+        const q = parseMatchingFromTable(el, index++);
+
+        if (q) {
+          finalQuestions.push(q);
+        }
+      }
+    });
 
     console.log("✅ FINAL:", finalQuestions);
 
@@ -1100,6 +1201,12 @@ const handleSaveAll = async () => {
     if (isEmpty) {
       setQuestions(finalQuestions);
       setLessonInput(lesson || "");
+
+      setSnackbar({
+        open: true,
+        message: "✅ Nhập đề thành công",
+        severity: "success",
+      });
     } else {
       setImportData(finalQuestions);
       setOpenImportModeDialog(true);

@@ -337,14 +337,70 @@ export const exportQuestionsToWord = async (
 
     // ===== FILL BLANK =====
     else if (q.type === "fillblank") {
-      children.push(createText(stripHTML(q.option)));
+      const rawOption =
+        typeof q.option === "string"
+          ? q.option
+          : typeof q.option?.text === "string"
+          ? q.option.text
+          : "";
 
-      if (q.correct?.length) {
+      // ===== normalize =====
+      let option = stripHTML(rawOption)
+        .replace(/\r\n/g, "\n")
+        .replace(/<br\s*\/?>/gi, "\n")
+        .replace(/([a-zA-Z]\))\s*/g, "\n$1 ") // a) b) c) xuống dòng
+        .replace(/\n{2,}/g, "\n")
+        .trim();
+
+      // ===== split dòng =====
+      const optionLines = option
+        .split("\n")
+        .map(l => l.trim())
+        .filter(Boolean);
+
+      // ===== render từng dòng riêng (GIỐNG MẪU) =====
+      optionLines.forEach(line => {
         children.push(
-          createText(
-            `Từ cần điền: ${q.correct.join(" / ")}`,
-            true
-          )
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: line,
+                size: FONT_SIZE,
+                font: "Times New Roman",
+              }),
+            ],
+            spacing: { after: 80 },
+          })
+        );
+      });
+
+      // ===== answers =====
+      const answers =
+        Array.isArray(q.correct) && q.correct.length
+          ? q.correct
+          : Array.isArray(q.options)
+          ? q.options.map(o =>
+              typeof o === "string" ? o : o?.text || ""
+            )
+          : [];
+
+      const cleanAnswers = answers
+        .map(a => stripHTML(a))
+        .filter(Boolean);
+
+      if (cleanAnswers.length > 0) {
+        children.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: `Từ cần điền: ${cleanAnswers.join(" / ")}`,
+                bold: true,
+                size: FONT_SIZE,
+                font: "Times New Roman",
+              }),
+            ],
+            spacing: { after: 120 },
+          })
         );
       }
     }
