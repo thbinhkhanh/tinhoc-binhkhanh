@@ -1,102 +1,250 @@
 // helpers/normalizeQuestion.js
-import { shuffleArray } from "./shuffleArray";
-import { shuffleAvoidSamePosition } from "./shuffleAvoidSamePosition";
 
+/* =========================
+   🔥 NORMALIZE OPTION CHUNG
+========================= */
+const normalizeOption = (opt) => {
+  if (typeof opt === "string") {
+    return {
+      text: opt.startsWith("http") ? "" : opt,
+      image: opt.startsWith("http") ? opt : "",
+    };
+  }
+
+  if (opt && typeof opt === "object") {
+    return {
+      text: opt.text || "",
+      image: opt.image || "",
+    };
+  }
+
+  return { text: "", image: "" };
+};
+
+/* =========================
+   MAIN NORMALIZER
+========================= */
 export function normalizeQuestion(q, index) {
   const questionId = q.id ?? `q_${index}`;
-  const questionText = typeof q.question === "string" ? q.question.trim() : "";
-  const rawType = (q.type || "").toString().trim().toLowerCase();
-  const type = ["sort", "matching", "single", "multiple", "image", "truefalse", "fillblank"].includes(rawType)
+  const questionText =
+    typeof q.question === "string"
+      ? q.question.trim()
+      : "";
+
+  const rawType = (q.type || "")
+    .toString()
+    .trim()
+    .toLowerCase();
+
+  const type = [
+    "sort",
+    "matching",
+    "single",
+    "multiple",
+    "image",
+    "truefalse",
+    "fillblank",
+  ].includes(rawType)
     ? rawType
     : null;
+
   if (!type) return null;
 
-  // MATCHING
+  const base = {
+    ...q,
+    id: questionId,
+    type,
+    question: questionText,
+    image: q.image ?? null,
+    score: q.score ?? 1,
+  };
+
+  /* =========================
+     MATCHING
+  ========================= */
   if (type === "matching") {
     const pairs = Array.isArray(q.pairs) ? q.pairs : [];
+
     if (pairs.length === 0) return null;
 
     const leftOptions = pairs.map((p, idx) => {
-      if (p.leftImage?.url) return { type: "image", url: p.leftImage.url, name: p.leftImage.name || `img-${idx}` };
-      if (p.leftIconImage?.url) return { type: "icon", url: p.leftIconImage.url, name: p.leftIconImage.name || `icon-${idx}`, text: p.left ?? "" };
-      if (typeof p.left === "string" && /^https?:\/\//i.test(p.left.trim())) return { type: "image", url: p.left.trim(), name: `img-${idx}` };
-      if (typeof p.left === "string") return { type: "text", text: p.left };
-      return { type: "text", text: "" };
+      if (p.leftImage?.url) {
+        return {
+          type: "image",
+          url: p.leftImage.url,
+          name: p.leftImage.name || `img-${idx}`,
+        };
+      }
+
+      if (p.leftIconImage?.url) {
+        return {
+          type: "icon",
+          url: p.leftIconImage.url,
+          name: p.leftIconImage.name || `icon-${idx}`,
+          text: p.left ?? "",
+        };
+      }
+
+      if (typeof p.left === "string") {
+        return {
+          type: "text",
+          text: p.left,
+        };
+      }
+
+      return {
+        type: "text",
+        text: "",
+      };
     });
 
-    const rightOptionsOriginal = pairs.map((p, idx) => ({ opt: p.right, idx }));
-    const processedRightOptions = q.sortType === "shuffle" ? shuffleAvoidSamePosition(rightOptionsOriginal) : rightOptionsOriginal;
+    const rightOptions = pairs.map((p) =>
+      normalizeOption(p.right)
+    );
 
-    const map = {};
-    processedRightOptions.forEach((item, newIndex) => { map[item.idx] = newIndex; });
-    const newCorrect = leftOptions.map((_, i) => map[i]);
+    return {
+      ...base,
+      leftOptions,
+      rightOptions,
 
-    return { ...q, id: questionId, type, question: questionText, image: q.image ?? null, leftOptions, rightOptions: processedRightOptions.map(i => i.opt), correct: newCorrect, score: q.score ?? 1 };
+      // giữ nguyên correct cũ nếu có
+      correct: Array.isArray(q.correct)
+        ? q.correct
+        : [],
+    };
   }
 
-  // SORT
+  /* =========================
+     SORT
+  ========================= */
   if (type === "sort") {
-    const options = Array.isArray(q.options) && q.options.length > 0 ? [...q.options] : ["", "", "", ""];
-    const indexed = options.map((opt, idx) => ({ opt, idx }));
-    const processed = q.sortType === "shuffle" ? shuffleAvoidSamePosition(indexed) : indexed;
+    const options = (q.options || []).map(normalizeOption);
 
-    return { ...q, id: questionId, type, question: questionText, image: q.image ?? null, options: processed.map(i => i.opt), initialSortOrder: processed.map(i => i.idx), correctTexts: options, score: q.score ?? 1 };
+    return {
+      ...base,
+      options,
+
+      // thứ tự gốc
+      initialSortOrder: options.map((_, idx) => idx),
+
+      correctTexts: options.map((o) => o.text),
+    };
   }
 
-  // SINGLE / MULTIPLE
+  /* =========================
+     SINGLE / MULTIPLE
+  ========================= */
   if (type === "single" || type === "multiple") {
-    const options = Array.isArray(q.options) && q.options.length > 0
-      ? q.options.map(opt => {
-          if (typeof opt === "string") {
-            if (/^https?:\/\/.*\.(png|jpg|jpeg|gif)$/i.test(opt)) return { text: "", image: opt };
-            return { text: opt, image: null };
-          } else if (typeof opt === "object") {
-            return { text: opt.text ?? "", image: opt.image ?? null };
-          }
-          return { text: "", image: null };
-        })
-      : [{ text: "", image: null }, { text: "", image: null }, { text: "", image: null }, { text: "", image: null }];
+    const options = (q.options || []).map(normalizeOption);
 
-    const indexed = options.map((opt, idx) => ({ opt, idx }));
-    const shuffled = (q.sortType === "shuffle" || q.shuffleOptions === true) ? shuffleArray(indexed) : indexed;
+    return {
+      ...base,
+      options,
 
-    return { ...q, id: questionId, type, question: questionText, image: q.image ?? null, options, displayOrder: shuffled.map(i => i.idx), correct: Array.isArray(q.correct) ? q.correct.map(Number) : typeof q.correct === "number" ? [q.correct] : [], score: q.score ?? 1 };
+      // giữ nguyên thứ tự
+      displayOrder: options.map((_, idx) => idx),
+
+      correct: Array.isArray(q.correct)
+        ? q.correct.map(Number)
+        : typeof q.correct === "number"
+        ? [q.correct]
+        : [],
+    };
   }
 
-  // IMAGE
+  /* =========================
+     IMAGE
+  ========================= */
   if (type === "image") {
-    const options = Array.isArray(q.options) && q.options.length > 0 ? q.options : ["", "", "", ""];
-    const correct = Array.isArray(q.correct) ? q.correct : [];
-    return { ...q, id: questionId, type, question: questionText, image: q.image ?? null, options, displayOrder: shuffleArray(options.map((_, idx) => idx)), correct, score: q.score ?? 1 };
+    const rawOptions =
+      Array.isArray(q.options) && q.options.length > 0
+        ? q.options
+        : ["", "", "", ""];
+
+    const options = rawOptions.map((opt) => {
+      if (typeof opt === "string") {
+        return {
+          text: opt,
+          image: "",
+          formats: {},
+        };
+      }
+
+      if (opt && typeof opt === "object") {
+        return {
+          text: opt.text || opt.image || "",
+          image: opt.image || "",
+          formats: opt.formats || {},
+        };
+      }
+
+      return {
+        text: "",
+        image: "",
+        formats: {},
+      };
+    });
+
+    return {
+      ...base,
+      options,
+
+      // giữ nguyên
+      displayOrder: options.map((_, idx) => idx),
+
+      correct: Array.isArray(q.correct)
+        ? q.correct
+        : [],
+    };
   }
 
-  // TRUEFALSE
+  /* =========================
+     TRUEFALSE
+  ========================= */
   if (type === "truefalse") {
-    const options = Array.isArray(q.options) && q.options.length >= 2 ? [...q.options] : ["Đúng", "Sai"];
-    const indexed = options.map((opt, idx) => ({ opt, idx }));
-    const processed = q.sortType === "shuffle" ? shuffleArray(indexed) : indexed;
+    const options = (q.options || []).map(normalizeOption);
 
-    return { ...q, id: questionId, type, question: questionText, image: q.image ?? null, options: processed.map(i => i.opt), initialOrder: processed.map(i => i.idx), correct: Array.isArray(q.correct) && q.correct.length === options.length ? q.correct : options.map(() => ""), score: q.score ?? 1 };
+    return {
+      ...base,
+      options,
+
+      // giữ nguyên
+      initialOrder: options.map((_, idx) => idx),
+
+      correct:
+        Array.isArray(q.correct) &&
+        q.correct.length === options.length
+          ? q.correct
+          : options.map(() => ""),
+    };
   }
 
-  // FILLBLANK
+  /* =========================
+     FILLBLANK
+  ========================= */
   if (type === "fillblank") {
-    const options = Array.isArray(q.options) ? q.options : [];
-    return { ...q, id: questionId, type, question: questionText, image: q.image ?? null, option: q.option, options, shuffledOptions: shuffleArray([...options]), score: q.score ?? 1 };
+    const options = (q.options || []).map(normalizeOption);
+
+    return {
+      ...base,
+      option: q.option,
+      options,
+
+      // KHÔNG shuffle
+      shuffledOptions: options,
+    };
   }
 
   return null;
 }
 
-// 🔥 Hàm mới: chuẩn hóa toàn bộ danh sách và shuffle thứ tự câu hỏi
+/* =========================
+   NORMALIZE ALL QUESTIONS
+========================= */
 export function normalizeQuestions(rawQuestions) {
   if (!Array.isArray(rawQuestions)) return [];
 
-  // Shuffle toàn bộ danh sách câu hỏi
-  const shuffled = shuffleArray(rawQuestions);
-
-  // Chuẩn hóa từng câu hỏi
-  return shuffled
+  return rawQuestions
     .map((q, idx) => normalizeQuestion(q, idx))
     .filter(Boolean);
 }

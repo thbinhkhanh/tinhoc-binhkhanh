@@ -280,7 +280,7 @@ export default function QuanTri() {
             )}
 
             {/* Thời gian làm bài */}
-            <Box display="flex" alignItems="center" gap={1}>
+            {/*<Box display="flex" alignItems="center" gap={1}>
               <Typography sx={{ minWidth: 140 }}>Thời gian làm bài (phút)</Typography>
               <TextField
                 type="number"
@@ -289,7 +289,7 @@ export default function QuanTri() {
                 onChange={(e) => handleTimeLimitChange(e.target.value)}
                 inputProps={{ min: 1, style: { width: 60, textAlign: "center" } }}
               />
-            </Box>
+            </Box>*/}
             
             {/* ===== CHỌN HỆ THỐNG ===== */}
             {/*<Box ml={2} mb={1}>

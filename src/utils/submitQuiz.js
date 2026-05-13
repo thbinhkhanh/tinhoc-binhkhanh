@@ -1,20 +1,13 @@
-import { doc, setDoc, getDoc } from "firebase/firestore";
-
-const normalizeValue = (val) => {
-  if (typeof val === "object") {
-    if (val.image) return String(val.image).trim();
-    if (val.text) return val.text.trim();
-  }
-  if (typeof val === "string") {
-    return val.trim();
-  }
-  return String(val).trim();
-};
+import { doc, setDoc, getDoc, updateDoc } from "firebase/firestore";
+//import { exportQuizPDF } from "./utils/exportQuizPDF";
 
 export const handleSubmitQuiz = async ({
   studentName,
   studentClass,
   tenBaiRutGon,
+  studentId,
+  studentInfo,
+  studentResult,
   setStudentResult,
   setSnackbar,
   setSaving,
@@ -26,12 +19,30 @@ export const handleSubmitQuiz = async ({
   answers,
   startTime,
   db,
+  config,
+  configData,
+  selectedWeek,
   getQuestionMax,
   capitalizeName,
+  mapHocKyToDocKey,
   formatTime,
-  isTestMode = false, // ✅ Thêm flag
+  exportQuizPDF,
+  isTestMode,
 }) => {
   try {
+    /*if (studentName === "Test") {
+      setSnackbar({
+        open: true,
+        message: "Đây là trang test",
+        severity: "info",
+      });
+      return;
+    }*/
+
+    const kiemTraDinhKi = config?.kiemTraDinhKi === true;
+    const hocKiConfig = configData.hocKy || "UNKNOWN";
+    const hocKiKey = mapHocKyToDocKey(hocKiConfig);
+
     if (!studentClass || !studentName) {
       setSnackbar({
         open: true,
@@ -41,34 +52,39 @@ export const handleSubmitQuiz = async ({
       return;
     }
 
-    // --- Kiểm tra câu chưa trả lời ---
-    const unanswered = questions.filter((q) => {
-      const userAnswer = answers[q.id];
-      if (q.type === "single") {
-        return userAnswer === undefined || userAnswer === null || userAnswer === "";
+    const unanswered = questions.filter(q => {
+      const a = answers[q.id];
+      if (q.type === "single") return a === undefined || a === null || a === "";
+      if (q.type === "multiple") return !Array.isArray(a) || a.length === 0;
+      if (q.type === "image") {
+        const isSingle = Array.isArray(q.correct) && q.correct.length === 1;
+        if (isSingle) return a === undefined || a === null || a.length === 0;
+        return !Array.isArray(a) || a.length === 0;
       }
-      if (q.type === "multiple" || q.type === "image") {
-        return !Array.isArray(userAnswer) || userAnswer.length === 0;
-      }
-      if (q.type === "truefalse") {
-        return !Array.isArray(userAnswer) || userAnswer.length !== q.options.length;
-      }
+      if (q.type === "truefalse")
+        return !Array.isArray(a) || a.length !== q.options.length;
+      if (q.type === "fillblank")
+        return !Array.isArray(a) || a.some(v => !v);
+      // 👉 sort và matching không coi là unanswered
       return false;
     });
-
+    
+    // 👉👉 CHẶN NỘP BÀI NẾU CÒN CÂU CHƯA LÀM
     if (unanswered.length > 0) {
       setUnansweredQuestions(
-        unanswered.map((q) => questions.findIndex((item) => item.id === q.id) + 1)
+        unanswered.map(
+          q => questions.findIndex(item => item.id === q.id) + 1
+        )
       );
       setOpenAlertDialog(true);
-      return;
+      return; // ⛔ DỪNG LUÔN, KHÔNG TÍNH ĐIỂM
     }
 
     // --- Tính điểm ---
     setSaving(true);
-    let total = 0;
 
-    questions.forEach((q) => {
+    let total = 0;
+    questions.forEach(q => {
       const rawAnswer = answers[q.id];
 
       if (q.type === "single") {
@@ -78,39 +94,41 @@ export const handleSubmitQuiz = async ({
 
       } else if (q.type === "multiple" || q.type === "image") {
         const userSet = new Set(Array.isArray(rawAnswer) ? rawAnswer : []);
-        const correctSet = new Set(Array.isArray(q.correct) ? q.correct : [q.correct]);
+        const correctSet = new Set(
+          Array.isArray(q.correct) ? q.correct : [q.correct]
+        );
         if (
           userSet.size === correctSet.size &&
-          [...correctSet].every((x) => userSet.has(x))
+          [...correctSet].every(x => userSet.has(x))
         )
           total += q.score ?? 1;
 
       } else if (q.type === "sort") {
-        const userOrder = Array.isArray(rawAnswer) ? rawAnswer : [];
-        const correctTexts = Array.isArray(q.correctTexts) ? q.correctTexts : [];
+        const defaultOrder = q.options.map((_, idx) => idx);
+        const userOrder =
+          Array.isArray(rawAnswer) && rawAnswer.length > 0
+            ? rawAnswer
+            : defaultOrder;
 
-        // Lấy ra mảng option theo thứ tự học sinh sắp xếp
-        const userTexts = userOrder.map((idx) => q.options[idx]);
+        const userTexts = userOrder.map(idx => q.options[idx]);
+        const correctTexts = Array.isArray(q.correctTexts) ? q.correctTexts : [];
 
         const isCorrect =
           userTexts.length === correctTexts.length &&
-          userTexts.every((val, i) => normalizeValue(val) === normalizeValue(correctTexts[i]));
+          userTexts.every((t, i) => t === correctTexts[i]);
 
         if (isCorrect) total += q.score ?? 1;
       } else if (q.type === "matching") {
-  const userArray = Array.isArray(rawAnswer) ? rawAnswer : [];
-  const correctArray = Array.isArray(q.correct) ? q.correct : [];
+          const correctArray = Array.isArray(q.correct) ? q.correct : [];
+          const userArray = Array.isArray(rawAnswer) ? rawAnswer : [];
 
-  const normalizedUser = correctArray.map((_, i) =>
-    userArray[i] !== undefined ? userArray[i] : null
-  );
+          const isCorrect =
+            userArray.length > 0 &&
+            userArray.length === correctArray.length &&
+            userArray.every((val, i) => val === correctArray[i]);
 
-  const isCorrect =
-    normalizedUser.length === correctArray.length &&
-    normalizedUser.every((val, i) => val === correctArray[i]);
-
-  if (isCorrect) total += q.score ?? 1;
-} else if (q.type === "truefalse") {
+          if (isCorrect) total += q.score ?? 1;
+        } else if (q.type === "truefalse") {
         const userArray = Array.isArray(rawAnswer) ? rawAnswer : [];
         const correctArray = Array.isArray(q.correct) ? q.correct : [];
 
@@ -119,41 +137,154 @@ export const handleSubmitQuiz = async ({
             const originalIdx = Array.isArray(q.initialOrder)
               ? q.initialOrder[i]
               : i;
+            return val === correctArray[originalIdx];
+          });
+          if (isAllCorrect) total += q.score ?? 1;
+        }
 
-            const normalizedVal =
-              val === "Đúng" ? "Đ" :
-              val === "Sai" ? "S" :
-              val;
+      } else if (q.type === "fillblank") {
+        const userAnswers = Array.isArray(rawAnswer) ? rawAnswer : [];
+        const correctAnswers = Array.isArray(q.options) ? q.options : [];
 
-            return normalizedVal === correctArray[originalIdx];
+        if (userAnswers.length === correctAnswers.length) {
+          const isAllCorrect = correctAnswers.every((correct, i) => {
+            if (!userAnswers[i] || !correct || typeof correct.text !== "string")
+              return false;
+
+            return (
+              String(userAnswers[i]).trim().toLowerCase() ===
+              correct.text.trim().toLowerCase()
+            );
           });
 
           if (isAllCorrect) total += q.score ?? 1;
         }
-      } else if (q.type === "fillblank") {
-        const userAnswers = Array.isArray(rawAnswer) ? rawAnswer : [];
-        const correctAnswers = Array.isArray(q.options) ? q.options : [];
-        if (userAnswers.length === correctAnswers.length) {
-          const isAllCorrect = correctAnswers.every(
-            (correct, i) =>
-              userAnswers[i] && userAnswers[i].trim() === correct.trim()
-          );
-          if (isAllCorrect) total += q.score ?? 1;
-        }
       }
+
     });
 
     setSubmitted(true);
 
     // --- Tính thời gian ---
-    const durationSec = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
+    const durationSec = startTime
+      ? Math.floor((Date.now() - startTime) / 1000)
+      : 0;
     const durationStr = formatTime(durationSec);
-    const ngayKiemTra = new Date().toLocaleDateString("vi-VN");
-    const maxScore = questions.reduce((sum, q) => sum + getQuestionMax(q), 0);
-    const phanTram = Math.round((total / maxScore) * 100);
 
-    // --- Chuẩn hóa tên học sinh ---
-    const normalizeName = (name) =>
+    // --- PDF cho KTDK ---
+    const hocKi = window.currentHocKi || "GKI";
+    const monHoc = window.currentMonHoc || "Không rõ";
+
+    if (configData?.kiemTraDinhKi === true) {
+      const quizTitle = `KTĐK ${hocKi.toUpperCase()} - ${monHoc.toUpperCase()}`;
+      exportQuizPDF(
+        studentInfo,
+        studentInfo.className,
+        questions,
+        answers,
+        total,
+        durationStr,
+        quizTitle
+      );
+    }
+
+    const ngayKiemTra = new Date().toLocaleDateString("vi-VN");
+
+    //const maxScore = questions.reduce((sum, q) => sum + getQuestionMax(q), 0);
+    //const phanTram = Math.round((total / maxScore) * 100);
+
+    const totalQuestions = questions.length;
+
+    // đếm số câu đúng
+    const correctCount = questions.reduce((count, q) => {
+      const rawAnswer = answers[q.id];
+
+      let isCorrect = false;
+
+      if (q.type === "single") {
+        const ua = Number(rawAnswer);
+        isCorrect =
+          Array.isArray(q.correct)
+            ? q.correct.includes(ua)
+            : q.correct === ua;
+
+      } else if (q.type === "multiple" || q.type === "image") {
+        const userSet = new Set(Array.isArray(rawAnswer) ? rawAnswer : []);
+        const correctSet = new Set(Array.isArray(q.correct) ? q.correct : [q.correct]);
+
+        isCorrect =
+          userSet.size === correctSet.size &&
+          [...correctSet].every(x => userSet.has(x));
+
+      } else if (q.type === "sort") {
+        const userOrder = Array.isArray(rawAnswer) && rawAnswer.length > 0
+          ? rawAnswer
+          : q.options.map((_, i) => i);
+
+        const userTexts = userOrder.map(i => q.options[i]);
+        const correctTexts = Array.isArray(q.correctTexts) ? q.correctTexts : [];
+
+        isCorrect =
+          userTexts.length === correctTexts.length &&
+          userTexts.every((t, i) => t === correctTexts[i]);
+
+      } else if (q.type === "matching") {
+        const userArray = Array.isArray(rawAnswer) ? rawAnswer : [];
+        const correctArray = Array.isArray(q.correct) ? q.correct : [];
+
+        isCorrect =
+          userArray.length === correctArray.length &&
+          userArray.every((v, i) => v === correctArray[i]);
+
+      } else if (q.type === "truefalse") {
+        const userArray = Array.isArray(rawAnswer) ? rawAnswer : [];
+        const correctArray = Array.isArray(q.correct) ? q.correct : [];
+
+        isCorrect =
+          userArray.length === correctArray.length &&
+          userArray.every((val, i) => {
+            const idx = Array.isArray(q.initialOrder) ? q.initialOrder[i] : i;
+            return val === correctArray[idx];
+          });
+
+      } else if (q.type === "fillblank") {
+        const userAnswers = Array.isArray(rawAnswer) ? rawAnswer : [];
+        const correctAnswers = Array.isArray(q.options) ? q.options : [];
+
+        isCorrect =
+          userAnswers.length === correctAnswers.length &&
+          correctAnswers.every((c, i) =>
+            String(userAnswers[i] || "").trim().toLowerCase() ===
+            String(c.text || "").trim().toLowerCase()
+          );
+      }
+
+      return count + (isCorrect ? 1 : 0);
+    }, 0);
+
+    // 👉 % logic mới
+    const maxScore = questions.reduce(
+      (sum, q) => sum + (q.score ?? 1),
+      0
+    );
+
+    const phanTram = maxScore > 0
+      ? Math.round((total / maxScore) * 100)
+      : 0;
+    
+    const formatScore10 = (score) => {
+      const intPart = Math.floor(score);
+      const decimal = score - intPart;
+
+      if (decimal < 0.25) return intPart;
+      if (decimal < 0.75) return intPart + 0.5;
+      return intPart + 1;
+    };
+
+    const diem10Raw = maxScore > 0 ? (total / maxScore) * 10 : 0;
+    const diem10 = formatScore10(diem10Raw);
+
+    const normalizeName = name =>
       name
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "")
@@ -167,101 +298,92 @@ export const handleSubmitQuiz = async ({
     // --- Hiển thị kết quả ---
     setStudentResult({
       hoVaTen: capitalizeName(studentName),
-      lop: studentClass, 
-      bai: tenBaiRutGon,
+      lop: studentClass,
       diem: total,
       diemTN: phanTram,
+      diem10: diem10,     // 👈 hiển thị dialog
     });
     setOpenResultDialog(true);
 
     // --- FIRESTORE (chỉ lưu nếu không phải test mode) ---
     if (!isTestMode) {
-  try {
-    const classKey = studentClass.replace(".", "_");
-    const studentDocId = normalizeName(studentName);
+      try {
+        const classKey = studentClass.replace(".", "_");
+        const studentDocId = normalizeName(studentName);
 
-    // ref học sinh
-    const hsRef = doc(db, "DATA", classKey, "HOCSINH", studentDocId);
+        const hsRef = doc(db, "DATA", classKey, "HOCSINH", studentDocId);
 
-    // đảm bảo học sinh tồn tại
-    await setDoc(
-      hsRef,
-      {
-        hoVaTen: capitalizeName(studentName),
-        lop: studentClass,
-        mon: "Tin học"
-      },
-      { merge: true }
-    );
+        // 1. đảm bảo học sinh tồn tại
+        await setDoc(
+          hsRef,
+          {
+            hoVaTen: capitalizeName(studentName),
+            lop: studentClass,
+            mon: "Tin học",
+          },
+          { merge: true }
+        );
 
-    // ---- BÀI THI ----
-    if (!tenBaiRutGon) {
-      console.error("❌ Thiếu tên bài rút gọn");
-      return;
-    }
+        if (!tenBaiRutGon) {
+          console.error("❌ Thiếu tên bài rút gọn");
+          return;
+        }
 
-    const baiDocId = tenBaiRutGon
-      .replace(/\s+/g, "_")
-      .replace(/\./g, "");
+        // ✅ CHUẨN HOÁ TRỰC TIẾP TỪ tenBaiRutGon
+        const baiDocId = tenBaiRutGon
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "") // bỏ dấu
+          .toLowerCase()
+          .trim()
+          .replace(/\./g, "")
+          .replace(/\s+/g, "_")
+          .replace(/[^a-z0-9_]/g, "");
 
-    const baiRef = doc(
-      db,
-      "DATA",
-      classKey,
-      "HOCSINH",
-      studentDocId,
-      "BAITHI",
-      baiDocId
-    );
+        const baiRef = doc(
+          db,
+          "DATA",
+          classKey,
+          "HOCSINH",
+          studentDocId,
+          "BAITHI",
+          baiDocId
+        );
 
-    const diemQuyDoi = Math.round(phanTram / 10);
+        const diemQuyDoi = Math.round(phanTram / 10);
 
-    const baiSnap = await getDoc(baiRef);
+        const baiSnap = await getDoc(baiRef);
+        const old = baiSnap.exists() ? baiSnap.data() : {};
 
-    if (baiSnap.exists()) {
-      // 🔁 ĐÃ CÓ BÀI → UPDATE
-      const data = baiSnap.data();
-      const currentSoLan = data.soLan ?? 0;
-      const currentDiem = data.diem ?? 0;
+        const oldDiem = old.diem ?? 0;
+        const isNewBest = diemQuyDoi > oldDiem;
 
-      const updates = {
-        soLan: currentSoLan + 1
-      };
+        await setDoc(
+          baiRef,
+          {
+            bai: tenBaiRutGon, // giữ tiếng Việt có dấu để hiển thị
 
-      if (diemQuyDoi > currentDiem) {
-        updates.diem = diemQuyDoi;
-        updates.diemTN = phanTram;
-        updates.ngayKiemTra = ngayKiemTra;
-        updates.thoiGianLamBai = durationStr;
+            // luôn tăng số lần làm
+            soLan: (old.soLan ?? 0) + 1,
+
+            // luôn cập nhật ngày làm gần nhất
+            ngayKiemTra,
+
+            // chỉ cập nhật khi điểm cao hơn
+            ...(isNewBest && {
+              diem: diemQuyDoi,
+              diemTN: phanTram,
+              thoiGianLamBai: durationStr,
+            }),
+          },
+          { merge: true }
+        );
+
+      } catch (err) {
+        console.error("❌ Lỗi lưu bài thi:", err);
       }
-
-      await setDoc(baiRef, updates, { merge: true });
-      console.log("✅ Cập nhật bài:", tenBaiRutGon);
-
     } else {
-      // 🆕 CHƯA CÓ BÀI → TẠO MỚI
-      await setDoc(baiRef, {
-        bai: tenBaiRutGon,
-        diem: diemQuyDoi,
-        diemTN: phanTram,
-        ngayKiemTra,
-        thoiGianLamBai: durationStr,
-        soLan: 1
-      });
-
-      console.log("✅ Lưu bài mới:", tenBaiRutGon);
+      //console.log("ℹ️ Test mode: không lưu Firestore");
     }
-
-  } catch (err) {
-    console.error("❌ Lỗi lưu bài thi:", err);
-  }
-} else {
-  console.log("ℹ️ Test mode: không lưu Firestore");
-}
-
-
-
-
   } catch (err) {
     console.error("❌ Lỗi khi lưu điểm:", err);
   } finally {

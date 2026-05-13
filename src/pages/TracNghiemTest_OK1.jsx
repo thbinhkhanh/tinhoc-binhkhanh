@@ -1,78 +1,60 @@
-// ===================== REACT =====================
-import React, { useState, useEffect, useContext } from "react";
-
-// ===================== MUI CORE =====================
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
   Paper,
-  //Button,
-  //Stack,
-  //LinearProgress,
+  Button,
+  Stack,
+  LinearProgress,
   IconButton,
   Tooltip,
-  Snackbar,
+  Snackbar, 
   Alert,
+  Divider,
+  FormControl,
+  Select,
+  MenuItem,
+  InputLabel, Card,
 } from "@mui/material";
-
+import { doc, getDoc, getDocs, setDoc, collection } from "firebase/firestore";
 import { useTheme, useMediaQuery } from "@mui/material";
 
-// ===================== FIREBASE =====================
-import { doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
-
-// ===================== CONTEXT =====================
+import { useContext } from "react";
 import { ConfigContext } from "../context/ConfigContext";
+import { exportQuizPDF } from "../utils/exportQuizPDF"; 
 
-// ===================== ROUTER =====================
-import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
-
-// ===================== ICONS =====================
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-
-// ===================== UTILS =====================
-import { exportQuizPDF } from "../utils/exportQuizPDF";
-import { buildRuntimeQuestions } from "../utils/buildRuntimeQuestions";
-import { handleSubmitQuiz } from "../utils/submitQuiz";
-import { autoSubmitQuiz } from "../utils/autoSubmitQuiz";
-import { getQuestionStatus } from "../utils/questionStatus";
-import { processQuestions } from "../utils/processQuestions";
-import { useQuizTimer } from "../utils/useQuizTimer";
-
-// ===================== COMPONENTS =====================
-import QuizQuestion from "../Types/questions/options/QuizQuestion";
-import QuizSidebar from "../components/quiz/QuizSidebar";
-import QuizNavigation from "../components/quiz/QuizNavigation";
-import QuizLoading from "../components/quiz/QuizLoading";
 
 import ExitConfirmDialog from "../dialog/ExitConfirmDialog";
 import ImageZoomDialog from "../dialog/ImageZoomDialog";
 import IncompleteAnswersDialog from "../dialog/IncompleteAnswersDialog";
 import TestResultDialog from "../dialog/TestResultDialog";
 
-// ===================== (OPTIONAL / COMMENTED) =====================
-// import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
-// import QuestionOption from "../utils/QuestionOption";
+import QuizQuestion from "../Types/questions/options/QuizQuestion";
+import { buildRuntimeQuestions } from "../utils/buildRuntimeQuestions";
+import { handleSubmitQuiz } from "../utils/submitQuiz";
+import { autoSubmitQuiz } from "../utils/autoSubmitQuiz";
+import { getQuestionStatus } from "../utils/questionStatus";
+
+import { processQuestions } from "../utils/processQuestions";
+import { getQuizDocId } from "../utils/getQuizDocId";
+import { useQuizTimer } from "../utils/useQuizTimer";
+
+import QuizHeader from "../components/quiz/QuizHeader";
+import QuizSidebar from "../components/quiz/QuizSidebar";
+import QuizNavigation from "../components/quiz/QuizNavigation";
+import QuizLoading from "../components/quiz/QuizLoading";
+import QuizDialogs from "../components/quiz/QuizDialogs";
+
+import { useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 export default function TracNghiemTest() {
-  // ===================== REACT CONTEXT =====================
-  const { config } = useContext(ConfigContext) || {};
-
-  // ===================== ROUTER =====================
-  const location = useLocation();
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-
-  const tenBai = decodeURIComponent(searchParams.get("bai") || "");
-  const lopHoc = searchParams.get("lop");
-
-  // ===================== CONFIG DERIVED =====================
-  const namHoc = config?.namHoc || "2025-2026";
-  const xuatFileBaiLam = config?.xuatFileBaiLam ?? true;
-
-  // ===================== STATE: QUIZ CORE =====================
   const [questions, setQuestions] = useState([]);
   const [answers, setAnswers] = useState({});
   const [submitted, setSubmitted] = useState(false);
@@ -80,120 +62,116 @@ export default function TracNghiemTest() {
   const [quizClass, setQuizClass] = useState("");
   const [score, setScore] = useState(0);
 
-  // ===================== STATE: UI / ALERT =====================
   const [openAlertDialog, setOpenAlertDialog] = useState(false);
   const [unansweredQuestions, setUnansweredQuestions] = useState([]);
-  const [openResultDialog, setOpenResultDialog] = useState(false);
-  const [studentResult, setStudentResult] = useState(null);
-  const [fillBlankStatus, setFillBlankStatus] = useState({});
-  const [openExitConfirm, setOpenExitConfirm] = useState(false);
-  const [zoomImage, setZoomImage] = useState(null);
 
-  // ===================== STATE: LOADING =====================
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
-  const [saving, setSaving] = useState(false);
 
-  // ===================== STATE: TIMER =====================
+  const { config } = useContext(ConfigContext);
+  const namHoc = config?.namHoc || "2025-2026";
+
+  const [selectedYear, setSelectedYear] = useState(config?.namHoc || "2025-2026");
+  const [saving, setSaving] = useState(false);
+  const [openExitConfirm, setOpenExitConfirm] = useState(false);
+
+  const [zoomImage, setZoomImage] = useState(null);
+
+  const location = useLocation();
+  const navigate = useNavigate();
   const [started, setStarted] = useState(false);
   const [timeLimitMinutes, setTimeLimitMinutes] = useState(0);
 
-  // ===================== STATE: EXAM =====================
-  const [selectedExam, setSelectedExam] = useState("");
-  const [complete, setComplete] = useState(false); // thêm dòng này
-
-  // ===================== STATE: FILTER / SETTINGS =====================
-  const [selectedYear, setSelectedYear] = useState(config?.namHoc || "2025-2026");
   const [hocKi, setHocKi] = useState(config?.hocKy || "Cuối kỳ I");
   const [monHoc, setMonHoc] = useState("");
   const [choXemDiem, setChoXemDiem] = useState(false);
   const [choXemDapAn, setChoXemDapAn] = useState(false);
-  const [selectedClass, setSelectedClass] = useState("4");
-  const [showSidebar, setShowSidebar] = useState(true);
+  const xuatFileBaiLam = config?.xuatFileBaiLam ?? true;
+  const isTestMode = false;
 
-  // ===================== DEVICE / UI =====================
+  const [openResultDialog, setOpenResultDialog] = useState(false);
+  const [studentResult, setStudentResult] = useState(null);
+  const [fillBlankStatus, setFillBlankStatus] = useState({});
+
+  const [examList, setExamList] = useState([]);
+  const [selectedExam, setSelectedExam] = useState("");
+  const [complete, setComplete] = useState(false); // thêm dòng này
+  const [examType, setExamType] = useState("kt"); // "bt" | "kt"
+  const [allExamList, setAllExamList] = useState([]);
+  const [lessonsFromFirestore, setLessonsFromFirestore] = useState([]);
+
   const theme = useTheme();
   const isBelow1024 = useMediaQuery("(max-width:1023px)");
-
-  // ===================== AUTH / SCHOOL =====================
+  const [showSidebar, setShowSidebar] = useState(true);
+  
+  // Lấy trường từ tài khoản đăng nhập
   const account = localStorage.getItem("account") || "";
   const school = account === "TH Lâm Văn Bền" ? account : "TH Bình Khánh";
 
-  // ===================== STATIC FLAGS =====================
-  const isTestMode = false;
-
-  const getTenBaiRutGon = (tenBai = "") => {
-    if (!tenBai) return "";
-    const match = tenBai.match(/(Bài\s*\d+[A-Z]?)/i);
-    if (!match) return tenBai.trim();
-    return match[1].trim().replace(/\s+/g, " ");
-  };
-
-  const tenBaiRutGon = getTenBaiRutGon(tenBai);
+  // Lấy lớp từ tên đề
+  const detectedClass = selectedExam?.match(/Lớp\s*(\d+)/)?.[1] || "Test";
+  const [selectedClass, setSelectedClass] = useState("4");
 
   useEffect(() => {
-      // ✅ 0️⃣ LƯU BÀI ĐANG LÀM (ĐÚNG CHỖ)
-      if (lopHoc || tenBai) {
-        const khoi = lopHoc ? `Khối ${lopHoc[0]}` : undefined;
-  
-        localStorage.setItem(
-          "lastExam",
-          JSON.stringify({
-            lop: lopHoc,
-            bai: tenBai,
-            baiRutGon: tenBaiRutGon,
-            path: location.pathname + location.search,
-          })
+    const fetchLessons = async () => {
+      if (!selectedClass) return;
+
+      try {
+        // ✅ đọc config trước
+        const snapConfig = await getDoc(
+          doc(db, "CONFIG", "config")
         );
+
+        const namHoc = snapConfig.exists()
+          ? snapConfig.data().namHoc
+          : "";
+
+        // ✅ collection giống code gốc
+        const collectionName =
+          namHoc === "2025-2026"
+            ? `TRACNGHIEM${selectedClass}`
+            : `TRACNGHIEM${selectedClass}_New`;
+
+        // ✅ lấy danh sách bài
+        const snapshot = await getDocs(
+          collection(db, collectionName)
+        );
+
+        const lessonNames = snapshot.docs
+          .map((d) => d.id)
+          .sort((a, b) => {
+            const numA = parseInt(a.match(/\d+/)?.[0] || 0);
+            const numB = parseInt(b.match(/\d+/)?.[0] || 0);
+
+            return numA - numB;
+          });
+
+        setLessonsFromFirestore(lessonNames);
+
+      } catch (err) {
+        console.error("Lỗi load bài:", err);
+        setLessonsFromFirestore([]);
       }
-  
-      // ✅ 1️⃣ VÉ THÔNG HÀNH (TỪ INFO QUAY LẠI)
-      if (location.state?.fromInfo) {
-        navigate(location.pathname + location.search, { replace: true });
-        return;
-      }
-  
-      // ✅ 2️⃣ MỞ LINK TRỰC TIẾP → INFO
-      const khoiFinal = lopHoc ? `Khối ${lopHoc[0]}` : undefined;
-  
-      navigate("/info", {
-        replace: true,
-        state: {
-          ...(khoiFinal ? { khoi: khoiFinal } : {}),
-          target: location.pathname + location.search,
-          disableKhoi: true,
-        },
-      });
-  }, []);
-  
+    };
 
-  useEffect(() => {
-    if (!lopHoc || !tenBai) return;
-
-    // 👉 nếu đã có URL thì tự set đề luôn
-    setSelectedClass(lopHoc);
-
-    // quan trọng: selectedExam chính là "tenBai"
-    setSelectedExam(tenBai);
-  }, [lopHoc, tenBai]);
+    fetchLessons();
+  }, [selectedClass]);
 
 // Gán thông tin mặc định theo yêu cầu
-  const studentInfo = React.useMemo(() => ({
-    studentId: config?.studentId || "",
-    name: config?.fullname || "",
-    class: config?.lop || lopHoc || "",
-    khoi: config?.khoi || "",
-    school: school || "",
-  }), [config, lopHoc, school]);
+  const studentInfo = {
+    name: "Nguyễn Văn A",
+    class: detectedClass,
+    school: school
+  };
 
-  /*const handleMatchSelect = (questionId, leftIndex, rightIndex) => {
+  const handleMatchSelect = (questionId, leftIndex, rightIndex) => {
     setAnswers(prev => {
       const prevAns = prev[questionId] ?? [];
       const newAns = [...prevAns];
       newAns[leftIndex] = rightIndex;
       return { ...prev, [questionId]: newAns };
     });
-  };*/
+  };
 
   const {
     timeLeft,
@@ -207,11 +185,11 @@ export default function TracNghiemTest() {
     onTimeUp: () => {
       autoSubmitQuiz({
         studentName,
-        studentClass: studentInfo.class,
+        studentClass: detectedClass,
         studentId: null,
         studentInfo: {
           ...studentInfo,
-          className: studentInfo.class, // ✅ FIX
+          className: detectedClass,
         },
         studentResult,
         setStudentResult,
@@ -265,7 +243,7 @@ export default function TracNghiemTest() {
       try {
         setLoading(true);
 
-        if (!lopHoc || !tenBai) {
+        if (!selectedClass || !selectedExam) {        
           setLoading(false);
           return;
         }
@@ -282,11 +260,14 @@ export default function TracNghiemTest() {
         // ===== COLLECTION =====
         const collectionName =
           namHoc === "2025-2026"
-            ? `TRACNGHIEM${lopHoc}`
-            : `TRACNGHIEM${lopHoc}_New`;
+            ? `TRACNGHIEM${selectedClass}`
+            : `TRACNGHIEM${selectedClass}_New`;
 
         // ===== DOC ID =====
-        const docId = tenBai;
+        const docId = selectedExam;
+
+        console.log("🔥 collection:", collectionName);
+        console.log("🔥 docId:", docId);
 
         // ===== LOAD ĐỀ =====
         const docRef = doc(db, collectionName, docId);
@@ -305,6 +286,8 @@ export default function TracNghiemTest() {
         }
 
         const data = docSnap.data();
+
+        console.log("✅ DATA:", data);
 
         // ===== CONFIG =====
         const timeLimit = configSnap.data()?.timeLimit ?? 0;
@@ -352,10 +335,39 @@ export default function TracNghiemTest() {
       }
     };
     fetchQuestions();
-  }, [lopHoc, tenBai]);
+  }, [selectedClass, selectedExam]);
 
-  const studentName = studentInfo?.name || "";
-  
+  useEffect(() => {
+    if (!selectedClass) {
+      setExamList([]);
+      setSelectedExam("");
+      return;
+    }
+
+  const filtered = allExamList.filter((examId) =>
+    examId.includes(`Lớp ${selectedClass}`)
+  );
+
+  // 👉 KHÔNG SORT, KHÔNG FORMAT, GIỮ NGUYÊN DATA
+  setExamList(filtered);
+}, [selectedClass, allExamList]);
+
+  useEffect(() => {
+    if (!selectedClass) {
+      setExamList([]);
+      return;
+    }
+
+    const filtered = allExamList.filter((examId) =>
+      examId.includes(`Lớp ${selectedClass}`)
+    );
+
+    setExamList(filtered);
+  }, [selectedClass, allExamList]);
+
+  const studentClass = quizClass ?? detectedClass ?? studentInfo?.class ?? "Test";
+  const studentName = studentInfo.name;
+
   // Hàm chuyển chữ đầu thành hoa
   const capitalizeName = (name = "") =>
     name
@@ -365,23 +377,37 @@ export default function TracNghiemTest() {
       .map(word => word[0].toUpperCase() + word.slice(1))
       .join(" ");
 
+  // Sử dụng:
+  const hoVaTen = capitalizeName(studentName);
+
   const currentQuestion = questions[currentIndex] || null;
   const isEmptyQuestion = currentQuestion?.question === "";
   
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "info" });
   const handleCloseSnackbar = (event, reason) => { if (reason === "clickaway") return; setSnackbar(prev => ({ ...prev, open: false })); };
 
-  //const tenBaiRutGon = getTenBaiRutGon(selectedExam);
+  const getTenBaiRutGon = (tenBai = "") => {
+    if (!tenBai) return "";
+
+    // Lấy "Bài 11" từ "Bài 11. Chỉnh sửa văn bản"
+    const match = tenBai.match(/(Bài\s*\d+[A-Z]?)/i);
+
+    if (!match) return tenBai.trim();
+
+    return match[1].trim().replace(/\s+/g, " ");
+  };
+
+  const tenBaiRutGon = getTenBaiRutGon(selectedExam);
 
   const handleSubmit = () =>
     handleSubmitQuiz({
       studentName,
-      studentClass: studentInfo.class,
+      studentClass: detectedClass,
       tenBaiRutGon,
       studentId: null,
       studentInfo: {
         ...studentInfo,
-        className: studentInfo.class, // ✅ FIX
+        className: detectedClass,   // 👈 BẮT BUỘC
       },
       studentResult,
       setStudentResult,
@@ -404,7 +430,7 @@ export default function TracNghiemTest() {
       formatTime,
       exportQuizPDF,
       xuatFileBaiLam,
-      quizClass: studentInfo.class,
+      quizClass: detectedClass,
       
       // ✅ TEST MODE
       isTestMode,
@@ -413,12 +439,12 @@ export default function TracNghiemTest() {
   const autoSubmit = () => {
     autoSubmitQuiz({
       studentName,
-      studentClass: studentInfo.class,
+      studentClass: detectedClass,
       tenBaiRutGon,
       studentId: null,
       studentInfo: {
         ...studentInfo,
-        className: studentInfo.class, // ✅ FIX
+        className: detectedClass,
       },
       studentResult,
       setStudentResult,
@@ -448,6 +474,15 @@ export default function TracNghiemTest() {
   
   const handleNext = () => currentIndex < questions.length - 1 && setCurrentIndex(currentIndex + 1);
   const handlePrev = () => currentIndex > 0 && setCurrentIndex(currentIndex - 1);
+
+  const convertPercentToScore = (percent) => {
+    if (percent === undefined || percent === null) return "?";
+    const raw = percent / 10;
+    const decimal = raw % 1;
+    if (decimal < 0.25) return Math.floor(raw);
+    if (decimal < 0.75) return Math.floor(raw) + 0.5;
+    return Math.ceil(raw);
+  };
 
   function reorder(list, startIndex, endIndex) {
     const result = Array.from(list);
@@ -522,7 +557,7 @@ const normalizeValue = (val) => {
   return String(val).trim();
 };
 
-/*const questionCircleStyle = {
+const questionCircleStyle = {
   width: { xs: 34, sm: 38 },
   height: { xs: 34, sm: 38 },
   borderRadius: "50%",
@@ -531,7 +566,7 @@ const normalizeValue = (val) => {
   fontWeight: 600,
   boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
   transition: "all 0.2s ease",
-};*/
+};
 
 const ratio = currentQuestion?.columnRatio || { left: 1, right: 1 };
 
@@ -549,7 +584,7 @@ const sidebarConfig = React.useMemo(() => {
 const hasSidebar = sidebarConfig && questions.length > 0;
 const isSidebarVisible = hasSidebar && showSidebar;
 
-/*const resetQuiz = () => {
+const resetQuiz = () => {
   setAnswers({});
   setCurrentIndex(0);
   setComplete(false);
@@ -567,7 +602,7 @@ const isSidebarVisible = hasSidebar && showSidebar;
   // load lại câu hỏi (nếu muốn reset hoàn toàn)
   setQuestions([]);
   setLoading(true);
-};*/
+};
 
 return (
   <Box
@@ -661,21 +696,95 @@ return (
             sx={{
               fontWeight: "bold",
               fontSize: "20px",
-              mb: 0,
+              mb: 2,
               mt: -1,
               color: "#1976d2",
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
             }}
           >
-            {(tenBai || "TEST ĐỀ TRẮC NGHIỆM").toUpperCase()}
+            TEST ĐỀ TRẮC NGHIỆM
           </Typography>
-          
+
+          {/* ===== DROPDOWN CHỌN LỚP + BÀI ===== */}
+          <Box sx={{ mt: 2, mb: 2 }}>
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              spacing={2}
+              justifyContent="center"
+            >
+              {/* ===== Chọn lớp ===== */}
+              <FormControl size="small" sx={{ minWidth: 100 }}>
+                <InputLabel>Lớp</InputLabel>
+                <Select
+                  value={selectedClass}
+                  label="Lớp"
+                  onChange={(e) => {
+                    const value = e.target.value;
+
+                    setSelectedClass(value);
+
+                    // reset đề đang chọn
+                    setSelectedExam("");
+
+                    // reset dữ liệu quiz
+                    setQuestions([]);
+                    setAnswers({});
+                    setCurrentIndex(0);
+                    setStarted(false);
+                    setSubmitted(false);
+                    setProgress(0);
+                  }}
+                >
+                  <MenuItem value="">Chọn</MenuItem>
+
+                  {[3, 4, 5].map((n) => (
+                    <MenuItem key={n} value={String(n)}>
+                      Lớp {n}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              {/* ===== Chọn bài học  ===== */}
+              <FormControl
+                size="small"
+                sx={{ minWidth: 260 }}
+                disabled={!selectedClass}
+              >
+                <InputLabel>Bài học</InputLabel>
+
+                <Select
+                  value={selectedExam}
+                  label="Bài học"
+                  onChange={(e) => setSelectedExam(e.target.value)}
+                  sx={{
+                    "& .MuiSelect-select": {
+                      whiteSpace: "nowrap",   // ✅ không xuống dòng
+                      overflow: "hidden",
+                      textOverflow: "ellipsis", // nếu dài thì ...
+                    },
+                  }}
+                >
+                  <MenuItem value="">Chọn</MenuItem>
+
+                  {lessonsFromFirestore.map((exam) => (
+                    <MenuItem
+                      key={exam}
+                      value={exam}
+                      sx={{
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {exam}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Stack>
+          </Box>
         </Box>
 
         {/* Đồng hồ */}
-        {/*<Box
+        <Box
           sx={{
             display: "flex",
             flexDirection: "column",
@@ -716,7 +825,7 @@ return (
               mt: 0,
             }}
           />
-        </Box>*/}
+        </Box>
 
         {/* Loading */}
         <QuizLoading loading={loading} progress={progress} />

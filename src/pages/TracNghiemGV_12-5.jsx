@@ -53,39 +53,6 @@ import InputAdornment from "@mui/material/InputAdornment";
 import { cleanAnswersFieldInAllQuizzes } from "../utils/cleanAnswersField";
 import { handleUploadExcel } from "../utils/uploadExcel";
 import mammoth from "mammoth";
-import { normalizeQuestion } from "../utils/normalizeQuestion";
-
-const normalizeOptionsForUI = (options = []) => {
-  return options.map((opt) => {
-    // =========================
-    // STRING (data cũ từ Firebase)
-    // =========================
-    if (typeof opt === "string") {
-      return {
-        image: opt,
-        text: "",
-      };
-    }
-
-    // =========================
-    // OBJECT (data mới)
-    // =========================
-    if (opt && typeof opt === "object") {
-      return {
-        image: opt.image || opt.url || opt.preview || "",
-        text: opt.text || "",
-      };
-    }
-
-    // =========================
-    // fallback
-    // =========================
-    return {
-      image: "",
-      text: "",
-    };
-  });
-};
 
 export default function TracNghiemGV() {
   const fileInputRef = useRef(null);
@@ -241,6 +208,7 @@ export default function TracNghiemGV() {
       isAddingLesson || localStorage.getItem("isAddingLesson") === "true";
 
     if (isAdding) {
+      console.log("🚫 Đang thêm bài → bỏ qua fetchExam");
       return;
     }
 
@@ -291,11 +259,8 @@ export default function TracNghiemGV() {
         cacheFromContext.updatedAt === serverUpdatedAt &&
         Array.isArray(cacheFromContext.questions)
       ) {
-        const normalized = cacheFromContext.questions
-          .map((q, idx) => normalizeQuestion(q, idx))
-          .filter(Boolean);
-
-        setQuestions(normalized);
+        //console.log("🧠 GV LOAD FROM CONTEXT ✅", CACHE_KEY);
+        setQuestions(cacheFromContext.questions);
         return;
       }
 
@@ -303,23 +268,27 @@ export default function TracNghiemGV() {
       // 3️⃣ LOCALSTORAGE (VALID)
       // =======================
       const stored = localStorage.getItem(CACHE_KEY);
+
+      //console.group("💾 GV CHECK LOCALSTORAGE");
+      //console.log("CACHE_KEY:", CACHE_KEY);
+      //console.log("stored raw:", stored);
       console.groupEnd();
 
       if (stored) {
         const parsed = JSON.parse(stored);
 
+        //console.group("💾 GV PARSED LOCAL");
+        //console.log("parsed.updatedAt:", parsed.updatedAt);
+        //console.log("serverUpdatedAt:", serverUpdatedAt);
         console.groupEnd();
 
         if (
           parsed.updatedAt === serverUpdatedAt &&
           Array.isArray(parsed.questions)
         ) {
+          //console.log("💾 GV LOAD FROM LOCALSTORAGE ✅", CACHE_KEY);
 
-          const normalized = parsed.questions
-            .map((q, idx) => normalizeQuestion(q, idx))
-            .filter(Boolean);
-
-          setQuestions(normalized);
+          setQuestions(parsed.questions);
 
           // ✅ sync lại context (LƯU NHIỀU ĐỀ)
           setQuizCache(prev => ({
@@ -339,8 +308,6 @@ export default function TracNghiemGV() {
       // =======================
       const questionsFromServer = Array.isArray(data.questions)
         ? data.questions
-            .map((q, idx) => normalizeQuestion(q, idx))
-            .filter(Boolean)
         : [createEmptyQuestion()];
 
       setQuestions(questionsFromServer);
@@ -363,6 +330,8 @@ export default function TracNghiemGV() {
       }));
 
       localStorage.setItem(CACHE_KEY, JSON.stringify(cachePayload));
+
+      //console.log("🔥 GV LOAD FROM FIRESTORE & CACHE SAVED", CACHE_KEY);
 
     } catch (err) {
       console.error("❌ GV FETCH EXAM ERROR:", err);
@@ -725,12 +694,10 @@ const handleSaveAll = async () => {
 
       const base = isEmpty ? [] : prev;
 
-      const newData = importData
-        .map((q, idx) => normalizeQuestion(q, idx))
-        .map(q => ({
-          ...q,
-          id: `q_${Date.now()}_${Math.random()}`
-        }));
+      const newData = importData.map(q => ({
+        ...q,
+        id: `q_${Date.now()}_${Math.random()}`
+      }));
 
       return [...base, ...newData];
     });
@@ -774,11 +741,7 @@ const handleSaveAll = async () => {
       setPrevLesson(lesson);
       setPrevQuestions(questions);
 
-      setQuestions(
-        importedQuestions
-          .map((q, idx) => normalizeQuestion(q, idx))
-          .filter(Boolean)
-      );
+      setQuestions(importedQuestions);
 
       // 🔥 cho đặt tên bài mới
       setIsAddingLesson(true);
@@ -1228,6 +1191,8 @@ const handleSaveAll = async () => {
       }
     });
 
+    console.log("✅ FINAL:", finalQuestions);
+
     const isEmpty =
       !questions ||
       questions.length === 0 ||
@@ -1381,7 +1346,7 @@ const getDefaultName = () => {
         </Stack>
 
         <Typography variant="h5" fontWeight="bold" textAlign="center" sx={{ mt: 3, mb: 2, color: "#1976d2" }}>
-          SOẠN ĐỀ TRẮC NGHIỆM
+          SOẠN ĐỀ KIỂM TRA
         </Typography>
 
         <Paper elevation={2} sx={{ p: 2, mb: 3 }}>

@@ -13,12 +13,18 @@ import {
   Tooltip,
   Snackbar,
   Alert,
+  //Divider,
+  //FormControl,
+  //Select,
+  //MenuItem,
+  //InputLabel,
+  //Card,
 } from "@mui/material";
 
 import { useTheme, useMediaQuery } from "@mui/material";
 
 // ===================== FIREBASE =====================
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, getDocs, setDoc, collection } from "firebase/firestore";
 import { db } from "../firebase";
 
 // ===================== CONTEXT =====================
@@ -28,6 +34,8 @@ import { ConfigContext } from "../context/ConfigContext";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
 // ===================== ICONS =====================
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
@@ -39,13 +47,16 @@ import { handleSubmitQuiz } from "../utils/submitQuiz";
 import { autoSubmitQuiz } from "../utils/autoSubmitQuiz";
 import { getQuestionStatus } from "../utils/questionStatus";
 import { processQuestions } from "../utils/processQuestions";
+import { getQuizDocId } from "../utils/getQuizDocId";
 import { useQuizTimer } from "../utils/useQuizTimer";
 
 // ===================== COMPONENTS =====================
 import QuizQuestion from "../Types/questions/options/QuizQuestion";
+import QuizHeader from "../components/quiz/QuizHeader";
 import QuizSidebar from "../components/quiz/QuizSidebar";
 import QuizNavigation from "../components/quiz/QuizNavigation";
 import QuizLoading from "../components/quiz/QuizLoading";
+import QuizDialogs from "../components/quiz/QuizDialogs";
 
 import ExitConfirmDialog from "../dialog/ExitConfirmDialog";
 import ImageZoomDialog from "../dialog/ImageZoomDialog";
@@ -71,6 +82,7 @@ export default function TracNghiemTest() {
   // ===================== CONFIG DERIVED =====================
   const namHoc = config?.namHoc || "2025-2026";
   const xuatFileBaiLam = config?.xuatFileBaiLam ?? true;
+  const studentFromInfo = config?.studentInfo || null;
 
   // ===================== STATE: QUIZ CORE =====================
   const [questions, setQuestions] = useState([]);
@@ -99,8 +111,12 @@ export default function TracNghiemTest() {
   const [timeLimitMinutes, setTimeLimitMinutes] = useState(0);
 
   // ===================== STATE: EXAM =====================
+  const [examList, setExamList] = useState([]);
   const [selectedExam, setSelectedExam] = useState("");
   const [complete, setComplete] = useState(false); // thêm dòng này
+  const [examType, setExamType] = useState("kt"); // "bt" | "kt"
+  const [allExamList, setAllExamList] = useState([]);
+  const [lessonsFromFirestore, setLessonsFromFirestore] = useState([]);
 
   // ===================== STATE: FILTER / SETTINGS =====================
   const [selectedYear, setSelectedYear] = useState(config?.namHoc || "2025-2026");
@@ -186,14 +202,14 @@ export default function TracNghiemTest() {
     school: school || "",
   }), [config, lopHoc, school]);
 
-  /*const handleMatchSelect = (questionId, leftIndex, rightIndex) => {
+  const handleMatchSelect = (questionId, leftIndex, rightIndex) => {
     setAnswers(prev => {
       const prevAns = prev[questionId] ?? [];
       const newAns = [...prevAns];
       newAns[leftIndex] = rightIndex;
       return { ...prev, [questionId]: newAns };
     });
-  };*/
+  };
 
   const {
     timeLeft,
@@ -288,6 +304,9 @@ export default function TracNghiemTest() {
         // ===== DOC ID =====
         const docId = tenBai;
 
+        console.log("🔥 collection:", collectionName);
+        console.log("🔥 docId:", docId);
+
         // ===== LOAD ĐỀ =====
         const docRef = doc(db, collectionName, docId);
         const docSnap = await getDoc(docRef);
@@ -305,6 +324,8 @@ export default function TracNghiemTest() {
         }
 
         const data = docSnap.data();
+
+        console.log("✅ DATA:", data);
 
         // ===== CONFIG =====
         const timeLimit = configSnap.data()?.timeLimit ?? 0;
@@ -355,7 +376,8 @@ export default function TracNghiemTest() {
   }, [lopHoc, tenBai]);
 
   const studentName = studentInfo?.name || "";
-  
+  const studentClass = studentInfo?.class || quizClass || "Test";
+
   // Hàm chuyển chữ đầu thành hoa
   const capitalizeName = (name = "") =>
     name
@@ -364,6 +386,9 @@ export default function TracNghiemTest() {
       .filter(word => word.trim() !== "")
       .map(word => word[0].toUpperCase() + word.slice(1))
       .join(" ");
+
+  // Sử dụng:
+  const hoVaTen = capitalizeName(studentName);
 
   const currentQuestion = questions[currentIndex] || null;
   const isEmptyQuestion = currentQuestion?.question === "";
@@ -449,6 +474,15 @@ export default function TracNghiemTest() {
   const handleNext = () => currentIndex < questions.length - 1 && setCurrentIndex(currentIndex + 1);
   const handlePrev = () => currentIndex > 0 && setCurrentIndex(currentIndex - 1);
 
+  const convertPercentToScore = (percent) => {
+    if (percent === undefined || percent === null) return "?";
+    const raw = percent / 10;
+    const decimal = raw % 1;
+    if (decimal < 0.25) return Math.floor(raw);
+    if (decimal < 0.75) return Math.floor(raw) + 0.5;
+    return Math.ceil(raw);
+  };
+
   function reorder(list, startIndex, endIndex) {
     const result = Array.from(list);
     const [removed] = result.splice(startIndex, 1);
@@ -522,7 +556,7 @@ const normalizeValue = (val) => {
   return String(val).trim();
 };
 
-/*const questionCircleStyle = {
+const questionCircleStyle = {
   width: { xs: 34, sm: 38 },
   height: { xs: 34, sm: 38 },
   borderRadius: "50%",
@@ -531,7 +565,7 @@ const normalizeValue = (val) => {
   fontWeight: 600,
   boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
   transition: "all 0.2s ease",
-};*/
+};
 
 const ratio = currentQuestion?.columnRatio || { left: 1, right: 1 };
 
@@ -549,7 +583,7 @@ const sidebarConfig = React.useMemo(() => {
 const hasSidebar = sidebarConfig && questions.length > 0;
 const isSidebarVisible = hasSidebar && showSidebar;
 
-/*const resetQuiz = () => {
+const resetQuiz = () => {
   setAnswers({});
   setCurrentIndex(0);
   setComplete(false);
@@ -567,7 +601,7 @@ const isSidebarVisible = hasSidebar && showSidebar;
   // load lại câu hỏi (nếu muốn reset hoàn toàn)
   setQuestions([]);
   setLoading(true);
-};*/
+};
 
 return (
   <Box
@@ -661,7 +695,7 @@ return (
             sx={{
               fontWeight: "bold",
               fontSize: "20px",
-              mb: 0,
+              mb: 2,
               mt: -1,
               color: "#1976d2",
               whiteSpace: "nowrap",
@@ -675,7 +709,7 @@ return (
         </Box>
 
         {/* Đồng hồ */}
-        {/*<Box
+        <Box
           sx={{
             display: "flex",
             flexDirection: "column",
@@ -716,7 +750,7 @@ return (
               mt: 0,
             }}
           />
-        </Box>*/}
+        </Box>
 
         {/* Loading */}
         <QuizLoading loading={loading} progress={progress} />

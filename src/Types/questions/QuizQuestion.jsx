@@ -208,24 +208,17 @@ export default function QuizQuestion({
   );
 
   /* ===================== MATCHING ===================== */
-
   const renderMatching = () => (
     <Box sx={{ width: "100%" }}>
-      {/* ================= HÌNH MINH HỌA DƯỚI CÂU HỎI ================= */}
+      {/* ================= HÌNH MINH HỌA ================= */}
       {currentQuestion.questionImage && (
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "center",
-            mb: 2,
-          }}
-        >
+        <Box sx={{ display: "flex", justifyContent: "center", mb: 2 }}>
           <Box
             sx={{
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
-              maxHeight: 150, // 🔥 đổi 100 nếu bạn muốn
+              maxHeight: 150,
               overflow: "hidden",
             }}
           >
@@ -235,15 +228,12 @@ export default function QuizQuestion({
               style={{
                 maxHeight: 150,
                 maxWidth: "100%",
-                height: "auto",
                 objectFit: "contain",
                 borderRadius: 8,
-                display: "block",
                 cursor: "zoom-in",
               }}
               onClick={() => setZoomImage(currentQuestion.questionImage)}
             />
-
           </Box>
         </Box>
       )}
@@ -272,16 +262,17 @@ export default function QuizQuestion({
         <Stack spacing={1.5} sx={{ width: "100%", px: 1 }}>
           {currentQuestion.pairs.map((pair, i) => {
             const optionText = pair.left || "";
-            const optionImage =
-              pair.leftImage?.url || pair.leftIconImage?.url || null;
+            const optionImage = pair.leftImage?.url || null;
 
             const userOrder =
               answers[currentQuestion.id] ??
-              currentQuestion.rightOptions.map((_, idx) => idx);
+              currentQuestion.pairs.map((_, idx) => idx);
 
             const rightIdx = userOrder[i];
-            const rightVal = currentQuestion.rightOptions[rightIdx];
-            const rightText = typeof rightVal === "string" ? rightVal : "";
+
+            // 🔥 FIX QUAN TRỌNG: APP1 lấy từ pairs[i].right
+            const rightVal = currentQuestion.pairs?.[rightIdx]?.right || "";
+
             const rightImage =
               typeof rightVal === "object" ? rightVal?.url : null;
 
@@ -299,7 +290,6 @@ export default function QuizQuestion({
                 {/* ================= LEFT ================= */}
                 <Paper
                   sx={{
-                    //flex: 1,
                     flexGrow: ratio.left,
                     flexBasis: 0,
                     display: "flex",
@@ -318,7 +308,7 @@ export default function QuizQuestion({
                         display: "inline-flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        maxHeight: 40,      // khung tối đa 40
+                        maxHeight: 40,
                         mr: 1,
                         flexShrink: 0,
                         overflow: "hidden",
@@ -328,12 +318,10 @@ export default function QuizQuestion({
                         src={optionImage}
                         alt={`left-${i}`}
                         style={{
-                          maxHeight: 50,    // ⭐ QUAN TRỌNG: trùng với Box
+                          maxHeight: 40,
                           width: "auto",
-                          height: "auto",
                           objectFit: "contain",
                           borderRadius: 2,
-                          display: "block",
                         }}
                       />
                     </Box>
@@ -345,7 +333,6 @@ export default function QuizQuestion({
                       sx={{
                         fontSize: "1.1rem",
                         flex: 1,
-                        wordBreak: "break-word",
                         whiteSpace: "pre-wrap",
                         lineHeight: 1.5,
                         "& p": { margin: 0 },
@@ -361,11 +348,11 @@ export default function QuizQuestion({
                     <Stack
                       ref={provided.innerRef}
                       {...provided.droppableProps}
-                      sx={{ flexGrow: ratio.right, flexBasis: 0, }}
+                      sx={{ flexGrow: ratio.right, flexBasis: 0 }}
                     >
                       <Draggable
                         key={rightIdx}
-                        draggableId={String(rightIdx)}
+                        draggableId={`right-${i}`}
                         index={i}
                         isDragDisabled={submitted || !started}
                       >
@@ -392,8 +379,6 @@ export default function QuizQuestion({
                                     ? "#c8e6c9"
                                     : "#ffcdd2"
                                   : "transparent",
-                              transition:
-                                "background-color 0.2s ease, border-color 0.2s ease",
                               "&:hover": {
                                 borderColor: "#1976d2",
                                 bgcolor: "#f5f5f5",
@@ -417,31 +402,26 @@ export default function QuizQuestion({
                                   style={{
                                     maxHeight: 40,
                                     width: "auto",
-                                    height: "auto",
                                     objectFit: "contain",
                                     borderRadius: 2,
-                                    display: "block",
                                   }}
                                 />
                               </Box>
                             )}
 
-                            {rightText && (
-                              <Typography
-                                component="div"
-                                sx={{
-                                  fontSize: "1.1rem",
-                                  flex: 1,
-                                  wordBreak: "break-word",
-                                  whiteSpace: "pre-wrap",
-                                  lineHeight: 1.5,
-                                  "& p": { margin: 0 },
-                                }}
-                                dangerouslySetInnerHTML={{
-                                  __html: rightText,
-                                }}
-                              />
-                            )}
+                            <Typography
+                              component="div"
+                              sx={{
+                                fontSize: "1.1rem",
+                                flex: 1,
+                                whiteSpace: "pre-wrap",
+                                lineHeight: 1.5,
+                                "& p": { margin: 0 },
+                              }}
+                              dangerouslySetInnerHTML={{
+                                __html: rightVal,
+                              }}
+                            />
                           </Paper>
                         )}
                       </Draggable>

@@ -10,8 +10,9 @@ import {
 } from "@mui/material";
 
 import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
-import PhotoCameraIcon from "@mui/icons-material/PhotoCamera";
-import DeleteIcon from "@mui/icons-material/Delete";
+import InsertPhotoIcon from "@mui/icons-material/AddPhotoAlternateOutlined";
+import InsertPhotoOutlinedIcon from "@mui/icons-material/Image";
+
 import FormatBoldIcon from "@mui/icons-material/FormatBold";
 import FormatItalicIcon from "@mui/icons-material/FormatItalic";
 import FormatUnderlinedIcon from "@mui/icons-material/FormatUnderlined";
@@ -21,7 +22,7 @@ import "react-quill/dist/quill.snow.css";
 
 /* ================= QUILL CONFIG ================= */
 const quillModules = {
-  toolbar: false, // ❌ tắt toolbar mặc định
+  toolbar: false,
 };
 
 const quillFormats = ["bold", "italic", "underline"];
@@ -32,24 +33,7 @@ const ChoiceOptions = ({ q, qi, update }) => {
   const quillRefs = useRef([]);
   const [activeIndex, setActiveIndex] = useState(null);
 
-  /* ---------- Upload Cloudinary ---------- */
-  const uploadToCloudinary = async (file) => {
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("upload_preset", "tracnghiem_upload");
-    formData.append("folder", "questions");
-
-    const res = await fetch(
-      "https://api.cloudinary.com/v1_1/dxzpfljv4/image/upload",
-      { method: "POST", body: formData }
-    );
-
-    if (!res.ok) throw new Error("Upload hình thất bại");
-    const data = await res.json();
-    return data.secure_url;
-  };
-
-  /* ---------- Toolbar handler ---------- */
+  /* ---------- Format ---------- */
   const applyFormat = (format) => {
     if (activeIndex === null) return;
 
@@ -65,7 +49,7 @@ const ChoiceOptions = ({ q, qi, update }) => {
 
   return (
     <Stack spacing={1.5} sx={{ mb: 2 }}>
-      {/* ================= TOOLBAR CHUNG ================= */}
+      {/* ================= TOOLBAR ================= */}
       <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1 }}>
         <IconButton size="small" onClick={() => applyFormat("bold")}>
           <FormatBoldIcon fontSize="small" />
@@ -81,7 +65,7 @@ const ChoiceOptions = ({ q, qi, update }) => {
       {/* ================= OPTIONS ================= */}
       {q.options?.map((opt, oi) => (
         <Stack key={oi} direction="row" spacing={1} alignItems="center">
-          {/* ---------- Chọn đáp án ---------- */}
+          {/* chọn đáp án */}
           {q.type === "single" && (
             <Radio
               checked={q.correct?.[0] === oi}
@@ -103,31 +87,26 @@ const ChoiceOptions = ({ q, qi, update }) => {
             />
           )}
 
-          {/* ---------- Editor ---------- */}
-          <Box
-            sx={{
-              flex: 1,
-              display: "flex",
-              alignItems: "center",
-              gap: 1,
-            }}
-          >
-            {/* ===== HÌNH TRƯỚC TEXT ===== */}
-            {opt.image && (
+          {/* ================= EDITOR ================= */}
+          <Box sx={{ flex: 1, display: "flex", alignItems: "center", gap: 1 }}>
+            {/* ===== IMAGE PREVIEW OR URL ===== */}
+            {(opt.imagePreview || opt.image) && (
               <Box
                 component="img"
-                src={opt.image}
+                src={opt.imagePreview || opt.image}
                 alt=""
                 sx={{
-                  height: "2em",
+                  height: 50,
                   width: "auto",
                   objectFit: "contain",
+                  borderRadius: 1,
                   flexShrink: 0,
                 }}
               />
             )}
 
-            {/* ===== TEXT / EDITOR ===== */}
+
+            {/* TEXT */}
             <Box sx={{ flex: 1 }}>
               <ReactQuill
                 ref={(el) => (quillRefs.current[oi] = el)}
@@ -138,51 +117,72 @@ const ChoiceOptions = ({ q, qi, update }) => {
                 className="choice-option-editor"
                 onFocus={() => setActiveIndex(oi)}
                 onChange={(value) => {
-                  if (value === opt.text) return;
-
                   const newOptions = [...q.options];
-                  newOptions[oi] = { ...newOptions[oi], text: value };
+                  newOptions[oi] = {
+                    ...newOptions[oi],
+                    text: value,
+                  };
                   update(qi, { options: newOptions });
                 }}
               />
             </Box>
           </Box>
 
-          {/* ---------- Chèn / Xóa hình ---------- */}
+          {/* ================= IMAGE ACTION ================= */}
           <Stack direction="row" spacing={0.5} alignItems="center">
-            <Tooltip title={opt.image ? "Xóa hình" : "Chèn hình"}>
+            <Tooltip title={(opt.imagePreview || opt.image) ? "Xóa hình" : "Chèn hình"}>
               <IconButton
                 size="small"
-                sx={{ color: opt.image ? "#ff9800" : "#2196f3" }}
-                onClick={() =>
-                  opt.image
-                    ? (() => {
-                        const newOptions = [...q.options];
-                        newOptions[oi] = { ...newOptions[oi], image: "" };
-                        update(qi, { options: newOptions });
-                      })()
-                    : fileInputRefs.current[oi]?.click()
-                }
+                sx={{ color: (opt.imagePreview || opt.image) ? "#ff9800" : "#2196f3" }}
+                onClick={() => {
+                  if (opt.imagePreview || opt.image) {
+                    const newOptions = [...q.options];
+                    newOptions[oi] = {
+                      ...newOptions[oi],
+                      imagePreview: "",
+                      imageFile: null,
+                      image: "", // xoá luôn URL Cloudinary nếu có
+                    };
+                    update(qi, { options: newOptions });
+                  } else {
+                    fileInputRefs.current[oi]?.click();
+                  }
+                }}
               >
-                {opt.image ? <DeleteIcon /> : <PhotoCameraIcon />}
+                {(opt.imagePreview || opt.image) ? (
+                  <InsertPhotoIcon sx={{ color: "#ff9800" }} />
+                ) : (
+                  <InsertPhotoOutlinedIcon sx={{ color: "#2196f3" }} />
+                )}
               </IconButton>
             </Tooltip>
 
+
+            {/* input file */}
             <input
               type="file"
               accept="image/*"
               hidden
               ref={(el) => (fileInputRefs.current[oi] = el)}
-              onChange={async (e) => {
-                if (!e.target.files?.[0]) return;
-                const url = await uploadToCloudinary(e.target.files[0]);
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+
+                const previewUrl = URL.createObjectURL(file);
+
                 const newOptions = [...q.options];
-                newOptions[oi] = { ...newOptions[oi], image: url };
+                newOptions[oi] = {
+                  ...newOptions[oi],
+                  imagePreview: previewUrl, // hiển thị ngay
+                  imageFile: file,          // giữ file để upload khi lưu
+                };
+
                 update(qi, { options: newOptions });
+                e.target.value = "";
               }}
             />
 
-            {/* ---------- Xóa option ---------- */}
+            {/* delete option */}
             <IconButton
               onClick={() => {
                 const newOptions = [...q.options];
@@ -193,7 +193,10 @@ const ChoiceOptions = ({ q, qi, update }) => {
                   .filter((c) => c !== oi)
                   .map((c) => (c > oi ? c - 1 : c));
 
-                update(qi, { options: newOptions, correct: newCorrect });
+                update(qi, {
+                  options: newOptions,
+                  correct: newCorrect,
+                });
               }}
             >
               <RemoveCircleOutlineIcon sx={{ color: "error.main" }} />
@@ -202,12 +205,12 @@ const ChoiceOptions = ({ q, qi, update }) => {
         </Stack>
       ))}
 
-      {/* ---------- Thêm option ---------- */}
+      {/* add option */}
       <Button
         variant="outlined"
         onClick={() =>
           update(qi, {
-            options: [...(q.options || []), { text: "", image: "" }],
+            options: [...(q.options || []), { text: "", imagePreview: "", imageFile: null }],
           })
         }
       >

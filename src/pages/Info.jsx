@@ -108,44 +108,51 @@ useEffect(() => {
     fetchClasses();
   }, [khoi]);
 
-  const handleLogin = async () => {
-  if (!fullname.trim()) {
-    setErrorMsg("❌ Vui lòng nhập Họ và tên!");
-    return;
-  }
-  if (!lop) {
-    setErrorMsg("❌ Vui lòng chọn lớp!");
-    return;
-  }
-  setErrorMsg("");
+  const handleStart = async () => {
+    if (!fullname.trim()) {
+      setErrorMsg("❌ Vui lòng nhập Họ và tên!");
+      return;
+    }
+    if (!lop) {
+      setErrorMsg("❌ Vui lòng chọn lớp!");
+      return;
+    }
 
-  const studentId = `HS${Math.floor(Math.random() * 1000)
-    .toString()
-    .padStart(3, "0")}`;
+    setErrorMsg("");
 
-  const newUserInfo = {
-    studentId,
-    fullname,
-    khoi,
-    lop,
+    const studentId = `HS${Math.floor(Math.random() * 1000)
+      .toString()
+      .padStart(3, "0")}`;
+
+    const newUserInfo = {
+      studentId,
+      fullname,
+      khoi,
+      lop,
+    };
+
+    // 🔥 LOG để kiểm tra trước khi lưu context
+    console.log("🔥 INFO LOGIN:", newUserInfo);
+
+    // ✅ Lưu vào Context (KHÔNG cần localStorage nữa nếu bạn muốn sạch)
+    await setConfig(newUserInfo, false);
+
+    // 🔥 LOG SAU KHI SET
+    console.log("✅ CONTEXT UPDATED (expected):", newUserInfo);
+
+    // điều hướng
+    if (location.state?.target) {
+      navigate(location.state.target, {
+        state: { fromInfo: true },
+      });
+    } else {
+      console.log("🚀 NAVIGATE /trac-nghiem?lop =", lop);
+
+      navigate(`/trac-nghiem?lop=${lop}`, {
+        state: { fromInfo: true },
+      });
+    }
   };
-
-  // ✅ Lưu thông tin học sinh
-  await setConfig(newUserInfo, false);
-
-  // ✅ Quay lại trang gọi Info hoặc fallback về Trắc Nghiệm theo lớp/bài
-  if (location.state?.target) {
-    navigate(location.state.target, {
-      state: { fromInfo: true }, // vé thông hành
-    });
-  } else {
-    // ví dụ: /trac-nghiem?lop=4A&bai=1
-    // nếu bạn có thêm biến `bai` thì nối thêm &bai=${bai}
-    navigate(`/trac-nghiem?lop=${lop}`, {
-      state: { fromInfo: true },
-    });
-  }
-};
 
 
 
@@ -209,14 +216,14 @@ useEffect(() => {
               onChange={(e) => setFullname(e.target.value)}
               fullWidth
               size="small"
-              onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+              onKeyDown={(e) => e.key === "Enter" && handleStart()}
             />
 
             <Button
               variant="contained"
               fullWidth
               sx={{ textTransform: "none", fontSize: "1rem" }}
-              onClick={handleLogin}
+              onClick={handleStart}
             >
               BẮT ĐẦU LÀM BÀI
             </Button>

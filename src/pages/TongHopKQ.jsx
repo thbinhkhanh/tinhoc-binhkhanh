@@ -82,16 +82,19 @@ export default function TongHopKQ() {
   const loadResults = async () => {
     if (!selectedLop) return;
 
-    const currentLop = selectedLop;
     setLoading(true);
 
     try {
-      const classKey = currentLop.replace(".", "_");
-      const hsColRef = collection(db, "DATA", classKey, "HOCSINH");
+      const classKey = selectedLop.replace(".", "_");
 
-      // 1️⃣ Load danh sách học sinh
+      const hsColRef = collection(
+        db,
+        "DATA",
+        classKey,
+        "HOCSINH"
+      );
+
       const hsSnap = await getDocs(hsColRef);
-      if (currentLop !== selectedLop) return;
 
       if (hsSnap.empty) {
         setResults([]);
@@ -102,62 +105,97 @@ export default function TongHopKQ() {
       const rows = [];
       const baiSet = new Set();
 
-      // 2️⃣ Load BAITHI song song, nhưng xử lý GỌN
-      const tasks = hsSnap.docs.map(async (hsDoc) => {
-        const hsData = hsDoc.data();
-        if (!hsData?.hoVaTen) return;
+      await Promise.all(
+        hsSnap.docs.map(async (hsDoc) => {
+          const hsData = hsDoc.data();
 
-        const baiColRef = collection(
-          db,
-          "DATA",
-          classKey,
-          "HOCSINH",
-          hsDoc.id,
-          "BAITHI"
-        );
+          const baiColRef = collection(
+            db,
+            "DATA",
+            classKey,
+            "HOCSINH",
+            hsDoc.id,
+            "BAITHI"
+          );
 
-        const baiSnap = await getDocs(baiColRef);
-        if (currentLop !== selectedLop || baiSnap.empty) return;
+          const baiSnap = await getDocs(baiColRef);
 
-        baiSnap.forEach((baiDoc) => {
-          const baiData = baiDoc.data();
-          if (!baiData?.bai) return;
+          if (baiSnap.empty) return;
 
-          baiSet.add(baiData.bai);
+          baiSnap.forEach((baiDoc) => {
+            const baiData = baiDoc.data();
 
-          // ⚡ LỌC SỚM
-          if (selectedBai !== "ALL" && baiData.bai !== selectedBai) return;
+            if (!baiData?.bai) return;
 
-          rows.push({
-            hoVaTen: hsData.hoVaTen,
-            lop: currentLop,
-            bai: baiData.bai,
-            diem: baiData.diem ?? 0,
-            thoiGianLamBai: baiData.thoiGianLamBai || "",
-            ngayKiemTra: baiData.ngayKiemTra || "",
-            soLan: baiData.soLan ?? 1,
+            baiSet.add(baiData.bai);
+
+            // lọc theo bài
+            if (
+              selectedBai !== "ALL" &&
+              baiData.bai !== selectedBai
+            ) {
+              return;
+            }
+
+            rows.push({
+              hoVaTen: hsData.hoVaTen || "",
+              lop: hsData.lop || selectedLop,
+
+              bai: baiData.bai || "",
+
+              diem: baiData.diem ?? 0,
+              diemTN: baiData.diemTN ?? 0,
+
+              thoiGianLamBai:
+                baiData.thoiGianLamBai || "",
+
+              ngayKiemTra:
+                baiData.ngayKiemTra || "",
+
+              soLan: baiData.soLan ?? 0,
+            });
           });
-        });
-      });
+        })
+      );
 
-      await Promise.all(tasks);
-      if (currentLop !== selectedLop) return;
-
-      // 3️⃣ SORT 1 LẦN DUY NHẤT
+      // sort bài + tên
       rows.sort((a, b) => {
-        const soA = parseInt(a.bai.replace(/\D/g, ""), 10);
-        const soB = parseInt(b.bai.replace(/\D/g, ""), 10);
-        if (soA !== soB) return soA - soB;
+        const numA =
+          parseInt(a.bai.match(/\d+/)?.[0]) || 0;
 
-        return a.hoVaTen.localeCompare(b.hoVaTen, "vi");
+        const numB =
+          parseInt(b.bai.match(/\d+/)?.[0]) || 0;
+
+        if (numA !== numB) return numA - numB;
+
+        return a.hoVaTen.localeCompare(
+          b.hoVaTen,
+          "vi"
+        );
       });
 
-      // 4️⃣ SET STATE 1 LẦN
-      setResults(rows.map((r, i) => ({ stt: i + 1, ...r })));
-      setBaiList(["ALL", ...Array.from(baiSet)]);
+      setResults(
+        rows.map((r, i) => ({
+          stt: i + 1,
+          ...r,
+        }))
+      );
 
+      setBaiList([
+        "ALL",
+        ...Array.from(baiSet).sort((a, b) => {
+          const numA =
+            parseInt(a.match(/\d+/)?.[0]) || 0;
+
+          const numB =
+            parseInt(b.match(/\d+/)?.[0]) || 0;
+
+          return numA - numB;
+        }),
+      ]);
     } catch (err) {
-      console.error("❌ loadResults error:", err);
+      console.error("❌ loadResults:", err);
+
       setResults([]);
     } finally {
       setLoading(false);

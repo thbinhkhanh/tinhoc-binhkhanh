@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef } from "react";
 import {
   Box,
   Paper,
@@ -13,7 +13,9 @@ import FormatItalicIcon from "@mui/icons-material/FormatItalic";
 import FormatUnderlinedIcon from "@mui/icons-material/FormatUnderlined";
 
 const ImageOptions = ({ q, qi, update }) => {
-  // ---- Upload Cloudinary ----
+  /* =========================
+     UPLOAD CLOUDINARY
+  ========================== */
   const uploadToCloudinary = async (file) => {
     const formData = new FormData();
     formData.append("file", file);
@@ -34,35 +36,78 @@ const ImageOptions = ({ q, qi, update }) => {
     return data.secure_url;
   };
 
-  // ---- Khi chọn hình ----
-  const handleImageChange = async (file, index) => {
-    try {
-      const url = await uploadToCloudinary(file);
+  const fileInputRef = useRef(null);
 
-      const newOptions = [...q.options];
-      newOptions[index] = url;
-
-      update(qi, { options: newOptions });
-    } catch (err) {
-      console.error(err);
-      alert("Upload hình thất bại!");
-    }
+  const handleAddImageClick = () => {
+    fileInputRef.current?.click();
   };
 
-  // ---- Thêm ô hình ----
-  const addOption = () => {
-    const newOptions = [...(q.options || []), ""];
+  const handleAddImageFile = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const previewUrl = URL.createObjectURL(file);
+
+    const newOptions = [
+      ...(q.options || []),
+      {
+        preview: previewUrl,
+        file,
+        text: "",
+        image: "",
+        formats: {},
+      },
+    ];
+
+    update(qi, { options: newOptions });
+
+    // reset input để chọn lại được file giống nhau
+    e.target.value = "";
+  };
+
+  /* =========================
+     KHI CHỌN HÌNH
+  ========================== */
+  /* =========================
+   KHI CHỌN HÌNH (chỉ lưu preview + file, không upload ngay)
+========================== */
+  const handleImageChange = (index, file) => {
+    const previewUrl = URL.createObjectURL(file);
+
+    const newOptions = [...(q.options || [])];
+    newOptions[index] = {
+      ...(newOptions[index] || {}),
+      preview: previewUrl,   // ✅ chỉ lưu preview
+      file,                  // ✅ giữ file để sau này upload
+      text: "",
+      image: "",
+      formats: newOptions[index]?.formats || {},
+    };
+
     update(qi, { options: newOptions });
   };
 
-  // ---- Xoá ô hình (dồn mảng) ----
+
+  /* =========================
+     THÊM Ô HÌNH
+  ========================== */
+  const addOption = () => {
+    const newOptions = [
+      ...(q.options || []),
+      { text: "", image: "", formats: {} }, // ✅ ĐÚNG schema
+    ];
+    update(qi, { options: newOptions });
+  };
+
+  /* =========================
+     XOÁ Ô HÌNH (DỒN INDEX)
+  ========================== */
   const removeOption = (index) => {
     const options = q.options || [];
     const correct = q.correct || [];
 
     const newOptions = options.filter((_, i) => i !== index);
 
-    // cập nhật correct vì index bị dịch
     const newCorrect = correct
       .filter((c) => c !== index)
       .map((c) => (c > index ? c - 1 : c));
@@ -72,7 +117,7 @@ const ImageOptions = ({ q, qi, update }) => {
 
   return (
     <Stack spacing={2} mb={2}>
-      {/* ===== Toolbar chung (chỉ để đồng bộ, disable) ===== */}
+      {/* ===== Toolbar (disable cho đồng bộ UI) ===== */}
       <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1 }}>
         <IconButton size="small" disabled>
           <FormatBoldIcon fontSize="small" />
@@ -91,15 +136,21 @@ const ImageOptions = ({ q, qi, update }) => {
         flexWrap="wrap"
         alignItems="center"
       >
-        {(q.options || []).map((img, oi) => {
+        {(q.options || []).map((option, oi) => {
+          const imageUrl =
+            option?.preview || // preview khi vừa chọn file
+            option?.image ||   // nếu có trường image
+            (typeof option?.text === "string" ? option.text : "");
+
+
           const isChecked = q.correct?.includes(oi) || false;
 
           return (
             <Box key={oi} sx={{ position: "relative" }}>
               <Paper
                 sx={{
-                  width: { xs: "80%", sm: 120 },
-                  height: { xs: 80, sm: 120 },
+                  width: 120,
+                  height: 120,
                   border: "2px dashed #90caf9",
                   display: "flex",
                   alignItems: "center",
@@ -107,29 +158,36 @@ const ImageOptions = ({ q, qi, update }) => {
                   position: "relative",
                 }}
               >
-                {img ? (
-                  <>
-                    <img
-                      src={img}
-                      alt={`option-${oi}`}
-                      style={{
-                        maxWidth: "60%",
-                        maxHeight: "100%",
-                        objectFit: "contain",
-                      }}
-                    />
+                {/* ICON X LUÔN HIỆN */}
+                <IconButton
+                  size="small"
+                  sx={{
+                    position: "absolute",
+                    top: 2,
+                    right: 2,
+                    zIndex: 2,
+                    bgcolor: "white",
+                    color: "red", // 👈 màu đỏ
+                    "&:hover": {
+                      bgcolor: "#eee",
+                    },
+                  }}
+                  onClick={() => removeOption(oi)}
+                >
+                  ✕
+                </IconButton>
 
-                    {/* Nút xoá hình & xoá ô */}
-                    <IconButton
-                      size="small"
-                      sx={{ position: "absolute", top: 2, right: 2 }}
-                      onClick={() => removeOption(oi)}
-                    >
-                      ✕
-                    </IconButton>
-                  </>
+                {imageUrl ? (
+                  <img
+                    src={imageUrl}
+                    alt={`option-${oi}`}
+                    style={{
+                      maxWidth: "60%",
+                      maxHeight: "60%",
+                      objectFit: "contain",
+                    }}
+                  />
                 ) : (
-                  // Nút tải hình
                   <label
                     style={{
                       cursor: "pointer",
@@ -140,31 +198,32 @@ const ImageOptions = ({ q, qi, update }) => {
                       justifyContent: "center",
                     }}
                   >
-                    <Typography variant="body2" sx={{ textAlign: "center" }}>
-                      Tải hình lên
+                    <Typography variant="body2" align="center">
+                      Tải hình
                     </Typography>
 
                     <input
                       type="file"
                       accept="image/*"
-                      style={{ display: "none" }}
+                      hidden
                       onChange={(e) =>
                         e.target.files?.[0] &&
-                        handleImageChange(e.target.files[0], oi)
+                        handleImageChange(oi, e.target.files[0])
                       }
                     />
                   </label>
                 )}
               </Paper>
 
-              {/* Checkbox chọn đáp án */}
-              {img && (
+              {/* Checkbox chọn đáp án đúng */}
+              {imageUrl && (
                 <Checkbox
                   checked={isChecked}
                   onChange={(e) => {
                     let newCorrect = [...(q.correct || [])];
                     if (e.target.checked) newCorrect.push(oi);
                     else newCorrect = newCorrect.filter((c) => c !== oi);
+
                     update(qi, { correct: newCorrect });
                   }}
                   sx={{
@@ -182,17 +241,26 @@ const ImageOptions = ({ q, qi, update }) => {
 
         {/* Nút thêm hình */}
         <Button
-          variant="outlined"
-          onClick={addOption}
-          sx={{
-            height: 120,
-            width: 120,
-            borderRadius: 2,
-            borderStyle: "dashed",
-          }}
-        >
-          + Thêm hình
-        </Button>
+            variant="outlined"
+            onClick={handleAddImageClick}
+            sx={{
+              height: 120,
+              width: 120,
+              borderRadius: 2,
+              borderStyle: "dashed",
+            }}
+          >
+            + Thêm hình
+          </Button>
+
+          <input
+            type="file"
+            accept="image/*"
+            hidden
+            ref={fileInputRef}
+            onChange={handleAddImageFile}
+          />
+
       </Stack>
     </Stack>
   );

@@ -6,7 +6,7 @@ export const ConfigContext = createContext();
 
 export const ConfigProvider = ({ children }) => {
   const defaultConfig = {
-    heThong: "new",          // mặc định
+    heThong: "new",
     choXemDapAn: true,
     choXemDiem: true,
     timeLimit: 10,
@@ -21,12 +21,18 @@ export const ConfigProvider = ({ children }) => {
     hideMenu: false,
   };
 
-  // 1️⃣ Khởi tạo state
+  // ======================
+  // 1. INIT STATE
+  // ======================
   const [config, setConfigState] = useState(() => {
     try {
       const saved = localStorage.getItem("studentInfo");
       if (saved) {
-        return { ...defaultConfig, ...JSON.parse(saved) };
+        const parsed = JSON.parse(saved);
+
+        console.log("🔥 INIT from localStorage:", parsed);
+
+        return { ...defaultConfig, ...parsed };
       }
     } catch (err) {
       console.error("❌ Lỗi parse localStorage:", err);
@@ -34,17 +40,27 @@ export const ConfigProvider = ({ children }) => {
     return defaultConfig;
   });
 
-  // 2️⃣ Lắng nghe Firestore (cài đặt chung)
+  // ======================
+  // 2. FIRESTORE SYNC
+  // ======================
   useEffect(() => {
     const docRef = doc(db, "CONFIG", "config");
+
     const unsubscribe = onSnapshot(
       docRef,
       (snapshot) => {
         if (!snapshot.exists()) return;
+
         const data = snapshot.data();
 
-        // thêm cả heThong vào danh sách sync
-        const keysToSync = ["choXemDapAn", "choXemDiem", "timeLimit", "locked", "heThong"];
+        const keysToSync = [
+          "choXemDapAn",
+          "choXemDiem",
+          "timeLimit",
+          "locked",
+          "heThong",
+        ];
+
         const filteredData = Object.fromEntries(
           Object.entries(data).filter(([k]) => keysToSync.includes(k))
         );
@@ -53,7 +69,15 @@ export const ConfigProvider = ({ children }) => {
           const hasDiff = Object.keys(filteredData).some(
             (key) => prev[key] !== filteredData[key]
           );
-          return hasDiff ? { ...prev, ...filteredData } : prev;
+
+          if (!hasDiff) return prev;
+
+          const updated = { ...prev, ...filteredData };
+
+          console.log("🔥 FIRESTORE SYNC UPDATE:", filteredData);
+          console.log("🔥 CONFIG AFTER SYNC:", updated);
+
+          return updated;
         });
       },
       (err) => console.error("❌ Firestore snapshot lỗi:", err)
@@ -62,44 +86,85 @@ export const ConfigProvider = ({ children }) => {
     return () => unsubscribe();
   }, []);
 
-  // 3️⃣ Hàm cập nhật config
+  // ======================
+  // 3. UPDATE CONFIG
+  // ======================
   const updateConfig = async (newValues, saveToFirestore = false) => {
     const allowedKeys = Object.keys(defaultConfig);
+
     const filtered = Object.fromEntries(
       Object.entries(newValues).filter(([k]) => allowedKeys.includes(k))
     );
 
-    const hasDiff = Object.keys(filtered).some((k) => filtered[k] !== config[k]);
-    if (!hasDiff) return;
+    console.log("🔥 setConfig INPUT:", newValues);
+    console.log("🔥 setConfig FILTERED:", filtered);
 
-    // 3a️⃣ Cập nhật context
+    const hasDiff = Object.keys(filtered).some(
+      (k) => filtered[k] !== config[k]
+    );
+
+    if (!hasDiff) {
+      console.log("⚠️ No config change detected");
+      return;
+    }
+
     setConfigState((prev) => {
       const updated = { ...prev, ...filtered };
 
-      // Lưu thông tin cá nhân + heThong vào localStorage
-      const personalKeys = ["studentId", "fullname", "khoi", "lop", "heThong"];
-      const personalData = Object.fromEntries(
-        Object.entries(updated).filter(([k]) => personalKeys.includes(k))
+      // ======================
+      // SAVE STUDENT INFO ONLY
+      // ======================
+      const studentKeys = [
+        "studentId",
+        "fullname",
+        "khoi",
+        "lop",
+        "heThong",
+      ];
+
+      const studentData = Object.fromEntries(
+        Object.entries(updated).filter(([k]) => studentKeys.includes(k))
       );
-      localStorage.setItem("studentInfo", JSON.stringify(personalData));
+
+      console.log("🔥 SAVE TO LOCALSTORAGE:", studentData);
+
+      localStorage.setItem(
+        "studentInfo",
+        JSON.stringify(studentData)
+      );
 
       return updated;
     });
 
-    // 3b️⃣ Lưu Firestore (cài đặt chung)
+    // ======================
+    // FIRESTORE SAVE (OPTIONAL)
+    // ======================
     if (saveToFirestore) {
-      const keysForFirestore = ["choXemDapAn", "choXemDiem", "timeLimit", "locked", "heThong"];
+      const keysForFirestore = [
+        "choXemDapAn",
+        "choXemDiem",
+        "timeLimit",
+        "locked",
+        "heThong",
+      ];
+
       const firestoreData = Object.fromEntries(
-        Object.entries(filtered).filter(([k]) => keysForFirestore.includes(k))
+        Object.entries(filtered).filter(([k]) =>
+          keysForFirestore.includes(k)
+        )
       );
 
       if (Object.keys(firestoreData).length > 0) {
         try {
-          const docRef = doc(db, "CONFIG", "config");
-          await setDoc(docRef, firestoreData, { merge: true });
-          console.log("✅ Firestore cập nhật:", firestoreData);
+          await setDoc(
+            doc(db, "CONFIG", "config"),
+            firestoreData,
+            { merge: true }
+          );
+
+          console.log("✅ FIRESTORE UPDATED:", firestoreData);
         } catch (err) {
-          console.error("❌ Lỗi cập nhật Firestore:", err);
+          console.error("❌ Firestore update error:", err);
         }
       }
     }
