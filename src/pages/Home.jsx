@@ -42,28 +42,8 @@ export default function Home() {
 
     const soKhoi = index + 1;
 
-    // ✅ HỆ THỐNG CŨ → VÀO THẲNG LỚP
-    if (config.heThong === "old") {
-      navigate(`/lop${soKhoi}`);
-      return;
-    }
-
-    // ✅ HỆ THỐNG MỚI → QUA INFO
-    const newRouteMap = {
-      1: "/lop1-new",
-      2: "/lop2-new",
-      3: "/lop3-new",
-      4: "/lop4-new",
-      5: "/lop5-new",
-    };
-
-    navigate("/info", {
-      state: {
-        khoi: `Khối ${soKhoi}`,
-        heThong: "new",
-        target: newRouteMap[soKhoi],
-      },
-    });
+    // ✅ luôn vào hệ thống mới
+    navigate(`/lop${soKhoi}`);
   };
 
 

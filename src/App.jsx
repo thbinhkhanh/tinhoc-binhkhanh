@@ -12,11 +12,11 @@ import Lop3 from './pages/Lop3';
 import Lop4 from './pages/Lop4';
 import Lop5 from './pages/Lop5';
 
-import Lop1New from './pages/Lop1New';
+/*import Lop1New from './pages/Lop1New';
 import Lop2New from './pages/Lop2New';
 import Lop3New from './pages/Lop3New';
 import Lop4New from './pages/Lop4New';
-import Lop5New from './pages/Lop5New';
+import Lop5New from './pages/Lop5New';*/
 
 
 import About from './pages/About';
@@ -60,11 +60,11 @@ function App() {
                   <Route path="/lop4" element={<Lop4 />} />
                   <Route path="/lop5" element={<Lop5 />} />
 
-                  <Route path="/lop1-new" element={<Lop1New />} />
+                  {/*<Route path="/lop1-new" element={<Lop1New />} />
                   <Route path="/lop2-new" element={<Lop2New />} />
                   <Route path="/lop3-new" element={<Lop3New />} />
                   <Route path="/lop4-new" element={<Lop4New />} />
-                  <Route path="/lop5-new" element={<Lop5New />} />
+                  <Route path="/lop5-new" element={<Lop5New />} />*/}
 
                   <Route path="/trac-nghiem" element={<TracNghiem />} />
                   <Route path="/test-de" element={<TracNghiemTest />} />
@@ -151,21 +151,14 @@ function Navigation() {
 
       const soKhoi = item.khoi.replace('Khối ', '');
 
-      // ✅ HỆ THỐNG CŨ → VÀO LỚP CŨ
-      /*if (config.heThong === 'old') {
-        navigate(`/lop${soKhoi}`);
-        return;
-      }*/
-
-      // ✅ HỆ THỐNG MỚI → VÀO LỚP MỚI (KHÔNG QUA INFO)
-      navigate(`/lop${soKhoi}-new`);
+      // ✅ vào lớp
+      navigate(`/lop${soKhoi}`);
       return;
     }
 
     // ✅ MENU KHÁC
     navigate(item.path);
   };
-
 
   return (
     <>

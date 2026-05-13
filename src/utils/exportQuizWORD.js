@@ -13,8 +13,28 @@ import {
 import { saveAs } from "file-saver";
 
 // ===== helper =====
-const stripHTML = (html = "") =>
-  html.replace(/<[^>]+>/g, "").trim();
+const stripHTML = (html = "") => {
+  return String(html || "")
+    // ✅ đổi <br> thành xuống dòng
+    .replace(/<br\s*\/?>/gi, "\n")
+
+    // optional: xuống dòng sau </p>
+    .replace(/<\/p>/gi, "\n")
+
+    // bỏ tag HTML
+    .replace(/<[^>]*>/g, "")
+
+    // đổi nbsp
+    .replace(/&nbsp;|\u00A0/g, " ")
+
+    // giữ nguyên newline nhưng gộp space
+    .replace(/[ \t]+/g, " ")
+
+    // bỏ nhiều dòng trống
+    .replace(/\n{3,}/g, "\n\n")
+
+    .trim();
+};
 
 // ===== lấy image chuẩn (🔥 QUAN TRỌNG NHẤT) =====
 const getImageUrl = (opt) => {
@@ -56,21 +76,63 @@ const fetchImage = async (url) => {
 // ===== CONST =====
 const FONT_SIZE = 24; // ~13pt
 
-const createText = (text, bold = false, align = "left") =>
-  new Paragraph({
+const createText = (text, bold = false, align = "left") => {
+  const lines = String(text).split("\n");
+
+  const children = [];
+
+  lines.forEach((line, index) => {
+    children.push(
+      new TextRun({
+        text: line,
+        bold,
+        size: FONT_SIZE,
+        font: "Times New Roman",
+      })
+    );
+
+    // ✅ xuống dòng trong Word
+    if (index < lines.length - 1) {
+      children.push(
+        new TextRun({
+          break: 1,
+        })
+      );
+    }
+  });
+
+  return new Paragraph({
     alignment:
       align === "center"
         ? AlignmentType.CENTER
         : AlignmentType.LEFT,
-    children: [
-      new TextRun({
-        text,
-        bold,
-        size: FONT_SIZE,
-        font: "Times New Roman",
-      }),
-    ],
+    children,
   });
+};
+
+const getImageBufferWithSize = async (url, maxHeight = 120) => {
+  const buffer = await fetchImage(url);
+  if (!buffer) return null;
+
+  // tạo object URL để lấy kích thước gốc
+  const blob = new Blob([buffer]);
+  const imgEl = new Image();
+  const objectUrl = URL.createObjectURL(blob);
+
+  return new Promise((resolve) => {
+    imgEl.onload = () => {
+      const ratio = imgEl.width / imgEl.height;
+
+      // cố định chiều cao, tính chiều rộng theo tỉ lệ
+      const height = maxHeight;
+      const width = Math.round(height * ratio);
+
+      URL.revokeObjectURL(objectUrl);
+      resolve({ buffer, width, height });
+    };
+    imgEl.src = objectUrl;
+  });
+};
 
 // ===== MAIN =====
 export const exportQuestionsToWord = async (
@@ -122,15 +184,15 @@ export const exportQuestionsToWord = async (
 
     // ===== IMAGE QUESTION =====
     if (q.questionImage) {
-      const img = await fetchImage(q.questionImage);
-      if (img) {
+      const result = await getImageBufferWithSize(q.questionImage, 120);
+      if (result) {
         children.push(
           new Paragraph({
             alignment: AlignmentType.CENTER,
             children: [
               new ImageRun({
-                data: img,
-                transformation: { width: 300, height: 200 },
+                data: result.buffer,
+                transformation: { width: result.width, height: result.height },
               }),
             ],
           })
@@ -234,8 +296,8 @@ export const exportQuestionsToWord = async (
                     new ImageRun({
                       data: img,
                       transformation: {
-                        width: 90,
-                        height: 90,
+                        width: 70,
+                        height: 70,
                       },
                     }),
                   ],
@@ -267,19 +329,10 @@ export const exportQuestionsToWord = async (
 
     // ===== SORT =====
     else if (q.type === "sort") {
-      const cleanText = (str) => {
-        return str
-          .replace(/&nbsp;/gi, " ")
-          .replace(/<[^>]*>/g, "")
-          .replace(/\s+/g, " ")
-          .trim();
-      };
-
       for (let i = 0; i < q.options.length; i++) {
         const opt = q.options[i];
 
-        // ✅ FIX dư &nbsp; + HTML
-        const text = cleanText(stripHTML(opt?.text || ""));
+        const text = stripHTML(opt?.text || "");
         const imgUrl = opt?.image || "";
 
         const childrenRun = [
@@ -299,14 +352,9 @@ export const exportQuestionsToWord = async (
         const paragraphChildren = [...childrenRun];
 
         // ===== IMAGE SAFE =====
-        if (
-          imgUrl &&
-          typeof imgUrl === "string" &&
-          imgUrl.startsWith("http")
-        ) {
+        if (imgUrl && typeof imgUrl === "string" && imgUrl.startsWith("http")) {
           try {
             const res = await fetch(imgUrl);
-
             if (!res.ok) {
               console.warn("Image fail:", imgUrl);
             } else {
@@ -340,20 +388,17 @@ export const exportQuestionsToWord = async (
 
     // ===== TRUE FALSE =====
     else if (q.type === "truefalse") {
-      const cleanText = (str) => {
-        return str
-          .replace(/&nbsp;/gi, " ")
-          .replace(/<[^>]*>/g, "")
-          .replace(/\s+/g, " ")
-          .trim();
-      };
-
       q.options.forEach((opt, i) => {
-        const label = q.correct[i] === "Đ" ? "Đ" : "S";
+        const label = q.correct?.[i] === "Đ" ? "Đ" : "S";
 
-        children.push(
-          createText(`${label}. ${cleanText(stripHTML(opt))}`)
-        );
+        const text =
+          typeof opt === "string"
+            ? stripHTML(opt)
+            : typeof opt?.text === "string"
+            ? stripHTML(opt.text)
+            : "";
+
+        children.push(createText(`${label}. ${text}`));
       });
     }
 
@@ -366,188 +411,132 @@ export const exportQuestionsToWord = async (
           ? q.option.text
           : "";
 
-      // ===== normalize =====
-      let option = rawOption
-        .replace(/&nbsp;/gi, " ")
-        .replace(/<br\s*\/?>/gi, "\n")
-        .replace(/<\/p>/gi, "\n")
-        .replace(/<p[^>]*>/gi, "")
-        .replace(/\r\n/g, "\n");
-
-      option = stripHTML(option)
+      const option = stripHTML(rawOption)
+        .replace(/\r\n/g, "\n")
+        // 🔥 đảm bảo a), b), c) luôn xuống dòng
         .replace(/([a-zA-Z]\))\s*/g, "\n$1 ")
-        .replace(/\[\s*\.\.\.\s*\]/g, "[...]")
-        .replace(/[ \t]+/g, " ")
-        .replace(/\n{2,}/g, "\n")
         .trim();
 
-      // ===== split dòng =====
-      const optionLines = option
-        .split("\n")
-        .map(l => l.trim())
-        .filter(Boolean);
+      // ❌ KHÔNG export lại q.question nữa
 
-      // ===== render từng dòng riêng (GIỐNG MẪU) =====
-      optionLines.forEach(line => {
-        children.push(
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: line,
-                size: FONT_SIZE,
-                font: "Times New Roman",
-              }),
-            ],
-            spacing: { after: 80 },
-          })
-        );
-      });
+      // ✅ tách từng dòng để giữ break chuẩn
+      if (option) {
+        const optionLines = option
+          .split("\n")
+          .map(l => l.trim())
+          .filter(Boolean);
 
-      // ===== answers =====
+        optionLines.forEach(line => {
+          children.push(createText(line));
+        });
+      }
+
+      // ===== FIX: lấy đáp án an toàn =====
       const answers =
         Array.isArray(q.correct) && q.correct.length
           ? q.correct
           : Array.isArray(q.options)
-          ? q.options.map(o =>
+          ? q.options.map((o) =>
               typeof o === "string" ? o : o?.text || ""
             )
           : [];
 
       const cleanAnswers = answers
-        .map(a => stripHTML(a))
+        .map((a) => stripHTML(a))
         .filter(Boolean);
 
       if (cleanAnswers.length > 0) {
         children.push(
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: `Từ cần điền: ${cleanAnswers.join(" / ")}`,
-                bold: true,
-                size: FONT_SIZE,
-                font: "Times New Roman",
-              }),
-            ],
-            spacing: { after: 120 },
-          })
+          createText(`Từ cần điền: ${cleanAnswers.join(" / ")}`, true)
         );
       }
     }
 
     // ===== MATCHING =====
     else if (q.type === "matching") {
+      const rows = [];
 
-  // ✅ FIX toàn bộ lỗi &nbsp; + unicode nbsp + HTML
-  const cleanText = (str) => {
-    return String(str || "")
-      .replace(/&nbsp;/gi, " ")
-      .replace(/\u00A0/g, " ")
-      .replace(/<[^>]*>/g, "")
-      .replace(/\s+/g, " ")
-      .trim();
-  };
+      for (let i = 0; i < q.pairs.length; i++) {
+        const pair = q.pairs[i];
 
-  const rows = [];
+        const leftChildren = [];
+        const rightChildren = [];
 
-  for (let i = 0; i < q.pairs.length; i++) {
+        // ===== LEFT (IMAGE hoặc TEXT) =====
+        if (pair.leftImage?.url) {
+          const img = await fetchImage(pair.leftImage.url);
 
-    const pair = q.pairs[i];
+          if (img) {
+            leftChildren.push(
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                children: [
+                  new ImageRun({
+                    data: img,
+                    transformation: {
+                      width: 40,   // 🔥 nhỏ lại cho gọn
+                      height: 40,
+                    },
+                  }),
+                ],
+              })
+            );
+          }
+        } else if (pair.left) {
+          leftChildren.push(
+            createText(stripHTML(pair.left))
+          );
+        }
 
-    const leftChildren = [];
-    const rightChildren = [];
-
-    // ===== LEFT (IMAGE hoặc TEXT) =====
-    if (pair.leftImage?.url) {
-
-      const img = await fetchImage(pair.leftImage.url);
-
-      if (img) {
-        leftChildren.push(
+        // ===== RIGHT TEXT =====
+        rightChildren.push(
           new Paragraph({
-            alignment: AlignmentType.CENTER,
             children: [
-              new ImageRun({
-                data: img,
-                transformation: {
-                  width: 40,
-                  height: 40,
+              new TextRun({
+                text: stripHTML(pair.right),
+                size: FONT_SIZE,
+                font: "Times New Roman",
+              }),
+            ],
+          })
+        );
+
+        // ===== ROW =====
+        rows.push(
+          new TableRow({
+            children: [
+              new TableCell({
+                width: {
+                  size: q.columnRatio?.left
+                    ? (q.columnRatio.left * 100) /
+                      (q.columnRatio.left + q.columnRatio.right)
+                    : 30,
+                  type: WidthType.PERCENTAGE,
                 },
+                children: leftChildren,
+              }),
+              new TableCell({
+                width: {
+                  size: q.columnRatio?.right
+                    ? (q.columnRatio.right * 100) /
+                      (q.columnRatio.left + q.columnRatio.right)
+                    : 70,
+                  type: WidthType.PERCENTAGE,
+                },
+                children: rightChildren,
               }),
             ],
           })
         );
       }
 
-    } else if (pair.left) {
-
-      const leftText = cleanText(
-        stripHTML(pair.left)
-      );
-
-      leftChildren.push(
-        createText(leftText)
+      children.push(
+        new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          rows,
+        })
       );
     }
-
-    // ===== RIGHT TEXT =====
-    const rightText = cleanText(
-      stripHTML(pair.right || "")
-    );
-
-    rightChildren.push(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: rightText,
-            size: FONT_SIZE,
-            font: "Times New Roman",
-          }),
-        ],
-      })
-    );
-
-    // ===== ROW =====
-    rows.push(
-      new TableRow({
-        children: [
-
-          new TableCell({
-            width: {
-              size: q.columnRatio?.left
-                ? (q.columnRatio.left * 100) /
-                  (q.columnRatio.left + q.columnRatio.right)
-                : 30,
-              type: WidthType.PERCENTAGE,
-            },
-            children: leftChildren,
-          }),
-
-          new TableCell({
-            width: {
-              size: q.columnRatio?.right
-                ? (q.columnRatio.right * 100) /
-                  (q.columnRatio.left + q.columnRatio.right)
-                : 70,
-              type: WidthType.PERCENTAGE,
-            },
-            children: rightChildren,
-          }),
-
-        ],
-      })
-    );
-  }
-
-  children.push(
-    new Table({
-      width: {
-        size: 100,
-        type: WidthType.PERCENTAGE,
-      },
-      rows,
-    })
-  );
-}
 
     // ===== spacing =====
     children.push(

@@ -1,44 +1,55 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
-  Button,
   Card,
+  Button,
 } from '@mui/material';
+
 import {
-  Monitor, Keyboard, Newspaper, Folder, ShieldCheck, ClipboardList,
-  Search, Image, Type, Film, FileText, Edit, Video, Gamepad, Code, Lightbulb, UserCheck
+  BookOpen, Search, FileText, Folder, Lock, Brush, Smile, ShieldCheck,
+  Globe, FileCode2, GitCompare, Repeat, Calculator, PlayCircle, ScrollText, 
+  HelpingHand,
+  ClipboardList
 } from 'lucide-react';
+
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '../firebase';
 import Banner from '../pages/Banner';
-
-const lessonsHK1 = [
-  { title: 'Bài 1. Phần cứng và phần mềm máy tính', icon: <Monitor size={32} color="#1976d2" />, color: 'primary', link: '/scorm/Bai01L4/res/index.html' },
-  { title: 'Bài 2. Gõ bàn phím đúng cách', icon: <Keyboard size={32} color="#1976d2" />, color: 'success', link: '/scorm/Bai02L4/res/index.html' },
-  { title: 'Bài 3. Thông tin trên trang web', icon: <Newspaper size={32} color="#1976d2" />, color: 'warning', link: '/scorm/Bai03L4/res/index.html' },
-  { title: 'Bài 4. Tìm kiếm thông tin trên Internet', icon: <Search size={32} color="#1976d2" />, color: 'primary', link: '/scorm/Bai04L4/res/index.html' },
-  { title: 'Bài 5. Thao tác với thư mục, tệp', icon: <Folder size={32} color="#1976d2" />, color: 'success', link: '/scorm/Bai05L4/res/index.html' },
-  { title: 'Bài 6. Sử dụng phần mềm khi được phép', icon: <ShieldCheck size={32} color="#1976d2" />, color: 'warning', link: '/scorm/Bai06L4/res/index.html' },
-  { title: 'Bài 7. Soạn thảo văn bản tiếng Việt', icon: <FileText size={32} color="#1976d2" />, color: 'primary', link: '/scorm/Bai07L4/res/index.html' },
-  { title: 'Bài 8. Chèn hình ảnh, sao chép, di chuyển, xoá văn bản', icon: <Edit size={32} color="#1976d2" />, color: 'success', link: '/scorm/Bai08L4/res/index.html' },
-  { title: 'Ôn tập học kì I', icon: <ClipboardList size={32} color="#1976d2" />, color: 'error', link: '/scorm/OntapHKIL4/res/index.html' },
-  { title: 'Ôn tập kiểm tra học kì I', icon: <ShieldCheck size={32} color="#1976d2" />, color: 'error', link: '' },
-];
-
-const lessonsHK2 = [
-  { title: 'Bài 9. Bài trình chiếu của em', icon: <Image size={32} color="#1976d2" />, color: 'primary', link: '/scorm/Bai09L4/res/index.html' },
-  { title: 'Bài 10. Định dạng, tạo hiệu ứng cho trang chiếu', icon: <Film size={32} color="#1976d2" />, color: 'success', link: '/scorm/Bai10L4/res/index.html' },
-  { title: 'Bài 11A. Xem video về lịch sử, văn hóa', icon: <Video size={32} color="#1976d2" />, color: 'warning', link: '' },
-  { title: 'Bài 11B. Thực hành luyện tập gõ bàn phím', icon: <Keyboard size={32} color="#1976d2" />, color: 'primary', link: '' },
-  { title: 'Bài 12. Làm quen với Scratch', icon: <Code size={32} color="#1976d2" />, color: 'success', link: '/scorm/Bai12L4/res/index.html' },
-  { title: 'Bài 13. Tạo chương trình máy tính để kể chuyện', icon: <Lightbulb size={32} color="#1976d2" />, color: 'warning', link: '/scorm/Bai13L4/res/index.html' },
-  { title: 'Bài 14. Điều khiển nhân vật chuyển động trên sân khấu', icon: <UserCheck size={32} color="#1976d2" />, color: 'primary', link: '/scorm/Bai14L4/res/index.html' },
-  { title: 'Ôn tập học kì II', icon: <ClipboardList size={32} color="#1976d2" />, color: 'error', link: '/scorm/OntapHKIIL4/res/index.html' },
-  { title: 'Ôn tập kiểm tra học kì II', icon: <ShieldCheck size={32} color="#1976d2" />, color: 'error', link: '' },
-];
+import { ConfigContext } from '../context/ConfigContext';
 
 
-const LessonCard = ({ title, icon, color, onSelect }) => {
+// ================= ICON + COLOR THEO STT =================
+const lessonUIByStt = {
+  1:  { icon: <BookOpen size={32} color="#1976d2" />, color: 'primary' },
+  2:  { icon: <Search size={32} color="#1976d2" />, color: 'success' },
+  3:  { icon: <FileText size={32} color="#1976d2" />, color: 'warning' },
+  4:  { icon: <Folder size={32} color="#1976d2" />, color: 'primary' },
+  5:  { icon: <Lock size={32} color="#1976d2" />, color: 'error' },
+  6:  { icon: <Brush size={32} color="#1976d2" />, color: 'success' },
+  7:  { icon: <Smile size={32} color="#1976d2" />, color: 'warning' },
+  8:  { icon: <Brush size={32} color="#1976d2" />, color: 'primary' },
+  9:  { icon: <Globe size={32} color="#1976d2" />, color: 'success' },
+  
+  10: { icon: <FileCode2 size={32} color="#1976d2" />, color: 'warning' },
+  11: { icon: <GitCompare size={32} color="#1976d2" />, color: 'primary' },
+  12: { icon: <Repeat size={32} color="#1976d2" />, color: 'success' },
+  13: { icon: <Calculator size={32} color="#1976d2" />, color: 'warning' },
+  14: { icon: <PlayCircle size={32} color="#1976d2" />, color: 'primary' },
+  15: { icon: <ScrollText size={32} color="#1976d2" />, color: 'success' },
+  16: { icon: <PlayCircle size={32} color="#1976d2" />, color: 'warning' },
+  17: { icon: <ShieldCheck size={32} color="#1976d2" />, color: 'error' },
+  18: { icon: <ShieldCheck size={32} color="#1976d2" />, color: 'error' },
+  19: { icon: <GitCompare size={32} color="#1976d2" />, color: 'primary' },
+  20: { icon: <HelpingHand size={32} color="#1976d2" />, color: 'success' },
+  21: { icon: <Brush size={32} color="#1976d2" />, color: 'primary' },
+  22: { icon: <Globe size={32} color="#1976d2" />, color: 'success' },
+};
+
+
+// ================= CARD =================
+const LessonCard = ({ title, icon, color, onClick }) => {
   const bgColors = {
     primary: '#E3F2FD',
     success: '#E8F5E9',
@@ -53,19 +64,11 @@ const LessonCard = ({ title, icon, color, onSelect }) => {
         p: 3,
         borderRadius: 3,
         textAlign: 'center',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 2,
-        backgroundColor: '#fff',
         cursor: 'pointer',
-        transition: 'transform 0.2s',
-        '&:hover': {
-          transform: 'scale(1.02)',
-          boxShadow: 6,
-        },
+        transition: '0.2s',
+        '&:hover': { transform: 'scale(1.03)', boxShadow: 6 },
       }}
-      onClick={onSelect}
+      onClick={onClick}
     >
       <Box
         sx={{
@@ -73,6 +76,8 @@ const LessonCard = ({ title, icon, color, onSelect }) => {
           borderRadius: '50%',
           width: 80,
           height: 80,
+          mx: 'auto',
+          mb: 2,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -80,21 +85,16 @@ const LessonCard = ({ title, icon, color, onSelect }) => {
       >
         {icon}
       </Box>
-      <Typography variant="subtitle1" fontWeight="bold">
+
+      <Typography fontWeight="bold">
         {title.toUpperCase()}
       </Typography>
-      <Typography variant="body2" color="text.secondary">
-        Nhấn để truy cập
-      </Typography>
+
       <Button
         variant="contained"
         color={color || 'primary'}
         size="small"
-        sx={{ mt: 'auto', px: 4 }}
-        onClick={(e) => {
-          e.stopPropagation();
-          onSelect();
-        }}
+        sx={{ mt: 2 }}
       >
         VÀO
       </Button>
@@ -102,98 +102,120 @@ const LessonCard = ({ title, icon, color, onSelect }) => {
   );
 };
 
-export default function Lop3() {
-  const navigate = useNavigate();
-  const [selectedSemester, setSelectedSemester] = useState(1);
-  const [selectedLesson, setSelectedLesson] = useState(null);
 
-  const handleSelect = (link, title) => {
-    setSelectedLesson(`Lớp 4 - ${title}`);
-    navigate(
-      `/scorm-viewer?link=${encodeURIComponent(link)}&lop=Lớp 4&bai=${encodeURIComponent(title)}`
-    );
+// ================= MAIN =================
+export default function Lop4() {
+  const navigate = useNavigate();
+  const { config, setConfig } = useContext(ConfigContext);
+
+  const [lessons, setLessons] = useState([]);
+
+  // 1️⃣ Khởi tạo state hocKi từ localStorage hoặc context
+  const [hocKi, setHocKi] = useState(
+    parseInt(localStorage.getItem('hocKi')) || config.hocKi || 1
+  );
+
+  // 2️⃣ Khi context thay đổi, cập nhật lại tab
+  useEffect(() => {
+    setHocKi(parseInt(localStorage.getItem('hocKi')) || config.hocKi || 1);
+  }, [config.hocKi]);
+
+  // ===== LOAD FIRESTORE =====
+  useEffect(() => {
+    const fetchLessons = async () => {
+      try {
+        const snapConfig = await getDocs(collection(db, "CONFIG"));
+        const configDoc = snapConfig.docs.find(d => d.id === "config");
+        const namHoc = configDoc?.data()?.namHoc;
+
+        const collectionName =
+          namHoc === "2025-2026"
+            ? "TENBAI_Lop4"
+            : "TENBAI_Lop4_New";
+
+        const snapshot = await getDocs(collection(db, collectionName));
+
+        const data = snapshot.docs
+          .map(doc => ({
+            title: doc.id,
+            stt: doc.data().stt,
+          }))
+          .sort((a, b) => a.stt - b.stt);
+
+        setLessons(data);
+      } catch (err) {
+        console.error("❌ Lỗi load bài:", err);
+      }
+    };
+
+    fetchLessons();
+  }, []);
+
+  // ===== LỌC THEO HỌC KÌ =====
+  const [namHoc, setNamHoc] = useState("");
+  const lessonsByHocKi = lessons.filter(lesson =>
+    namHoc === "2025-2026"
+      ? (hocKi === 1 ? lesson.stt <= 9 : lesson.stt > 9)
+      : (hocKi === 1 ? lesson.stt <= 11 : lesson.stt > 11)
+  );
+
+  // ===== CLICK CARD =====
+  const handleSelect = (title) => {
+    navigate(`/trac-nghiem?lop=4&bai=${encodeURIComponent(title)}`);
   };
 
-  const currentLessons = selectedSemester === 1 ? lessonsHK1 : lessonsHK2;
+  // ===== XỬ LÝ THAY ĐỔI HỌC KÌ =====
+  const handleHocKiChange = (hk) => {
+    setHocKi(hk); // cập nhật state local
+    setConfig(prev => ({ ...prev, hocKi: hk })); // cập nhật context
+    localStorage.setItem('hocKi', hk); // lưu vào localStorage
+    console.log("Học kì đã chọn:", hk);
+  };
 
   return (
     <>
       <Banner title="TIN HỌC - LỚP 4" />
-      <Box
-        sx={{
-          p: { xs: 2, sm: 4 },
-          pt: { xs: 4, sm: 6 },
-          background: '#e3f2fd',
-          minHeight: '100vh',
-        }}
-      >
+
+      <Box sx={{ p: 4, background: '#e3f2fd', minHeight: '100vh' }}>
+
+        {/* ===== TAB HỌC KÌ ===== */}
         <Box sx={{ display: 'flex', justifyContent: 'center', mb: 4, gap: 2 }}>
           <Button
-            variant={selectedSemester === 1 ? 'contained' : 'outlined'}
-            color="primary"
-            onClick={() => setSelectedSemester(1)}
-            sx={{
-              px: 4,
-              py: 1.5,
-              fontSize: '1rem',
-              fontWeight: 'bold',
-              borderRadius: 2,
-              minWidth: 150,
-            }}
+            variant={hocKi === 1 ? 'contained' : 'outlined'}
+            onClick={() => handleHocKiChange(1)}
+            sx={{ px: 4, fontWeight: 'bold' }}
           >
             HỌC KÌ I
           </Button>
+
           <Button
-            variant={selectedSemester === 2 ? 'contained' : 'outlined'}
-            color="primary"
-            onClick={() => setSelectedSemester(2)}
-            sx={{
-              px: 4,
-              py: 1.5,
-              fontSize: '1rem',
-              fontWeight: 'bold',
-              borderRadius: 2,
-              minWidth: 150,
-            }}
+            variant={hocKi === 2 ? 'contained' : 'outlined'}
+            onClick={() => handleHocKiChange(2)}
+            sx={{ px: 4, fontWeight: 'bold' }}
           >
             HỌC KÌ II
           </Button>
         </Box>
 
-        <Typography variant="h5" fontWeight="bold" color="primary" align="center" sx={{ mb: 2 }}>
-          DANH SÁCH BÀI HỌC
-        </Typography>
-        <Box
-          sx={{
-            width: 100,
-            height: 3,
-            backgroundColor: 'primary.main',
-            margin: '0 auto 24px',
-            borderRadius: 2,
-          }}
-        />
+        {/* ===== DANH SÁCH BÀI HỌC ===== */}
+        <Box textAlign="center" mb={3}>
+          <Typography
+            variant="h6"
+            sx={{ fontWeight: 'bold', color: '#1976d2', mb: 1 }}
+          >
+            DANH SÁCH BÀI HỌC
+          </Typography>
 
-        {selectedLesson && (
           <Box
             sx={{
-              mt: 6,
-              mb: 4,
-              px: 3,
-              py: 2,
-              mx: 'auto',
-              maxWidth: 600,
-              backgroundColor: '#fffde7',
-              border: '2px solid #ffeb3b',
-              borderRadius: 3,
-              textAlign: 'center',
-              boxShadow: 3,
+              width: '60px',
+              height: '4px',
+              backgroundColor: '#1976d2',
+              margin: '0 auto',
+              borderRadius: '2px',
             }}
-          >
-            <Typography variant="h6" fontWeight="bold" color="primary">
-              {selectedLesson}
-            </Typography>
-          </Box>
-        )}
+          />
+        </Box>
 
         <Box
           sx={{
@@ -202,13 +224,19 @@ export default function Lop3() {
             gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
           }}
         >
-          {currentLessons.map((item, index) => (
-            <LessonCard
-              key={index}
-              {...item}
-              onSelect={() => handleSelect(item.link, item.title)}
-            />
-          ))}
+          {lessonsByHocKi.map((lesson) => {
+            const ui = lessonUIByStt[lesson.stt] || {};
+
+            return (
+              <LessonCard
+                key={lesson.stt}
+                title={lesson.title}
+                icon={ui.icon}
+                color={ui.color || 'primary'}
+                onClick={() => handleSelect(lesson.title)}
+              />
+            );
+          })}
         </Box>
       </Box>
     </>
