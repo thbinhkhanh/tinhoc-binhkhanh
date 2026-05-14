@@ -77,9 +77,15 @@ export const saveAllQuestions = async ({
     const normalizeOptions = async (options = []) => {
       return Promise.all(
         options.map(async (opt) => {
-          if (!opt) return { text: "", image: "", formats: {} };
+          if (!opt) {
+            return {
+              text: "",
+              image: "",
+              formats: {},
+            };
+          }
 
-          // string legacy
+          // legacy string
           if (typeof opt === "string") {
             return {
               text: opt,
@@ -89,19 +95,46 @@ export const saveAllQuestions = async ({
           }
 
           let image = opt.image || opt.imagePreview || "";
+          let text = opt.text || "";
 
-          // upload file ảnh
+          // =========================
+          // IMAGE QUESTION (ImageOptions.jsx)
+          // file -> upload -> lưu vào text
+          // =========================
+          if (opt.file instanceof File) {
+            const uploadedUrl = await uploadImage(opt.file);
+
+            return {
+              text: uploadedUrl, // ✅ image question lưu url vào text
+              image: "",
+              formats: opt.formats || {},
+            };
+          }
+
+          // =========================
+          // OLD imageFile support
+          // =========================
           if (opt.imageFile instanceof File) {
             image = await uploadImage(opt.imageFile);
           }
 
+          // =========================
           // base64 image
-          if (typeof image === "string" && image.startsWith("data:")) {
-            image = await uploadImage(await toFileFromBase64(image));
+          // =========================
+          if (
+            typeof image === "string" &&
+            image.startsWith("data:")
+          ) {
+            image = await uploadImage(
+              await toFileFromBase64(image)
+            );
           }
 
+          // =========================
+          // giữ nguyên các loại câu hỏi khác
+          // =========================
           return {
-            text: opt.text || "",
+            text,
             image,
             formats: opt.formats || {},
           };
