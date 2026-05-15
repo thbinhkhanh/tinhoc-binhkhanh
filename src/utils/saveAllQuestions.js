@@ -16,16 +16,16 @@ export const saveAllQuestions = async ({
       throw new Error("Thiếu collectionName (lỗi năm học)");
     }
 
-    // =========================
-    // UPLOAD IMAGE (GIỮ NGUYÊN)
-    // =========================
+    /* =========================
+       UPLOAD IMAGE (THEO HÀM MẪU 1)
+    ========================== */
     const uploadImage = async (file) => {
       if (!(file instanceof File)) return file;
 
       const formData = new FormData();
       formData.append("file", file);
       formData.append("upload_preset", "tracnghiem_upload");
-      formData.append("folder", "questions"); // optional nhưng nên giữ
+      formData.append("folder", "questions");
 
       const response = await fetch(
         "https://api.cloudinary.com/v1_1/dxzpfljv4/image/upload",
@@ -53,9 +53,9 @@ export const saveAllQuestions = async ({
       return new File([blob], name, { type: blob.type });
     };
 
-    // =========================
-    // NORMALIZE IMAGE
-    // =========================
+    /* =========================
+       NORMALIZE IMAGE (MẪU 1)
+    ========================== */
     const normalizeImage = async (img) => {
       if (!img) return "";
 
@@ -71,68 +71,32 @@ export const saveAllQuestions = async ({
       return img;
     };
 
-    // =========================
-    // NORMALIZE OPTIONS
-    // =========================
+    /* =========================
+       NORMALIZE OPTIONS (MẪU 1)
+    ========================== */
     const normalizeOptions = async (options = []) => {
       return Promise.all(
         options.map(async (opt) => {
           if (!opt) {
-            return {
-              text: "",
-              image: "",
-              formats: {},
-            };
+            return { text: "", image: "", formats: {} };
           }
 
-          // legacy string
           if (typeof opt === "string") {
-            return {
-              text: opt,
-              image: "",
-              formats: {},
-            };
+            return { text: opt, image: "", formats: {} };
           }
 
-          let image = opt.image || opt.imagePreview || "";
           let text = opt.text || "";
+          let image = opt.image || opt.imagePreview || "";
 
-          // =========================
-          // IMAGE QUESTION (ImageOptions.jsx)
-          // file -> upload -> lưu vào text
-          // =========================
           if (opt.file instanceof File) {
-            const uploadedUrl = await uploadImage(opt.file);
-
-            return {
-              text: uploadedUrl, // ✅ image question lưu url vào text
-              image: "",
-              formats: opt.formats || {},
-            };
+            const url = await uploadImage(opt.file);
+            return { text: url, image: "", formats: opt.formats || {} };
           }
 
-          // =========================
-          // OLD imageFile support
-          // =========================
-          if (opt.imageFile instanceof File) {
-            image = await uploadImage(opt.imageFile);
+          if (typeof image === "string" && image.startsWith("data:")) {
+            image = await uploadImage(await toFileFromBase64(image));
           }
 
-          // =========================
-          // base64 image
-          // =========================
-          if (
-            typeof image === "string" &&
-            image.startsWith("data:")
-          ) {
-            image = await uploadImage(
-              await toFileFromBase64(image)
-            );
-          }
-
-          // =========================
-          // giữ nguyên các loại câu hỏi khác
-          // =========================
           return {
             text,
             image,
@@ -142,19 +106,18 @@ export const saveAllQuestions = async ({
       );
     };
 
-    // =========================
-    // NORMALIZE MATCHING
-    // =========================
+    /* =========================
+       NORMALIZE MATCHING (MẪU 1)
+    ========================== */
     const normalizeMatching = async (pairs = []) => {
       return Promise.all(
         pairs.map(async (p) => {
-          let leftImg =
+          const url = await normalizeImage(
             p?.leftImage?.file ||
             p?.leftImage?.url ||
             p?.leftImage ||
-            "";
-
-          const url = await normalizeImage(leftImg);
+            ""
+          );
 
           return {
             left: p.left || "",
@@ -168,196 +131,177 @@ export const saveAllQuestions = async ({
       );
     };
 
-    // =========================
-    // TO FIRESTORE SCHEMA (NEW)
-    // =========================
-    const toNormalizedSchema = (q) => ({
-      id: q.id || `q_${Date.now()}`,
-      type: q.type,
-      question: q.question || "",
-      image: q.image || q.questionImage || null,
-      options: q.options || [],
-      pairs: q.pairs || [],
-      correct: q.correct || [],
-      score: q.score || 1,
-    });
-
     const questionsToSave = [];
 
-    // =========================
-    // MAIN LOOP
-    // =========================
-    for (let q of questions) {
-      let updatedQ = {
-        ...q,
-        ...(q.type === "matching" && !("columnRatio" in q)
-          ? { columnRatio: { left: 1, right: 1 } }
-          : {}),
-      };
+/* =========================
+   MAIN LOOP (FIXED = GIỐNG HÀM GỐC)
+========================= */
+for (let q of questions) {
+  let updatedQ = {
+    ...q,
+    ...(q.type === "matching" && !("columnRatio" in q)
+      ? { columnRatio: { left: 1, right: 1 } }
+      : {}),
+  };
 
-      // IMAGE QUESTION
-      const questionImage = await normalizeImage(
-        q.questionImage?.file ||
-        q.questionImage?.url ||
-        q.questionImage ||
-        ""
-      );
+  // =========================
+  // IMAGE QUESTION
+  // =========================
+  const questionImage = await normalizeImage(
+    q.questionImage?.file ||
+    q.questionImage?.url ||
+    q.questionImage ||
+    ""
+  );
 
-      updatedQ.questionImage = questionImage;
+  updatedQ.questionImage = questionImage;
 
-      if (q.type === "image") {
-        updatedQ.image = questionImage;
-      }
+  if (q.type === "image") {
+    updatedQ.image = questionImage;
+  }
 
-      // OPTIONS
-      if (Array.isArray(q.options)) {
-        updatedQ.options = await normalizeOptions(q.options);
-      }
+  // =========================
+  // OPTIONS
+  // =========================
+  if (Array.isArray(q.options)) {
+    updatedQ.options = await normalizeOptions(q.options);
+  }
 
-      // MATCHING
-      // =========================
-      if (q.type === "matching") {
-        updatedQ.pairs = await Promise.all(
-          (q.pairs || []).map(async (p) => {
-            let leftImg =
-              p?.leftImage?.file ||
-              p?.leftImage?.url ||
-              "";
+  // =========================
+  // MATCHING (GIỐNG HÀM GỐC)
+  // =========================
+  if (q.type === "matching") {
+    updatedQ.pairs = await Promise.all(
+      (q.pairs || []).map(async (p) => {
+        let leftImg =
+          p?.leftImage?.file ||
+          p?.leftImage?.url ||
+          "";
 
-            // upload File
-            if (leftImg instanceof File) {
-              leftImg = await uploadImage(leftImg);
-            }
+        if (leftImg instanceof File) {
+          leftImg = await uploadImage(leftImg);
+        }
 
-            // base64
-            if (typeof leftImg === "string" && leftImg.startsWith("data:")) {
-              const res = await fetch(leftImg);
-              const blob = await res.blob();
-              leftImg = await uploadImage(
-                new File([blob], "left.png", { type: blob.type })
-              );
-            }
+        if (
+          typeof leftImg === "string" &&
+          leftImg.startsWith("data:")
+        ) {
+          const res = await fetch(leftImg);
+          const blob = await res.blob();
+          leftImg = await uploadImage(
+            new File([blob], "left.png", { type: blob.type })
+          );
+        }
 
-            return {
-              left: p.left || "",
-
-              // giữ HTML như App2
-              right: p.right || "",
-
-              leftImage: leftImg
-                ? {
-                    url: leftImg,
-                    name: p.leftImage?.name || "image.png",
-                  }
-                : {
-                    url: "",
-                    name: "",
-                  },
-            };
-          })
-        );
-
-        // mapping đúng App2
-        updatedQ.correct = updatedQ.pairs.map((_, i) => i);
-
-        // ⚡ QUAN TRỌNG: App2 có options
-        updatedQ.options = [];
-
-        // giữ field chuẩn App2
-        updatedQ.type = "matching";
-        updatedQ.columnRatio = q.columnRatio || { left: 1, right: 3 };
-
-        updatedQ.sortType = q.sortType || "fixed";
-
-        // giữ id nếu có (App2 có id)
-        if (q.id) updatedQ.id = q.id;
-
-        // xoá rác
-        //delete updatedQ.questionType;
-        //delete updatedQ.leftOptions;
-        //delete updatedQ.rightOptions;
-      }
-
-      // SORT
-      if (q.type === "sort") {
-
-        // chuẩn hoá options
-        updatedQ.options = (updatedQ.options || []).map((opt) => ({
-          text: (opt.text || "")
-            // ❌ bỏ số thứ tự cuối câu
-            .replace(/\s*\d+\s*<\/p>$/i, "</p>")
-            .trim(),
-
-          image: opt.image || "",
-        }));
-
-        // đáp án đúng luôn là thứ tự chuẩn
-        updatedQ.correct = updatedQ.options.map((_, i) => i);
-
-        // ❌ xoá field rác
-        delete updatedQ.correctTexts;
-        delete updatedQ.initialSortOrder;
-      }
-
-      // SINGLE
-      if (q.type === "single") {
-        updatedQ.correct = q.correct?.length ? q.correct : [0];
-      }
-
-      // MULTIPLE
-      if (q.type === "multiple") {
-        updatedQ.correct = q.correct || [];
-      }
-
-      // TRUEFALSE
-      if (q.type === "truefalse") {
-        updatedQ.correct =
-          q.correct?.length === q.options?.length
-            ? q.correct
-            : (q.options || []).map(() => "");
-      }
-
-      if (q.type === "fillblank") {
-        updatedQ = {
-          ...q,
-
-          id: q.id || `q_${Date.now()}`,
-          type: "fillblank",
-
-          // 🔥 GIỮ NGUYÊN HTML QUILL
-          option: q.option || "",
-
-          question: q.question || "",
-
-          image: q.questionImage || null,
-
-          // 🔥 schema mới
-          answers: [
-            {
-              option: q.option || "",
-              correct: q.correct || [],
-            },
-          ],
-
-          options: Array.isArray(q.options)
-            ? q.options.map((opt) => ({
-                text: opt.text || "",
-                image: opt.image || "",
-                formats: opt.formats || {},
-              }))
-            : [],
-
-          correct: q.correct || [],
-
-          score: q.score || 1,
+        return {
+          left: p.left || "",
+          right: p.right || "",
+          leftImage: leftImg
+            ? {
+                url: leftImg,
+                name: p.leftImage?.name || "image.png",
+              }
+            : {
+                url: "",
+                name: "",
+              },
         };
-      }
+      })
+    );
 
-      // =========================
-      // FINAL NORMALIZE BEFORE SAVE
-      // =========================
-      questionsToSave.push(updatedQ);
-    }
+    updatedQ.correct = updatedQ.pairs.map((_, i) => i);
+    updatedQ.options = [];
+
+    updatedQ.type = "matching";
+    updatedQ.columnRatio = q.columnRatio || { left: 1, right: 3 };
+    updatedQ.sortType = q.sortType || "fixed";
+
+    if (q.id) updatedQ.id = q.id;
+  }
+
+  // =========================
+  // SORT
+  // =========================
+  if (q.type === "sort") {
+    updatedQ.options = (updatedQ.options || []).map((opt) => ({
+      text: (opt.text || "")
+        .replace(/\s*\d+\s*<\/p>$/i, "</p>")
+        .trim(),
+      image: opt.image || "",
+    }));
+
+    updatedQ.correct = updatedQ.options.map((_, i) => i);
+
+    delete updatedQ.correctTexts;
+    delete updatedQ.initialSortOrder;
+  }
+
+  // =========================
+  // SINGLE
+  // =========================
+  if (q.type === "single") {
+    updatedQ.correct = q.correct?.length ? q.correct : [0];
+  }
+
+  // =========================
+  // MULTIPLE
+  // =========================
+  if (q.type === "multiple") {
+    updatedQ.correct = q.correct || [];
+  }
+
+  // =========================
+  // TRUEFALSE
+  // =========================
+  if (q.type === "truefalse") {
+    updatedQ.correct =
+      q.correct?.length === q.options?.length
+        ? q.correct
+        : (q.options || []).map(() => "");
+  }
+
+  // =========================
+  // FILL BLANK (GIỮ NGUYÊN LOGIC GỐC, KHÔNG OVERWRITE FULL OBJECT)
+  // =========================
+  if (q.type === "fillblank") {
+    updatedQ = {
+      ...updatedQ,
+
+      id: q.id || `q_${Date.now()}`,
+      type: "fillblank",
+
+      option: q.option || "",
+      question: q.question || "",
+
+      image: updatedQ.questionImage || "",
+
+      answers: [
+        {
+          option: q.option || "",
+          correct: q.correct || [],
+        },
+      ],
+
+      options: Array.isArray(q.options)
+        ? q.options.map((opt) => ({
+            text: opt.text || "",
+            image: opt.image || "",
+            formats: opt.formats || {},
+          }))
+        : [],
+
+      correct: q.correct || [],
+      score: q.score || 1,
+    };
+    
+    delete updatedQ.image;    //khắc phục lỗi 2 hình trong Question Image
+  }
+
+  // =========================
+  // FINAL PUSH
+  // =========================
+  questionsToSave.push(updatedQ);
+}
 
     // =========================
     // SAVE FIRESTORE
