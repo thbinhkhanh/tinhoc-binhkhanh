@@ -825,7 +825,7 @@ export default function QuizQuestion({
             dangerouslySetInnerHTML={{ __html: optionText }}
           />
 
-          <FormControl size="small" sx={{ width: 90 }}>
+          <FormControl size="small" sx={{ width: 140 }}>
             <Select
               value={selected}
               onChange={(e) => {
@@ -845,8 +845,14 @@ export default function QuizQuestion({
                 "& .MuiSelect-select": { py: 0.5 },
               }}
             >
-              <MenuItem value="Đ">Đúng</MenuItem>
-              <MenuItem value="S">Sai</MenuItem>
+              <MenuItem value="Đ">
+                {currentQuestion.trueLabel || "Đúng"}
+              </MenuItem>
+
+              {/* FALSE */}
+              <MenuItem value="S">
+                {currentQuestion.falseLabel || "Sai"}
+              </MenuItem>
             </Select>
           </FormControl>
         </Paper>

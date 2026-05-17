@@ -96,7 +96,7 @@ const MatchingOptions = ({ q, qi, update }) => {
       </Box>
 
       {q.pairs?.map((pair, pi) => {
-        const rowHeight = pair.leftImage ? 80 : "auto";
+        const rowHeight = pair.leftImage ? 50 : "auto";
 
         return (
           <Stack

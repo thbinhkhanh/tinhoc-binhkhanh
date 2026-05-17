@@ -8,9 +8,16 @@ import {
   Button,
   Typography,
   Box,
+  Stack,
 } from "@mui/material";
 
-const DeleteConfirmDialog = ({ open, onClose, onConfirm, examName }) => {
+import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
+
+const DeleteConfirmDialog = ({
+  open,
+  onClose,
+  onConfirm,
+}) => {
   return (
     <Dialog
       open={open}
@@ -19,86 +26,140 @@ const DeleteConfirmDialog = ({ open, onClose, onConfirm, examName }) => {
       fullWidth
       PaperProps={{
         sx: {
-          borderRadius: 3,
-          p: 3,
-          bgcolor: "#e3f2fd",
-          boxShadow: "0 4px 12px rgba(33, 150, 243, 0.15)",
+          borderRadius: "14px",
+          overflow: "hidden",
+          boxShadow:
+            "0 10px 30px rgba(0,0,0,0.12)",
         },
       }}
     >
-      {/* Header */}
-      <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-        <Box
-          sx={{
-            bgcolor: "#f44336",
-            color: "#fff",
-            borderRadius: "50%",
-            width: 36,
-            height: 36,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            mr: 1.5,
-            fontWeight: "bold",
-            fontSize: 18,
-          }}
+      {/* HEADER */}
+      <DialogTitle
+        sx={{
+          px: 3,
+          pt: 2.5,
+          pb: 1,
+        }}
+      >
+        <Stack
+          direction="row"
+          spacing={1.5}
+          alignItems="center"
         >
-          ❌
-        </Box>
-        <DialogTitle sx={{ p: 0, fontWeight: "bold", color: "#d32f2f" }}>
-          Xác nhận xóa
-        </DialogTitle>
-      </Box>
-
-      {/* Nội dung */}
-      <DialogContent>
-        <Typography sx={{ fontSize: 16, color: "#0d47a1" }}>
-          Bạn có chắc chắn muốn xóa đề:
-        </Typography>
-
-        <Box
-          sx={{
-            mt: 1,
-            mb: 1.5,
-            p: 1,
-            borderRadius: 2,
-            bgcolor: "#fff",
-            border: "1px solid #f44336",
-          }}
-        >
-          <Typography
+          <Box
             sx={{
-              fontWeight: "bold",
-              color: "#d32f2f",
-              textAlign: "center",
+              width: 40,
+              height: 40,
+              borderRadius: "50%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              bgcolor: "rgba(244,67,54,0.12)",
+              flexShrink: 0,
             }}
           >
-            {examName || "Không xác định"}
-          </Typography>
-        </Box>
+            <WarningAmberRoundedIcon
+              sx={{
+                color: "#f44336",
+                fontSize: 24,
+              }}
+            />
+          </Box>
 
-        <Typography sx={{ fontSize: 14, color: "#555" }}>
-          Hành động này không thể hoàn tác.
+          <Typography
+            sx={{
+              fontSize: 20,
+              fontWeight: 700,
+              color: "#d32f2f",
+            }}
+          >
+            Xác nhận xóa
+          </Typography>
+        </Stack>
+      </DialogTitle>
+
+      {/* CONTENT */}
+      <DialogContent
+        sx={{
+          px: 3,
+          pt: 1,
+          pb: 1,
+        }}
+      >
+        <Typography
+          sx={{
+            color: "#475569",
+            lineHeight: 1.7,
+            fontSize: 15,
+          }}
+        >
+          Bạn có chắc chắn muốn xóa đề thi này?
+          <br />
+          Hành động này{" "}
+          <Box
+            component="span"
+            sx={{
+              fontWeight: 700,
+            }}
+          >
+            không thể hoàn tác
+          </Box>
+          .
         </Typography>
       </DialogContent>
 
-      {/* Buttons */}
-      <DialogActions sx={{ justifyContent: "center", pt: 2 }}>
-        <Button
-          variant="outlined"
-          onClick={onClose}
-          sx={{ borderRadius: 2, px: 3 }}
+      {/* ACTIONS */}
+      <DialogActions
+        sx={{
+          px: 3,
+          pb: 2.5,
+          pt: 1,
+        }}
+      >
+        <Stack
+          direction="row"
+          spacing={1.5}
+          width="100%"
         >
-          Hủy
-        </Button>
-        <Button
-          variant="contained"
-          color="error"
-          onClick={onConfirm}
-          sx={{ borderRadius: 2, px: 3 }}
-        >
-          Xóa
-        </Button>
+          <Button
+            onClick={onClose}
+            variant="outlined"
+            fullWidth
+            sx={{
+              textTransform: "none",
+              borderRadius: "10px",
+              fontWeight: 600,
+              borderColor: "#cbd5e1",
+              color: "#475569",
+
+              "&:hover": {
+                borderColor: "#94a3b8",
+                bgcolor: "#f8fafc",
+              },
+            }}
+          >
+            Hủy
+          </Button>
+
+          <Button
+            onClick={onConfirm}
+            variant="contained"
+            color="error"
+            fullWidth
+            sx={{
+              textTransform: "none",
+              borderRadius: "10px",
+              fontWeight: 700,
+              boxShadow: "none",
+
+              "&:hover": {
+                boxShadow: "none",
+              },
+            }}
+          >
+            Xóa
+          </Button>
+        </Stack>
       </DialogActions>
     </Dialog>
   );

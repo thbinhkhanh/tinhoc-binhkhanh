@@ -15,9 +15,21 @@ import {
   MenuItem,
   Snackbar,
   Alert,
+  Chip,
 } from "@mui/material";
+
 import CloseIcon from "@mui/icons-material/Close";
-import { collection, getDocs, deleteDoc, doc, getDoc } from "firebase/firestore";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
+
+import {
+  collection,
+  getDocs,
+  deleteDoc,
+  doc,
+  getDoc,
+} from "firebase/firestore";
+
 import { db } from "../firebase";
 import { useNavigate } from "react-router-dom";
 import DeleteConfirmDialog from "../dialog/DeleteConfirmDialog";
@@ -40,6 +52,7 @@ const OpenExamDialog = ({ open, onClose, onSelectExam }) => {
     const loadNamHoc = async () => {
       try {
         const snap = await getDoc(doc(db, "CONFIG", "config"));
+
         if (snap.exists()) {
           setNamHoc(snap.data().namHoc);
         }
@@ -47,12 +60,14 @@ const OpenExamDialog = ({ open, onClose, onSelectExam }) => {
         console.error("❌ Lỗi load năm học:", err);
       }
     };
+
     loadNamHoc();
   }, []);
 
   // ===== HELPER COLLECTION =====
   const getTracNghiemCollection = (lop) => {
     const num = lop.match(/\d+/)?.[0];
+
     if (!num || !namHoc) return null;
 
     const isOldYear = namHoc === "2025-2026";
@@ -72,16 +87,31 @@ const OpenExamDialog = ({ open, onClose, onSelectExam }) => {
 
     const fetchDocs = async () => {
       setLoading(true);
+
       try {
-        const colName = getTracNghiemCollection(selectedClass);
+        const colName =
+          getTracNghiemCollection(selectedClass);
+
         if (!colName) return;
 
-        const snapshot = await getDocs(collection(db, colName));
+        const snapshot = await getDocs(
+          collection(db, colName)
+        );
 
-        const data = snapshot.docs.map((d) => ({
-          id: d.id,
-          ...d.data(),
-        }));
+        const data = snapshot.docs
+          .map((d) => ({
+            id: d.id,
+            ...d.data(),
+          }))
+          .sort((a, b) => {
+            const numA =
+              parseInt(a.id.match(/\d+/)?.[0] || 0);
+
+            const numB =
+              parseInt(b.id.match(/\d+/)?.[0] || 0);
+
+            return numA - numB;
+          });
 
         setDocs(data);
         setSelectedDoc(null);
@@ -110,7 +140,10 @@ const OpenExamDialog = ({ open, onClose, onSelectExam }) => {
       onSelectExam(lopParam, docId);
       onClose();
     } else {
-      navigate(`/trac-nghiem_test?lop=${lopParam}&bai=${docId}`);
+      navigate(
+        `/trac-nghiem_test?lop=${lopParam}&bai=${docId}`
+      );
+
       onClose();
     }
   };
@@ -121,6 +154,7 @@ const OpenExamDialog = ({ open, onClose, onSelectExam }) => {
       alert("⚠️ Vui lòng chọn đề cần xóa!");
       return;
     }
+
     setOpenDeleteDialog(true);
   };
 
@@ -131,149 +165,392 @@ const OpenExamDialog = ({ open, onClose, onSelectExam }) => {
     const deletedId = selectedDoc;
 
     try {
-      const collectionName = getTracNghiemCollection(selectedClass);
-      if (!collectionName) throw new Error("Thiếu collection");
+      const collectionName =
+        getTracNghiemCollection(selectedClass);
+
+      if (!collectionName)
+        throw new Error("Thiếu collection");
 
       // 🔥 XÓA TRẮC NGHIỆM
-      await deleteDoc(doc(db, collectionName, deletedId));
+      await deleteDoc(
+        doc(db, collectionName, deletedId)
+      );
 
       // 🔥 XÓA TENBAI
-      const lopNumber = selectedClass.replace("Lớp ", "");
-      const isOldYear = namHoc === "2025-2026";
+      const lopNumber =
+        selectedClass.replace("Lớp ", "");
+
+      const isOldYear =
+        namHoc === "2025-2026";
 
       const tenBaiCollection = isOldYear
         ? `TENBAI_Lop${lopNumber}`
         : `TENBAI_Lop${lopNumber}_New`;
 
-      await deleteDoc(doc(db, tenBaiCollection, deletedId));
+      await deleteDoc(
+        doc(db, tenBaiCollection, deletedId)
+      );
 
       // 🔥 UPDATE UI
-      setDocs(prev => prev.filter(item => item.id !== deletedId));
+      setDocs((prev) =>
+        prev.filter(
+          (item) => item.id !== deletedId
+        )
+      );
+
       setSelectedDoc(null);
 
       setOpenDeleteDialog(false);
       setSnackbarOpen(true);
-
     } catch (error) {
       console.error("❌ Lỗi khi xóa:", error);
     }
   };
 
   return (
-    <>
-      <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-        {/* HEADER */}
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            background: "linear-gradient(to right, #1976d2, #42a5f5)",
-            color: "#fff",
-            px: 2,
-            py: 2,
-          }}
+  <>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+      PaperProps={{
+        sx: {
+          height: "82vh",
+          borderRadius: "14px",
+          overflow: "hidden",
+          background: "#f8fafc",
+          boxShadow: "0 10px 35px rgba(0,0,0,0.12)",
+          display: "flex",
+          flexDirection: "column",
+        },
+      }}
+    >
+      {/* HEADER */}
+      <Box
+        sx={{
+          px: 3,
+          py: 1.4,
+          background: "#1976d2",
+          color: "#fff",
+          flexShrink: 0,
+        }}
+      >
+        <Stack
+          direction="row"
+          alignItems="center"
+          justifyContent="space-between"
         >
-          <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
-            📂 Danh sách đề
-          </Typography>
-          <IconButton onClick={onClose} sx={{ color: "#fff" }}>
+          <Box>
+            <Typography
+              sx={{
+                fontSize: 17,
+                fontWeight: 700,
+              }}
+            >
+              Danh sách đề kiểm tra
+            </Typography>
+          </Box>
+
+          <IconButton
+            onClick={onClose}
+            sx={{
+              color: "#fff",
+              bgcolor: "rgba(255,255,255,0.12)",
+
+              "&:hover": {
+                bgcolor: "rgba(255,255,255,0.2)",
+              },
+            }}
+          >
             <CloseIcon />
           </IconButton>
-        </Box>
+        </Stack>
+      </Box>
 
-        {/* CHỌN LỚP */}
-        <Box sx={{ px: 2, py: 2 }}>
-          <FormControl size="small" fullWidth>
+      {/* FILTER */}
+      <Box
+        sx={{
+          px: 3,
+          pt: 2.5,
+          pb: 2,
+          flexShrink: 0,
+        }}
+      >
+        <Stack
+          direction="row"
+          alignItems="center"
+          justifyContent="space-between"
+          spacing={2}
+        >
+          <FormControl
+            size="small"
+            sx={{
+              minWidth: 170,
+            }}
+          >
             <InputLabel>Lớp</InputLabel>
+
             <Select
               value={selectedClass}
-              onChange={(e) => setSelectedClass(e.target.value)}
+              onChange={(e) =>
+                setSelectedClass(e.target.value)
+              }
               label="Lớp"
+              sx={{
+                bgcolor: "#fff",
+                borderRadius: "5px",
+
+                "& .MuiOutlinedInput-notchedOutline":
+                  {
+                    borderColor: "#dbe2ea",
+                  },
+
+                "&.Mui-focused .MuiOutlinedInput-notchedOutline":
+                  {
+                    borderColor: "#1976d2",
+                    borderWidth: 2,
+                  },
+              }}
             >
               {[3, 4, 5].map((n) => (
-                <MenuItem key={n} value={`Lớp ${n}`}>
+                <MenuItem
+                  key={n}
+                  value={`Lớp ${n}`}
+                >
                   Lớp {n}
                 </MenuItem>
               ))}
             </Select>
           </FormControl>
-        </Box>
 
-        {/* DANH SÁCH */}
-        <DialogContent dividers sx={{ height: 340 }}>
-          <Box
+          <Chip
+            label={`${docs.length} đề`}
             sx={{
-              height: "100%",
-              overflowY: "auto",
-              border: "1px solid #ccc",
-              borderRadius: 2,
+              bgcolor: "#e3f2fd",
+              color: "#1976d2",
+              fontWeight: 700,
+              borderRadius: "5px",
             }}
-          >
-            {loading ? (
-              <Box sx={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <CircularProgress />
-              </Box>
-            ) : docs.length === 0 ? (
-              <Typography align="center" sx={{ p: 2, color: "gray" }}>
-                Không có đề nào.
-              </Typography>
-            ) : (
-              docs.map((docItem) => (
-                <Stack
-                  key={docItem.id}
-                  sx={{
-                    px: 1.5,
-                    py: 0.8,
-                    cursor: "pointer",
-                    borderRadius: 1,
-                    backgroundColor:
-                      selectedDoc === docItem.id ? "#E3F2FD" : "transparent",
-                    "&:hover": { backgroundColor: "#f5f5f5" },
-                  }}
-                  onClick={() => setSelectedDoc(docItem.id)}
-                >
-                  <Typography>{docItem.id}</Typography>
-                </Stack>
-              ))
-            )}
-          </Box>
-        </DialogContent>
+          />
+        </Stack>
+      </Box>
 
-        {/* ACTION */}
-        <DialogActions sx={{ justifyContent: "center", gap: 2, pb: 2 }}>
-          <Button
-            variant="contained"
-            color="error"
-            disabled={!selectedDoc}
-            onClick={handleDeleteClick}
-          >
-            Xóa đề
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* CONFIRM DELETE */}
-      <DeleteConfirmDialog
-        open={openDeleteDialog}
-        onClose={() => setOpenDeleteDialog(false)}
-        onConfirm={handleConfirmDelete}
-        examName={selectedDoc}
-      />
-
-      {/* SNACKBAR */}
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={3000}
-        onClose={() => setSnackbarOpen(false)}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      {/* CONTENT */}
+      <DialogContent
+        sx={{
+          flex: 1,
+          overflow: "hidden",
+          px: 3,
+          pt: 0,
+          pb: 2,
+        }}
       >
-        <Alert severity="success" variant="filled">
-          ✅ Đã xóa đề thành công
-        </Alert>
-      </Snackbar>
-    </>
-  );
+        <Box
+          sx={{
+            height: "100%",
+            overflowY: "auto",
+            borderRadius: "5px",
+            bgcolor: "#fff",
+            border: "1px solid #e2e8f0",
+            p: 1.2,
+
+            "&::-webkit-scrollbar": {
+              width: 6,
+            },
+
+            "&::-webkit-scrollbar-thumb": {
+              background: "#cbd5e1",
+              borderRadius: 999,
+            },
+          }}
+        >
+          {loading ? (
+            <Box
+              sx={{
+                height: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <CircularProgress />
+            </Box>
+          ) : docs.length === 0 ? (
+            <Box
+              sx={{
+                height: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexDirection: "column",
+                color: "#94a3b8",
+              }}
+            >
+              <DescriptionOutlinedIcon
+                sx={{
+                  fontSize: 50,
+                  mb: 1,
+                  opacity: 0.5,
+                }}
+              />
+
+              <Typography
+                sx={{
+                  fontWeight: 600,
+                }}
+              >
+                Không có đề nào
+              </Typography>
+            </Box>
+          ) : (
+            <Stack spacing={1}>
+              {docs.map((docItem) => {
+                const isSelected =
+                  selectedDoc === docItem.id;
+
+                return (
+                  <Box
+                    key={docItem.id}
+                    onClick={() =>
+                      setSelectedDoc(docItem.id)
+                    }
+                    sx={{
+                      p: 1.6,
+                      borderRadius: "5px",
+                      cursor: "pointer",
+                      transition: ".18s",
+
+                      border: isSelected
+                        ? "2px solid #1976d2"
+                        : "1px solid #e2e8f0",
+
+                      bgcolor: isSelected
+                        ? "#f0f7ff"
+                        : "#fff",
+
+                      "&:hover": {
+                        bgcolor: "#f8fbff",
+                        borderColor: "#90caf9",
+                      },
+                    }}
+                  >
+                    <Stack
+                      direction="row"
+                      alignItems="center"
+                      spacing={1.5}
+                    >
+                      {/* TITLE */}
+                      <Typography
+                        sx={{
+                          flex: 1,
+                          fontSize: 15,
+                          fontWeight: 500,
+                          color: "#1e293b",
+                          lineHeight: 1.5,
+                          fontFamily: "Roboto, sans-serif",
+                        }}
+                      >
+                        {docItem.id}
+                      </Typography>
+
+                      {/* RADIO */}
+                      <Box
+                        sx={{
+                          width: 18,
+                          height: 18,
+                          borderRadius: "50%",
+
+                          border: isSelected
+                            ? "5px solid #1976d2"
+                            : "2px solid #cbd5e1",
+
+                          transition: ".2s",
+                          flexShrink: 0,
+                        }}
+                      />
+                    </Stack>
+                  </Box>
+                );
+              })}
+            </Stack>
+          )}
+        </Box>
+      </DialogContent>
+
+      {/* FOOTER */}
+      <DialogActions
+        sx={{
+          px: 3,
+          pb: 3,
+          pt: 1,
+          justifyContent: "space-between",
+          flexShrink: 0,
+        }}
+      >
+        <Button
+          onClick={onClose}
+          sx={{
+            textTransform: "none",
+            color: "#64748b",
+            fontWeight: 600,
+          }}
+        >
+          Đóng
+        </Button>
+
+        <Button
+          variant="contained"
+          color="error"
+          disabled={!selectedDoc}
+          startIcon={<DeleteOutlineIcon />}
+          onClick={handleDeleteClick}
+          sx={{
+            textTransform: "none",
+            borderRadius: "12px",
+            px: 3,
+            fontWeight: 700,
+            boxShadow: "none",
+          }}
+        >
+          Xóa đề
+        </Button>
+      </DialogActions>
+    </Dialog>
+
+    {/* CONFIRM DELETE */}
+    <DeleteConfirmDialog
+      open={openDeleteDialog}
+      onClose={() =>
+        setOpenDeleteDialog(false)
+      }
+      onConfirm={handleConfirmDelete}
+      examName={selectedDoc}
+    />
+
+    {/* SNACKBAR */}
+    <Snackbar
+      open={snackbarOpen}
+      autoHideDuration={3000}
+      onClose={() => setSnackbarOpen(false)}
+      anchorOrigin={{
+        vertical: "bottom",
+        horizontal: "right",
+      }}
+    >
+      <Alert
+        severity="success"
+        variant="filled"
+        sx={{
+          borderRadius: "12px",
+          fontWeight: 600,
+        }}
+      >
+        ✅ Đã xóa đề thành công
+      </Alert>
+    </Snackbar>
+  </>
+);
 };
 
 export default OpenExamDialog;

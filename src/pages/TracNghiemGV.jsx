@@ -44,6 +44,8 @@ import ExportSourceDialog from "../dialog/ExportSourceDialog";
 import { exportQuestionsToWord } from "../utils/exportQuizWORD";
 import { handleImportWordQuiz } from "../utils/importWordQuiz";
 
+import DeleteQuestionDialog from "../dialog/DeleteQuestionDialog";
+
 import { exportQuestionsToJSON } from "../utils/exportJson_importJson.js";
 import { importQuestionsFromJSON } from "../utils/exportJson_importJson.js";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -55,6 +57,7 @@ import { cleanAnswersFieldInAllQuizzes } from "../utils/cleanAnswersField";
 import { handleUploadExcel } from "../utils/uploadExcel";
 import mammoth from "mammoth";
 import { normalizeQuestion } from "../utils/normalizeQuestion";
+import RefreshIcon from "@mui/icons-material/Refresh";
 
 const normalizeOptionsForUI = (options = []) => {
   return options.map((opt) => {
@@ -121,6 +124,9 @@ export default function TracNghiemGV() {
   const [openFirestoreDialog, setOpenFirestoreDialog] = useState(false);
   const wordInputRef = useRef(null);
   const [openExport, setOpenExport] = useState(false);
+
+  const [openDelete, setOpenDelete] = useState(false);
+  const [deleteIndex, setDeleteIndex] = useState(null);
 
   const weeks =
     String(semester) === "1"
@@ -471,25 +477,23 @@ export default function TracNghiemGV() {
     });
   };
 
-  const handleDeleteQuestion = async (index) => {
-    if (!window.confirm(`Xóa câu hỏi ${index + 1}?`)) return;
+  const handleDeleteQuestion = (index) => {
+    setDeleteIndex(index);
+    setOpenDelete(true);
+  };
 
-    const updatedQuestions = questions.filter((_, i) => i !== index);
-    setQuestions(updatedQuestions);
+  const confirmDelete = () => {
+    setQuestions((prev) =>
+      prev.filter((_, i) => i !== deleteIndex)
+    );
 
-    try {
-      const collectionName = getTracNghiemCollection(selectedClass);
-      if (!collectionName) return;
+    setOpenDelete(false);
+    setDeleteIndex(null);
+  };
 
-      await updateDoc(doc(db, collectionName, lesson), {
-        questions: updatedQuestions,
-      });
-
-      localStorage.setItem("teacherQuiz", JSON.stringify(updatedQuestions));
-      setSnackbar({ open: true, message: "✅ Xóa câu hỏi thành công", severity: "success" });
-    } catch (err) {
-      setSnackbar({ open: true, message: "❌ Xóa thất bại", severity: "error" });
-    }
+  const handleCancelDelete = () => {
+    setOpenDelete(false);
+    setDeleteIndex(null);
   };
 
   /*const handleSaveAll = () => {
@@ -859,6 +863,44 @@ const getDefaultName = () => {
   return `${cls} - ${les}`;
 };
 
+const handleReloadExam = async () => {
+  if (!selectedClass || !lesson) return;
+
+  try {
+    // 🔥 xóa cache trước
+    const CACHE_KEY = `teacher_quiz_${selectedClass}_${lesson}`;
+
+    localStorage.removeItem(CACHE_KEY);
+
+    setQuizCache((prev) => {
+      if (!prev) return {};
+      const next = { ...prev };
+      delete next[CACHE_KEY];
+      return next;
+    });
+
+    // 🔥 load lại từ firestore
+    await fetchExam({
+      selectedClass,
+      lessonFullName: lesson,
+    });
+
+    setSnackbar({
+      open: true,
+      message: "✅ Đã tải lại đề",
+      severity: "success",
+    });
+  } catch (err) {
+    console.error(err);
+
+    setSnackbar({
+      open: true,
+      message: "❌ Không tải lại được đề",
+      severity: "error",
+    });
+  }
+};
+
   // ===== RENDER =====
   return (
     <Box sx={{ minHeight: "100vh", pt: 10, px: 3, backgroundColor: "#e3f2fd", display: "flex", justifyContent: "center" }}>
@@ -989,41 +1031,103 @@ const getDefaultName = () => {
             {/* BÀI HỌC */}
             {!isAddingLesson ? (
               // ===== DROPDOWN =====
-              <FormControl size="small" sx={{ flex: 1 }}>
-                <InputLabel>Bài học</InputLabel>
-                <Select
-                  value={lesson}
-                  label="Bài học"
-                  onChange={async (e) => {
-                    const value = e.target.value;
+              <Stack direction="row" spacing={1} sx={{ flex: 1 }}>
+                <FormControl size="small" sx={{ flex: 1 }}>
+                  <InputLabel>Bài học</InputLabel>
 
-                    setLesson(value);
-                    setLessonInput(value); // 🔥 sync luôn
+                  <Select
+                    value={lesson}
+                    label="Bài học"
+                    onChange={async (e) => {
+                      const value = e.target.value;
 
-                    if (!value) {
-                      setQuestions([createEmptyQuestion()]);
-                      return;
-                    }
+                      setLesson(value);
+                      setLessonInput(value);
 
-                    await setDoc(doc(db, "CONFIG", "config"), {
-                      selectedClass,
-                      lesson: value,
-                    }, { merge: true });
+                      if (!value) {
+                        setQuestions([createEmptyQuestion()]);
+                        return;
+                      }
 
-                    fetchExam({
-                      selectedClass,
-                      lessonFullName: value,
-                    });
-                  }}
-                >
-                  <MenuItem value="">Chọn</MenuItem>
-                  {lessonsFromFirestore.map((l) => (
-                    <MenuItem key={l} value={l}>
-                      {l}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+                      await setDoc(
+                        doc(db, "CONFIG", "config"),
+                        {
+                          selectedClass,
+                          lesson: value,
+                        },
+                        { merge: true }
+                      );
+
+                      fetchExam({
+                        selectedClass,
+                        lessonFullName: value,
+                      });
+                    }}
+                  >
+                    <MenuItem value="">Chọn</MenuItem>
+
+                    {lessonsFromFirestore.map((l) => (
+                      <MenuItem key={l} value={l}>
+                        {l}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+
+                {/* 🔥 Reload đề */}
+                <Tooltip title="Tải lại đề">
+                  <span>
+                    <IconButton
+                      disabled={!lesson}
+                      onClick={async () => {
+                        try {
+                          const CACHE_KEY = `teacher_quiz_${selectedClass}_${lesson}`;
+
+                          // 🔥 xóa cache local
+                          localStorage.removeItem(CACHE_KEY);
+
+                          // 🔥 xóa cache context
+                          setQuizCache((prev) => {
+                            if (!prev) return {};
+
+                            const next = { ...prev };
+                            delete next[CACHE_KEY];
+
+                            return next;
+                          });
+
+                          // 🔥 load lại từ firestore
+                          await fetchExam({
+                            selectedClass,
+                            lessonFullName: lesson,
+                          });
+
+                          /*setSnackbar({
+                            open: true,
+                            message: "✅ Đã tải lại đề",
+                            severity: "success",
+                          });*/
+
+                        } catch (err) {
+                          console.error(err);
+
+                          setSnackbar({
+                            open: true,
+                            message: "❌ Không tải lại được đề",
+                            severity: "error",
+                          });
+                        }
+                      }}
+                      sx={{
+                        border: "1px solid #d0d7de",
+                        borderRadius: 1.5,
+                      }}
+                    >
+                      <RefreshIcon />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+              </Stack>
             ) : (
               // ===== INPUT NHẬP TÊN + NÚT X =====
               <TextField
@@ -1040,7 +1144,50 @@ const getDefaultName = () => {
                           size="small"
                           edge="end"
                           onClick={() => {
-                            // gán callback reset dữ liệu
+                            // 🔥 kiểm tra có dữ liệu hay chưa
+                            const hasLessonName = lessonInput.trim() !== "";
+
+                            const hasQuestionData = questions.some((q) => {
+                              return (
+                                q.question?.trim() ||
+                                q.title?.trim() ||
+                                q.questionImage ||
+                                q.options?.some((opt) => {
+                                  if (typeof opt === "string") {
+                                    return opt.trim();
+                                  }
+
+                                  return (
+                                    opt?.text?.trim() ||
+                                    opt?.image
+                                  );
+                                }) ||
+                                q.answers?.length > 0 ||
+                                q.pairs?.length > 0
+                              );
+                            });
+
+                            const hasData = hasLessonName || hasQuestionData;
+
+                            // ===== KHÔNG CÓ DỮ LIỆU → THOÁT LUÔN =====
+                            if (!hasData) {
+                              setIsAddingLesson(false);
+                              localStorage.removeItem("isAddingLesson");
+
+                              setLessonInput("");
+
+                              if (prevLesson) {
+                                setLesson(prevLesson);
+                                setQuestions(prevQuestions);
+                              } else {
+                                setLesson("");
+                                setQuestions([createEmptyQuestion()]);
+                              }
+
+                              return;
+                            }
+
+                            // ===== CÓ DỮ LIỆU → MỞ DIALOG =====
                             setOnConfirmExit(() => () => {
                               setIsAddingLesson(false);
                               localStorage.removeItem("isAddingLesson");
@@ -1055,10 +1202,9 @@ const getDefaultName = () => {
                                 setQuestions([createEmptyQuestion()]);
                               }
 
-                              setOpenExitDialog(false); // đóng dialog
+                              setOpenExitDialog(false);
                             });
 
-                            // mở dialog cảnh báo
                             setOpenExitDialog(true);
                           }}
                         >
@@ -1193,6 +1339,13 @@ const getDefaultName = () => {
             // 🔥 QUAN TRỌNG: KHÔNG bỏ qua confirm flow
             setOpenFirestoreDialog(false);
           }}
+        />
+
+        <DeleteQuestionDialog
+          open={openDelete}
+          onClose={() => setOpenDelete(false)}
+          onConfirm={confirmDelete}
+          index={deleteIndex}
         />
 
         <Snackbar

@@ -1,4 +1,3 @@
-// src/dialog/ExitAddLessonDialog.jsx
 import React from "react";
 import {
   Dialog,
@@ -10,14 +9,9 @@ import {
   Box,
   Stack,
 } from "@mui/material";
-
 import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 
-const ExitAddLessonDialog = ({
-  open,
-  onClose,
-  onConfirmExit,
-}) => {
+const DeleteConfirmDialog = ({ open, onClose, onConfirm }) => {
   return (
     <Dialog
       open={open}
@@ -28,6 +22,7 @@ const ExitAddLessonDialog = ({
         sx: {
           borderRadius: 3,
           p: 1,
+          //bgcolor: "#e3f2fd", // giữ nền giống dialog hệ thống
         },
       }}
     >
@@ -42,14 +37,14 @@ const ExitAddLessonDialog = ({
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              bgcolor: "rgba(255, 152, 0, 0.12)",
+              bgcolor: "rgba(244, 67, 54, 0.12)",
             }}
           >
-            <WarningAmberRoundedIcon sx={{ color: "#ff9800" }} />
+            <WarningAmberRoundedIcon sx={{ color: "#f44336" }} />
           </Box>
 
-          <Typography fontWeight={600}>
-            Thoát thêm bài học
+          <Typography fontWeight={600} color="#d32f2f">
+            Xác nhận xóa
           </Typography>
         </Stack>
       </DialogTitle>
@@ -64,9 +59,13 @@ const ExitAddLessonDialog = ({
             mt: 1,
           }}
         >
-          Dữ liệu chưa lưu sẽ bị mất nếu bạn thoát khỏi chế độ thêm bài học.
+          Bạn có chắc chắn muốn xóa đề thi này?
           <br />
-          Bạn có chắc chắn muốn tiếp tục?
+          Hành động này{" "}
+          <Box component="span" sx={{ fontWeight: 600 }}>
+            không thể hoàn tác
+          </Box>
+          .
         </Typography>
       </DialogContent>
 
@@ -83,21 +82,22 @@ const ExitAddLessonDialog = ({
               fontWeight: 600,
             }}
           >
-            Huỷ
+            Hủy
           </Button>
 
           <Button
-            onClick={onConfirmExit}
+            onClick={onConfirm}
             variant="contained"
-            color="warning"
+            color="error"
             fullWidth
             sx={{
               borderRadius: 2,
               textTransform: "none",
               fontWeight: 600,
+              boxShadow: "none",
             }}
           >
-            Thoát
+            Xóa
           </Button>
         </Stack>
       </DialogActions>
@@ -105,4 +105,4 @@ const ExitAddLessonDialog = ({
   );
 };
 
-export default ExitAddLessonDialog;
+export default DeleteConfirmDialog;

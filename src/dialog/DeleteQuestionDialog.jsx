@@ -1,4 +1,3 @@
-// src/dialog/ExitAddLessonDialog.jsx
 import React from "react";
 import {
   Dialog,
@@ -10,13 +9,13 @@ import {
   Box,
   Stack,
 } from "@mui/material";
-
 import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 
-const ExitAddLessonDialog = ({
+const ConfirmDeleteDialog = ({
   open,
   onClose,
-  onConfirmExit,
+  onConfirm,
+  index,
 }) => {
   return (
     <Dialog
@@ -28,6 +27,7 @@ const ExitAddLessonDialog = ({
         sx: {
           borderRadius: 3,
           p: 1,
+          //bgcolor: "#e3f2fd", // giữ nền giống dialog hệ thống
         },
       }}
     >
@@ -49,7 +49,7 @@ const ExitAddLessonDialog = ({
           </Box>
 
           <Typography fontWeight={600}>
-            Thoát thêm bài học
+            Xác nhận xoá
           </Typography>
         </Stack>
       </DialogTitle>
@@ -64,9 +64,12 @@ const ExitAddLessonDialog = ({
             mt: 1,
           }}
         >
-          Dữ liệu chưa lưu sẽ bị mất nếu bạn thoát khỏi chế độ thêm bài học.
-          <br />
-          Bạn có chắc chắn muốn tiếp tục?
+          Bạn có chắc chắn muốn xoá câu hỏi{" "}
+          <Box component="span" sx={{ fontWeight: 600 }}>
+            #{index + 1}
+          </Box>
+          ?<br />
+          Hành động này không thể hoàn tác.
         </Typography>
       </DialogContent>
 
@@ -87,9 +90,9 @@ const ExitAddLessonDialog = ({
           </Button>
 
           <Button
-            onClick={onConfirmExit}
+            onClick={onConfirm}
             variant="contained"
-            color="warning"
+            color="error"
             fullWidth
             sx={{
               borderRadius: 2,
@@ -97,7 +100,7 @@ const ExitAddLessonDialog = ({
               fontWeight: 600,
             }}
           >
-            Thoát
+            Xoá
           </Button>
         </Stack>
       </DialogActions>
@@ -105,4 +108,4 @@ const ExitAddLessonDialog = ({
   );
 };
 
-export default ExitAddLessonDialog;
+export default ConfirmDeleteDialog;

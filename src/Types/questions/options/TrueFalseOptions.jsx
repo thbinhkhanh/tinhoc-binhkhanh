@@ -19,6 +19,7 @@ import FormatBoldIcon from "@mui/icons-material/FormatBold";
 import FormatItalicIcon from "@mui/icons-material/FormatItalic";
 import FormatUnderlinedIcon from "@mui/icons-material/FormatUnderlined";
 import UnsupportedImageDialog from "../../../dialog/UnsupportedImageDialog";
+import EditTrueFalseDialog from "../../../dialog/EditTrueFalseDialog";
 
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
@@ -32,6 +33,14 @@ const TrueFalseOptions = ({ q, qi, update }) => {
   const [activeIndex, setActiveIndex] = useState(null);
 
   const [openDialog, setOpenDialog] = useState(false);
+  const [editingLabel, setEditingLabel] = useState(null);
+  const [tempLabel, setTempLabel] = useState("");
+  const trueLabel = q.trueLabel ?? "Đúng";
+  const falseLabel = q.falseLabel ?? "Sai";
+  const [openEdit, setOpenEdit] = useState(false);
+  const [editTrue, setEditTrue] = useState("");
+  const [editFalse, setEditFalse] = useState("");
+ 
 
   const ALLOWED_TYPES = [
     "image/png",
@@ -109,18 +118,58 @@ const TrueFalseOptions = ({ q, qi, update }) => {
           </Box>
 
           {/* True/False Select */}
-          <FormControl size="small" sx={{ width: 120 }}>
+        
+          <FormControl size="small" sx={{ width: 140 }}>
             <Select
               value={q.correct?.[oi] || ""}
+              displayEmpty
               onChange={(e) => {
+                const value = e.target.value;
+
+                // nếu chọn chỉnh sửa thì không update value
+                if (value === "__edit_labels__") {
+                  setEditTrue(trueLabel);
+                  setEditFalse(falseLabel);
+                  setOpenEdit(true);
+                  return;
+                }
+
                 const newCorrect = [...(q.correct || [])];
-                newCorrect[oi] = e.target.value;
-                update(qi, { correct: newCorrect });
+                newCorrect[oi] = value;
+
+                update(qi, {
+                  ...q,
+                  correct: newCorrect,
+                });
+              }}
+              renderValue={(selected) => {
+                if (!selected) return "Chọn";
+
+                if (selected === "Đ") return trueLabel;
+                if (selected === "S") return falseLabel;
+
+                return selected;
               }}
             >
               <MenuItem value="">Chọn</MenuItem>
-              <MenuItem value="Đ">Đúng</MenuItem>
-              <MenuItem value="S">Sai</MenuItem>
+
+              <MenuItem value="Đ">{trueLabel}</MenuItem>
+
+              <MenuItem value="S">{falseLabel}</MenuItem>
+
+              {/* 👇 MENU CHỈNH SỬA */}
+              <MenuItem
+                value="__edit_labels__"
+                sx={{
+                  borderTop: "1px solid #eee",
+                  mt: 1,
+                  pt: 1,
+                  color: "primary.main",
+                  fontWeight: 500,
+                }}
+              >
+                Chỉnh sửa nhãn…
+              </MenuItem>
             </Select>
           </FormControl>
 
@@ -218,6 +267,24 @@ const TrueFalseOptions = ({ q, qi, update }) => {
       <UnsupportedImageDialog
         open={openDialog}
         onClose={() => setOpenDialog(false)}
+      />
+
+      <EditTrueFalseDialog
+        open={openEdit}
+        onClose={() => setOpenEdit(false)}
+        editTrue={editTrue}
+        setEditTrue={setEditTrue}
+        editFalse={editFalse}
+        setEditFalse={setEditFalse}
+        onSave={() => {
+          update(qi, {
+            ...q,
+            trueLabel: editTrue || "Đúng",
+            falseLabel: editFalse || "Sai",
+          });
+
+          setOpenEdit(false);
+        }}
       />
 
     </Stack>
