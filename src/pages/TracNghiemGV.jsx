@@ -901,117 +901,188 @@ const handleReloadExam = async () => {
   }
 };
 
+const moveQuestionUp = (index) => {
+  if (index === 0) return;
+
+  setQuestions((prev) => {
+    const newArr = [...prev];
+    [newArr[index - 1], newArr[index]] = [newArr[index], newArr[index - 1]];
+    return newArr;
+  });
+};
+
+const moveQuestionDown = (index) => {
+  setQuestions((prev) => {
+    if (index === prev.length - 1) return prev;
+
+    const newArr = [...prev];
+    [newArr[index + 1], newArr[index]] = [newArr[index], newArr[index + 1]];
+    return newArr;
+  });
+};
+
+const moveQuestionTop = (index) => {
+  setQuestions((prev) => {
+    const arr = [...prev];
+    const item = arr.splice(index, 1)[0];
+    arr.unshift(item);
+    return arr;
+  });
+};
+
+const moveQuestionBottom = (index) => {
+  setQuestions((prev) => {
+    const arr = [...prev];
+    const item = arr.splice(index, 1)[0];
+    arr.push(item);
+    return arr;
+  });
+};
+
   // ===== RENDER =====
   return (
-    <Box sx={{ minHeight: "100vh", pt: 10, px: 3, backgroundColor: "#e3f2fd", display: "flex", justifyContent: "center" }}>
-      <Card elevation={4} sx={{ width: "100%", maxWidth: 970, p: 3, borderRadius: 3, position: "relative" }}>
-        {/* BUTTONS */}
-        <Stack
-          direction="row"
-          spacing={1}
-          sx={{ position: "absolute", top: 8, left: 8 }}
+    <Box
+      sx={{
+        height: "90vh",
+        bgcolor: "#e3f2fd",
+        display: "flex",
+        justifyContent: "center",
+        overflow: "hidden",
+        pt: 7,
+        px: 3,
+      }}
+    >
+      {/* ================= WRAPPER ================= */}
+      <Box
+        sx={{
+          width: "100%",
+          maxWidth: 970,
+          display: "flex",
+          flexDirection: "column",
+          height: "100%",
+          overflow: "hidden",
+        }}
+      >
+
+        {/* ================= CARD 1: TOOLBAR + FORM ================= */}
+        <Card
+          elevation={3}
+          sx={{
+            flexShrink: 0,
+            //mt: 1,
+            mb: 1,
+            borderRadius: 2,
+            bgcolor: "rgba(255,255,255,0.92)",
+            backdropFilter: "blur(14px)",
+            overflow: "visible",
+            border: "1px solid rgba(0,0,0,0.05)",
+          }}
         >
-          <Tooltip title="Thêm bài học">
-            <IconButton
-              onClick={handleAddLesson} // reuse logic nút Thêm bài học
-              sx={{ color: "#1976d2" }}
+
+          {/* ================= HEADER: TOOLBAR + TITLE (CÙNG HÀNG) ================= */}
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              px: 2,
+              py: 1,
+              borderBottom: "1px solid rgba(0,0,0,0.06)",
+            }}
+          >
+
+            {/* ===== TOOLBAR (LEFT) ===== */}
+            <Stack direction="row" spacing={1} alignItems="center">
+
+              <Tooltip title="Thêm bài học">
+                <IconButton onClick={handleAddLesson} sx={{ color: "#1976d2" }}>
+                  <Box sx={{ fontSize: 22, fontWeight: "bold" }}>+</Box>
+                </IconButton>
+              </Tooltip>
+
+              <Tooltip title="Lưu đề">
+                <IconButton onClick={handleSaveAll} sx={{ color: "#1976d2" }}>
+                  <SaveIcon />
+                </IconButton>
+              </Tooltip>
+
+              <Tooltip title="Xóa đề trắc nghiệm">
+                <IconButton
+                  onClick={() => setOpenDeleteDialog(true)}
+                  sx={{ color: "#f57c00" }}
+                >
+                  <DeleteIcon />
+                </IconButton>
+              </Tooltip>
+
+              <Tooltip title="Xuất đề">
+                <IconButton onClick={() => setOpenExport(true)} sx={{ color: "#2e7d32" }}>
+                  <DownloadIcon />
+                </IconButton>
+              </Tooltip>
+
+              <Tooltip title="Nhập đề">
+                <IconButton
+                  onClick={() => setOpenImportSourceDialog(true)}
+                  sx={{ color: "#ed6c02" }}
+                >
+                  <UploadFileIcon />
+                </IconButton>
+              </Tooltip>
+
+              {/* hidden inputs */}
+              <input
+                type="file"
+                accept=".xlsx,.xls"
+                ref={excelInputRef}
+                style={{ display: "none" }}
+                onChange={handleFileChange}
+              />
+              <input
+                type="file"
+                accept=".json"
+                ref={fileInputRef}
+                style={{ display: "none" }}
+                onChange={handleImportJSON}
+              />
+              <input
+                type="file"
+                accept=".docx"
+                ref={wordInputRef}
+                style={{ display: "none" }}
+                onChange={handleImportWord}
+              />
+            </Stack>
+
+            {/* ===== TITLE (RIGHT) ===== */}
+            <Box
+              sx={{
+                px: 1.5,
+                py: 0.5,
+                borderRadius: 2,
+                bgcolor: "rgba(25,118,210,0.08)",
+              }}
             >
-              <Box
+              <Typography
                 sx={{
-                  fontSize: 24,
-                  fontWeight: "bold",
-                  lineHeight: 1,
+                  fontSize: "1.3rem",
+                  fontWeight: 700,
+                  color: "#1976d2",
+                  letterSpacing: 0.5,
                 }}
               >
-                +
-              </Box>
-            </IconButton>
-          </Tooltip>
+                TẠO ĐỀ KIỂM TRA
+              </Typography>
+            </Box>
 
-          <Tooltip title="Lưu đề">
-            <IconButton onClick={handleSaveAll} sx={{ color: "#1976d2" }}>
-              <SaveIcon />
-            </IconButton>
-          </Tooltip>
+          </Box>
 
-          {/*<Tooltip title="Tải tên bài học từ Excel">
-            <IconButton onClick={handleUploadClick} sx={{ color: "#1976d2" }}>
-              <UploadFileIcon /> 
-            </IconButton>
-          </Tooltip>*/}
-
-          {/* 🗑️ ICON XÓA ĐỀ */}
-          <Tooltip title="Xóa đề trắc nghiệm">
-            <IconButton
-              onClick={() => setOpenDeleteDialog(true)}
-              sx={{ color: "#f57c00" }}   // cam cảnh báo
-            >
-              <DeleteIcon />
-            </IconButton>
-          </Tooltip>
-
-          <input
-            type="file"
-            accept=".xlsx,.xls"
-            ref={excelInputRef}
-            style={{ display: "none" }}
-            onChange={handleFileChange}
-          />
-
-          {/* Export */}
-          <Tooltip title="Xuất đề kiểm tra">
-            <IconButton
-              onClick={() => setOpenExport(true)}
-              sx={{ color: "#2e7d32" }}
-            >
-              <DownloadIcon />
-            </IconButton>
-          </Tooltip>
-
-          {/* Import */} 
-          <Tooltip title="Nhập đề kiểm tra">
-            <IconButton
-              onClick={() => setOpenImportSourceDialog(true)}
-              sx={{ color: "#ed6c02" }}
-            >
-              <UploadFileIcon />
-            </IconButton>
-          </Tooltip>
-
-          {/* Input file ẩn */}
-          <input
-            type="file"
-            accept=".json"
-            ref={fileInputRef}
-            style={{ display: "none" }}
-            onChange={handleImportJSON}
-          />
-
-          <input
-            type="file"
-            accept=".docx"
-            ref={wordInputRef}
-            style={{ display: "none" }}
-            onChange={handleImportWord}
-          />
-
-          {/* Xóa answers [] */}
-          {/*<Tooltip title="Xóa toàn bộ answers">
-            <IconButton
-              onClick={handleCleanAnswers}
-              sx={{ color: "#d32f2f" }}
-            >
-              🧹
-            </IconButton>
-          </Tooltip>*/}
-        </Stack>
-
-        <Typography variant="h5" fontWeight="bold" textAlign="center" sx={{ mt: 3, mb: 2, color: "#1976d2" }}>
-          SOẠN ĐỀ TRẮC NGHIỆM
-        </Typography>
-
-        <Paper elevation={2} sx={{ p: 2, mb: 3 }}>
-          <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
+          {/* ================= FORM (DƯỚI HEADER, KHÔNG CÙNG HÀNG) ================= */}
+          <Stack
+            direction={{ xs: "column", md: "row" }}
+            spacing={2}
+            sx={{ px: 2, py: 2 }}
+          >
 
             {/* LỚP */}
             <FormControl size="small" sx={{ minWidth: 150 }}>
@@ -1023,14 +1094,15 @@ const handleReloadExam = async () => {
               >
                 <MenuItem value="">Chọn</MenuItem>
                 {classes.map((c) => (
-                  <MenuItem key={c} value={c}>{c}</MenuItem>
+                  <MenuItem key={c} value={c}>
+                    {c}
+                  </MenuItem>
                 ))}
               </Select>
             </FormControl>
 
             {/* BÀI HỌC */}
             {!isAddingLesson ? (
-              // ===== DROPDOWN =====
               <Stack direction="row" spacing={1} sx={{ flex: 1 }}>
                 <FormControl size="small" sx={{ flex: 1 }}>
                   <InputLabel>Bài học</InputLabel>
@@ -1051,10 +1123,7 @@ const handleReloadExam = async () => {
 
                       await setDoc(
                         doc(db, "CONFIG", "config"),
-                        {
-                          selectedClass,
-                          lesson: value,
-                        },
+                        { selectedClass, lesson: value },
                         { merge: true }
                       );
 
@@ -1065,7 +1134,6 @@ const handleReloadExam = async () => {
                     }}
                   >
                     <MenuItem value="">Chọn</MenuItem>
-
                     {lessonsFromFirestore.map((l) => (
                       <MenuItem key={l} value={l}>
                         {l}
@@ -1074,62 +1142,32 @@ const handleReloadExam = async () => {
                   </Select>
                 </FormControl>
 
-                {/* 🔥 Reload đề */}
+                {/* refresh */}
                 <Tooltip title="Tải lại đề">
-                  <span>
-                    <IconButton
-                      disabled={!lesson}
-                      onClick={async () => {
-                        try {
-                          const CACHE_KEY = `teacher_quiz_${selectedClass}_${lesson}`;
+                  <IconButton
+                    disabled={!lesson}
+                    onClick={async () => {
+                      const CACHE_KEY = `teacher_quiz_${selectedClass}_${lesson}`;
 
-                          // 🔥 xóa cache local
-                          localStorage.removeItem(CACHE_KEY);
+                      localStorage.removeItem(CACHE_KEY);
 
-                          // 🔥 xóa cache context
-                          setQuizCache((prev) => {
-                            if (!prev) return {};
+                      setQuizCache((prev) => {
+                        const next = { ...prev };
+                        delete next[CACHE_KEY];
+                        return next;
+                      });
 
-                            const next = { ...prev };
-                            delete next[CACHE_KEY];
-
-                            return next;
-                          });
-
-                          // 🔥 load lại từ firestore
-                          await fetchExam({
-                            selectedClass,
-                            lessonFullName: lesson,
-                          });
-
-                          /*setSnackbar({
-                            open: true,
-                            message: "✅ Đã tải lại đề",
-                            severity: "success",
-                          });*/
-
-                        } catch (err) {
-                          console.error(err);
-
-                          setSnackbar({
-                            open: true,
-                            message: "❌ Không tải lại được đề",
-                            severity: "error",
-                          });
-                        }
-                      }}
-                      sx={{
-                        border: "1px solid #d0d7de",
-                        borderRadius: 1.5,
-                      }}
-                    >
-                      <RefreshIcon />
-                    </IconButton>
-                  </span>
+                      await fetchExam({
+                        selectedClass,
+                        lessonFullName: lesson,
+                      });
+                    }}
+                  >
+                    <RefreshIcon />
+                  </IconButton>
                 </Tooltip>
               </Stack>
             ) : (
-              // ===== INPUT NHẬP TÊN + NÚT X =====
               <TextField
                 label="Nhập tên bài học mới"
                 size="small"
@@ -1144,7 +1182,6 @@ const handleReloadExam = async () => {
                           size="small"
                           edge="end"
                           onClick={() => {
-                            // 🔥 kiểm tra có dữ liệu hay chưa
                             const hasLessonName = lessonInput.trim() !== "";
 
                             const hasQuestionData = questions.some((q) => {
@@ -1153,14 +1190,8 @@ const handleReloadExam = async () => {
                                 q.title?.trim() ||
                                 q.questionImage ||
                                 q.options?.some((opt) => {
-                                  if (typeof opt === "string") {
-                                    return opt.trim();
-                                  }
-
-                                  return (
-                                    opt?.text?.trim() ||
-                                    opt?.image
-                                  );
+                                  if (typeof opt === "string") return opt.trim();
+                                  return opt?.text?.trim() || opt?.image;
                                 }) ||
                                 q.answers?.length > 0 ||
                                 q.pairs?.length > 0
@@ -1169,7 +1200,6 @@ const handleReloadExam = async () => {
 
                             const hasData = hasLessonName || hasQuestionData;
 
-                            // ===== KHÔNG CÓ DỮ LIỆU → THOÁT LUÔN =====
                             if (!hasData) {
                               setIsAddingLesson(false);
                               localStorage.removeItem("isAddingLesson");
@@ -1183,11 +1213,9 @@ const handleReloadExam = async () => {
                                 setLesson("");
                                 setQuestions([createEmptyQuestion()]);
                               }
-
                               return;
                             }
 
-                            // ===== CÓ DỮ LIỆU → MỞ DIALOG =====
                             setOnConfirmExit(() => () => {
                               setIsAddingLesson(false);
                               localStorage.removeItem("isAddingLesson");
@@ -1215,148 +1243,166 @@ const handleReloadExam = async () => {
                   ),
                 }}
               />
-
             )}
-
           </Stack>
-        </Paper>
+        </Card>
 
-        <Stack spacing={3}>
-          {questions.map((q, qi) => (
-            <QuestionCard
-              key={q.id}
-              q={q}
-              qi={qi}
-              updateQuestionAt={updateQuestionAt}
-              handleDeleteQuestion={handleDeleteQuestion}
-              handleSaveAll={handleSaveAll}
-            />
-          ))}
-        </Stack>
-
-        <Stack direction="row" spacing={2} sx={{ mt: 3 }}>
-          <Button variant="contained" onClick={addQuestion}>
-            Thêm câu hỏi
-          </Button>
-        </Stack>
-
-        <OpenExamDialog
-          open={openDeleteDialog}
-          onClose={() => setOpenDeleteDialog(false)}
-        />
-
-        <ExitAddLessonDialog
-          open={openExitDialog}
-          onClose={() => setOpenExitDialog(false)}
-          onConfirmExit={onConfirmExit}
-        />
-
-        {/*<ExportDialog
-          open={openExportDialog}
-          onClose={() => setOpenExportDialog(false)}
-          fileName={fileName}
-          setFileName={setFileName}
-          onConfirm={handleConfirmExport}
-        />*/}
-
-        <ImportModeDialog
-          open={openImportModeDialog}
-          onClose={() => setOpenImportModeDialog(false)}
-          onOverwrite={handleImportOverwrite}
-          onAppend={handleImportAppend}
-        />
-
-        <ImportSourceDialog
-          open={openImportSourceDialog}
-          onClose={() => setOpenImportSourceDialog(false)}
-
-          onSelectJSON={() => {
-            setOpenImportSourceDialog(false);
-            fileInputRef.current?.click();
+        {/* ================= CARD 2: SCROLL QUESTIONS ================= */}
+        <Box
+          sx={{
+            flex: 1,
+            overflowY: "auto",
+            minHeight: 0,
+            mt:0
           }}
-
-          onSelectWord={() => {
-            setOpenImportSourceDialog(false);
-            wordInputRef.current?.click(); // 👈 thêm
-          }}
-
-          onSelectFirestore={() => {
-            setOpenImportSourceDialog(false);
-            setOpenFirestoreDialog(true);
-          }}
-        />
-
-        <ExportSourceDialog
-          open={openExport}
-          onClose={() => setOpenExport(false)}
-
-          onSelectJSON={() => {
-            const fileName = `${selectedClass || "Lop"} - ${lessonInput || lesson || "Bai hoc"}`;
-
-            setOpenExport(false);
-
-            exportQuestionsToJSON({
-              questions,
-              fileName: fileName.trim(),
-            });
-
-            setSnackbar({
-              open: true,
-              message: "✅ Xuất JSON thành công",
-              severity: "success",
-            });
-          }}
-
-          onSelectWord={() => {
-            // 🔥 TÊN FILE WORD = Lớp + Bài
-            const fileName = `${selectedClass || "Lop"} - ${lessonInput || lesson || "Bai hoc"}`;
-
-            setOpenExport(false);
-            handleExportWord(fileName); // 👈 truyền tên vào
-          }}
-        />
-
-        <ImportFromFirestoreDialog
-          open={openFirestoreDialog}
-          onClose={() => setOpenFirestoreDialog(false)}
-          onImport={(importedQuestions) => {
-            const isEmpty =
-              questions.length === 0 ||
-              (questions.length === 1 && !questions[0].question);
-
-            setImportData(importedQuestions);
-
-            if (isEmpty) {
-              setQuestions(importedQuestions);
-              setIsAddingLesson(true);
-              setLesson("");
-              setLessonInput("");
-
-            } else {
-              setOpenImportModeDialog(true); // 👈 giống JSON / Word
-            }
-
-            // 🔥 QUAN TRỌNG: KHÔNG bỏ qua confirm flow
-            setOpenFirestoreDialog(false);
-          }}
-        />
-
-        <DeleteQuestionDialog
-          open={openDelete}
-          onClose={() => setOpenDelete(false)}
-          onConfirm={confirmDelete}
-          index={deleteIndex}
-        />
-
-        <Snackbar
-          open={snackbar.open}
-          autoHideDuration={4000}
-          onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
-          anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         >
-          <Alert severity={snackbar.severity}>{snackbar.message}</Alert>
-        </Snackbar>
-      </Card>
+          <Card elevation={4} sx={{ p: 3, borderRadius: 2 }}>
+            <Stack spacing={3}>
+              {questions.map((q, qi) => (
+                <QuestionCard
+                  key={q.id}
+                  q={q}
+                  qi={qi}
+                  updateQuestionAt={updateQuestionAt}
+                  handleDeleteQuestion={handleDeleteQuestion}
+                  handleSaveAll={handleSaveAll}
+
+                  moveQuestionUp={moveQuestionUp}       // 👈 thêm
+                  moveQuestionDown={moveQuestionDown}   // 👈 thêm
+                  moveQuestionTop={moveQuestionTop}
+                  moveQuestionBottom={moveQuestionBottom}
+                  totalQuestions={questions.length}
+                />
+              ))}
+            </Stack>
+
+            <Stack direction="row" spacing={2} sx={{ mt: 3 }}>
+              <Button variant="contained" onClick={addQuestion}>
+                Thêm câu hỏi
+              </Button>
+            </Stack>
+          </Card>
+        </Box>
+
+        {/* ================= DIALOGS (GIỮ NGUYÊN) ================= */}
+        <OpenExamDialog
+            open={openDeleteDialog}
+            onClose={() => setOpenDeleteDialog(false)}
+          />
+
+          <ExitAddLessonDialog
+            open={openExitDialog}
+            onClose={() => setOpenExitDialog(false)}
+            onConfirmExit={onConfirmExit}
+          />
+
+          {/*<ExportDialog
+            open={openExportDialog}
+            onClose={() => setOpenExportDialog(false)}
+            fileName={fileName}
+            setFileName={setFileName}
+            onConfirm={handleConfirmExport}
+          />*/}
+
+          <ImportModeDialog
+            open={openImportModeDialog}
+            onClose={() => setOpenImportModeDialog(false)}
+            onOverwrite={handleImportOverwrite}
+            onAppend={handleImportAppend}
+          />
+
+          <ImportSourceDialog
+            open={openImportSourceDialog}
+            onClose={() => setOpenImportSourceDialog(false)}
+
+            onSelectJSON={() => {
+              setOpenImportSourceDialog(false);
+              fileInputRef.current?.click();
+            }}
+
+            onSelectWord={() => {
+              setOpenImportSourceDialog(false);
+              wordInputRef.current?.click(); // 👈 thêm
+            }}
+
+            onSelectFirestore={() => {
+              setOpenImportSourceDialog(false);
+              setOpenFirestoreDialog(true);
+            }}
+          />
+
+          <ExportSourceDialog
+            open={openExport}
+            onClose={() => setOpenExport(false)}
+
+            onSelectJSON={() => {
+              const fileName = `${selectedClass || "Lop"} - ${lessonInput || lesson || "Bai hoc"}`;
+
+              setOpenExport(false);
+
+              exportQuestionsToJSON({
+                questions,
+                fileName: fileName.trim(),
+              });
+
+              setSnackbar({
+                open: true,
+                message: "✅ Xuất JSON thành công",
+                severity: "success",
+              });
+            }}
+
+            onSelectWord={() => {
+              // 🔥 TÊN FILE WORD = Lớp + Bài
+              const fileName = `${selectedClass || "Lop"} - ${lessonInput || lesson || "Bai hoc"}`;
+
+              setOpenExport(false);
+              handleExportWord(fileName); // 👈 truyền tên vào
+            }}
+          />
+
+          <ImportFromFirestoreDialog
+            open={openFirestoreDialog}
+            onClose={() => setOpenFirestoreDialog(false)}
+            onImport={(importedQuestions) => {
+              const isEmpty =
+                questions.length === 0 ||
+                (questions.length === 1 && !questions[0].question);
+
+              setImportData(importedQuestions);
+
+              if (isEmpty) {
+                setQuestions(importedQuestions);
+                setIsAddingLesson(true);
+                setLesson("");
+                setLessonInput("");
+
+              } else {
+                setOpenImportModeDialog(true); // 👈 giống JSON / Word
+              }
+
+              // 🔥 QUAN TRỌNG: KHÔNG bỏ qua confirm flow
+              setOpenFirestoreDialog(false);
+            }}
+          />
+
+          <DeleteQuestionDialog
+            open={openDelete}
+            onClose={() => setOpenDelete(false)}
+            onConfirm={confirmDelete}
+            index={deleteIndex}
+          />
+
+          <Snackbar
+            open={snackbar.open}
+            autoHideDuration={4000}
+            onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
+            anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+          >
+            <Alert severity={snackbar.severity}>{snackbar.message}</Alert>
+          </Snackbar>
+
+      </Box>
     </Box>
   );
 }
