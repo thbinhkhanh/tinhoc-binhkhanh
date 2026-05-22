@@ -307,129 +307,407 @@ export default function RestorePage({ open, onClose }) {
 
 
   return (
-    <>
-      <Dialog
-        open={open}
-        onClose={onClose}
-        maxWidth="xs"
-        fullWidth
-        PaperProps={{
-          sx: {
-            borderRadius: 3,
-            p: 3,
-            bgcolor: "#fff",
-            boxShadow: "0 4px 12px rgba(33,150,243,0.15)",
-          },
+  <>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth={false}
+      fullWidth
+      PaperProps={{
+        sx: {
+          width: "100%",
+          maxWidth: "450px",
+
+          borderRadius: "14px",
+          overflow: "hidden",
+
+          background: "#f8fafc",
+          border: "1px solid #e2e8f0",
+
+          boxShadow:
+            "0 10px 35px rgba(0,0,0,0.12)",
+
+          m: 0,
+        },
+      }}
+      sx={{
+        "& .MuiDialog-container": {
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "flex-start",
+
+          pt: "80px",
+          px: "16px",
+        },
+
+        "& .MuiBackdrop-root": {
+          background:
+            "rgba(15,23,42,0.45)",
+          backdropFilter: "blur(2px)",
+        },
+      }}
+    >
+      {/* ===== HEADER ===== */}
+      <Box
+        sx={{
+          px: 3,
+          py: 1.5,
+          background: "#1976d2",
+          color: "#fff",
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-          <Box
-            sx={{
-              bgcolor: "#42a5f5",
-              color: "#fff",
-              borderRadius: "50%",
-              width: 36,
-              height: 36,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              mr: 1.5,
-              fontSize: 18,
-            }}
-          >
-            ♻️
+        <Stack
+          direction="row"
+          alignItems="center"
+          justifyContent="space-between"
+        >
+          <Box>
+            <Typography
+              sx={{
+                fontSize: 17,
+                fontWeight: 700,
+              }}
+            >
+              Phục hồi dữ liệu
+            </Typography>
           </Box>
-          <DialogTitle sx={{ p: 0, fontWeight: "bold", color: "#1565c0" }}>
-            PHỤC HỒI DỮ LIỆU
-          </DialogTitle>
+
           <IconButton
             onClick={onClose}
             sx={{
-              ml: "auto",
-              color: "#f44336",
-              "&:hover": { bgcolor: "rgba(244,67,54,0.1)" },
+              color: "#fff",
+              bgcolor:
+                "rgba(255,255,255,0.12)",
+
+              "&:hover": {
+                bgcolor:
+                  "rgba(255,255,255,0.22)",
+              },
             }}
           >
             <CloseIcon />
           </IconButton>
-        </Box>
+        </Stack>
+      </Box>
 
-        <Button
-          variant="outlined"
-          startIcon={<UploadFileIcon />}
-          onClick={() => fileInputRef.current.click()}
-          sx={{ mb: 1 }}
-        >
-          Chọn file phục hồi (.json)
-        </Button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          hidden
-          accept=".json"
-          onChange={handleFileChange}
-        />
+      {/* ===== CONTENT ===== */}
+      <DialogContent
+        sx={{
+          px: 3,
+          py: 2.5,
+          bgcolor: "#f8fafc",
+        }}
+      >
+        <Stack spacing={2}>
+          {/* CHỌN FILE */}
+          <Box
+            sx={{
+              p: 1.8,
+              borderRadius: "5px",
+              bgcolor: "#fff",
+              border:
+                "1px solid #e2e8f0",
+            }}
+          >
+            <Button
+              variant="outlined"
+              fullWidth
+              startIcon={
+                <UploadFileIcon />
+              }
+              onClick={() =>
+                fileInputRef.current.click()
+              }
+              sx={{
+                textTransform:
+                  "none",
+                borderRadius:
+                  "12px",
+                py: 1,
+                fontWeight: 700,
+              }}
+            >
+              Chọn file phục hồi
+            </Button>
 
-        {selectedFile && (
-          <Typography sx={{ color: "red", fontWeight: "bold", mb: 1 }}>
-            📄 {selectedFile.name}
-          </Typography>
-        )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              hidden
+              accept=".json"
+              onChange={
+                handleFileChange
+              }
+            />
 
-        <DialogContent dividers>
-          <Stack spacing={1}>
-            {/*{renderGroup("Hệ thống", ["CONFIG", "MATKHAU"])}*/}
-            {renderGroup("Dữ liệu", ["DANHSACHLOP", "DATA"])}
-            {/*{renderGroup("Bài học", [
-              "TENBAI_Lop1",
-              "TENBAI_Lop2",
-              "TENBAI_Lop3",
-              "TENBAI_Lop4",
-              "TENBAI_Lop5",
-            ])}*/}
-            {renderGroup("Trắc nghiệm", [
-              "TRACNGHIEM1",
-              "TRACNGHIEM2",
-              "TRACNGHIEM3",
-              "TRACNGHIEM4",
-              "TRACNGHIEM5",
-            ])}
-          </Stack>
-        </DialogContent>
-
-        {loading && (
-          <Box sx={{ width: "50%", mx: "auto", mt: 3 }}>
-            <LinearProgress />
-            <Typography align="center" variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              Đang phục hồi dữ liệu...
-            </Typography>
+            {selectedFile && (
+              <Box
+                sx={{
+                  mt: 1.5,
+                  p: 1.2,
+                  borderRadius:
+                    "10px",
+                  bgcolor:
+                    "#eff6ff",
+                  border:
+                    "1px solid #bfdbfe",
+                }}
+              >
+                <Typography
+                  sx={{
+                    fontSize: 13,
+                    color:
+                      "#1d4ed8",
+                    fontWeight: 600,
+                    wordBreak:
+                      "break-all",
+                  }}
+                >
+                  📄{" "}
+                  {
+                    selectedFile.name
+                  }
+                </Typography>
+              </Box>
+            )}
           </Box>
-        )}
 
+          {/* DỮ LIỆU */}
+          <Box
+            sx={{
+              p: 1.8,
+              borderRadius: "5px",
+              bgcolor: "#fff",
+              border:
+                "1px solid #e2e8f0",
+            }}
+          >
+            <Typography
+              sx={{
+                fontSize: 14,
+                fontWeight: 700,
+                mb: 1,
+                color: "#1e293b",
+              }}
+            >
+              Dữ liệu
+            </Typography>
 
-        <DialogActions>
-          <Button onClick={onClose}>Hủy</Button>
+            <Stack spacing={0.5}>
+              {[
+                "DANHSACHLOP",
+                "DATA",
+              ].map((key) => (
+                <FormControlLabel
+                  key={key}
+                  control={
+                    <Checkbox
+                      checked={
+                        restoreOptions[
+                          key
+                        ] || false
+                      }
+                      disabled={
+                        disabledOptions[
+                          key
+                        ]
+                      }
+                      onChange={() =>
+                        toggleOption(
+                          key
+                        )
+                      }
+                    />
+                  }
+                  label={
+                    BACKUP_KEYS.find(
+                      (b) =>
+                        b.key === key
+                    )?.label
+                  }
+                />
+              ))}
+            </Stack>
+          </Box>
+
+          {/* TRẮC NGHIỆM */}
+          <Box
+            sx={{
+              p: 1.8,
+              borderRadius: "5px",
+              bgcolor: "#fff",
+              border:
+                "1px solid #e2e8f0",
+            }}
+          >
+            <Typography
+              sx={{
+                fontSize: 14,
+                fontWeight: 700,
+                mb: 1,
+                color: "#1e293b",
+              }}
+            >
+              Trắc nghiệm
+            </Typography>
+
+            <Stack spacing={0.5}>
+              {[
+                "TRACNGHIEM1",
+                "TRACNGHIEM2",
+                "TRACNGHIEM3",
+                "TRACNGHIEM4",
+                "TRACNGHIEM5",
+              ].map((key) => (
+                <FormControlLabel
+                  key={key}
+                  control={
+                    <Checkbox
+                      checked={
+                        restoreOptions[
+                          key
+                        ] || false
+                      }
+                      disabled={
+                        disabledOptions[
+                          key
+                        ]
+                      }
+                      onChange={() =>
+                        toggleOption(
+                          key
+                        )
+                      }
+                    />
+                  }
+                  label={
+                    BACKUP_KEYS.find(
+                      (b) =>
+                        b.key === key
+                    )?.label
+                  }
+                />
+              ))}
+            </Stack>
+          </Box>
+
+          {/* PROGRESS */}
+          {loading && (
+            <Box
+              sx={{
+                p: 2,
+                borderRadius: "5px",
+                bgcolor: "#fff",
+                border:
+                  "1px solid #e2e8f0",
+              }}
+            >
+              <Typography
+                sx={{
+                  fontSize: 14,
+                  fontWeight: 600,
+                  mb: 1,
+                  color: "#1e293b",
+                }}
+              >
+                Đang phục hồi dữ liệu...
+              </Typography>
+
+              <LinearProgress
+                sx={{
+                  height: 8,
+                  borderRadius: 999,
+                }}
+              />
+
+              <Typography
+                sx={{
+                  mt: 1,
+                  fontSize: 13,
+                  color: "#64748b",
+                  textAlign:
+                    "center",
+                }}
+              >
+                Vui lòng chờ...
+              </Typography>
+            </Box>
+          )}
+        </Stack>
+      </DialogContent>
+
+      {/* ===== ACTIONS ===== */}
+      <Box
+        sx={{
+          px: 3,
+          py: 2,
+          borderTop:
+            "1px solid #e2e8f0",
+          bgcolor: "#fff",
+        }}
+      >
+        <Stack
+          direction="row"
+          spacing={1.5}
+          justifyContent="flex-end"
+        >
+          <Button
+            onClick={onClose}
+            sx={{
+              textTransform:
+                "none",
+            }}
+          >
+            Hủy
+          </Button>
+
           <Button
             variant="contained"
             startIcon={<RestoreIcon />}
             onClick={handleRestore}
             disabled={loading}
+            sx={{
+              textTransform:
+                "none",
+              borderRadius:
+                "12px",
+              fontWeight: 700,
+              boxShadow: "none",
+
+              "&:hover": {
+                boxShadow: "none",
+              },
+            }}
           >
             Phục hồi
           </Button>
-        </DialogActions>
-      </Dialog>
+        </Stack>
+      </Box>
+    </Dialog>
 
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
-        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+    {/* ===== Snackbar ===== */}
+    <Snackbar
+      open={snackbar.open}
+      autoHideDuration={4000}
+      onClose={() =>
+        setSnackbar((s) => ({
+          ...s,
+          open: false,
+        }))
+      }
+      anchorOrigin={{
+        vertical: "bottom",
+        horizontal: "right",
+      }}
+    >
+      <Alert
+        severity={snackbar.severity}
+        variant="filled"
+        sx={{ width: "100%" }}
       >
-        <Alert severity={snackbar.severity} variant="filled">
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </>
-  );
+        {snackbar.message}
+      </Alert>
+    </Snackbar>
+  </>
+);
 }

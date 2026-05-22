@@ -19,7 +19,7 @@ import { useNavigate } from "react-router-dom";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "../firebase";
 
-const ACCOUNTS = ["Admin"];
+const ACCOUNTS = ["Admin", "LVB"];
 
 export default function Login() {
   const [username, setUsername] = useState(ACCOUNTS[0]);
@@ -34,7 +34,7 @@ export default function Login() {
 
   const handleLogin = async () => {
     try {
-      const docRef = doc(db, "MATKHAU", "Admin");
+      const docRef = doc(db, "MATKHAU", username);
       const docSnap = await getDoc(docRef);
 
       if (!docSnap.exists()) {
@@ -48,7 +48,7 @@ export default function Login() {
 
       const storedPassword = docSnap.data().pass;
 
-      if (username === "Admin" && password === storedPassword) {
+      if (password === String(storedPassword)) {
         // ✅ Lưu trạng thái localStorage ngay
         localStorage.setItem("loggedIn", "true");
         localStorage.setItem("account", username);
@@ -93,71 +93,280 @@ export default function Login() {
   };
 
   return (
-    <Box sx={{ minHeight: "100vh", pt: 10, px: 3, backgroundColor: "#e3f2fd", display: "flex", justifyContent: "center" }}>
-      <Box sx={{ width: { xs: "95%", sm: 400 }, mx: "auto", position: "relative" }}>
-        <Card elevation={10} sx={{ p: 3, borderRadius: 4 }}>
-          <IconButton
-            onClick={handleClose}
-            sx={{ position: "absolute", top: 8, right: 8, color: "red" }}
+  <Box
+    sx={{
+      minHeight: "100vh",
+      background: "#f1f5f9",
+      py: 3,
+      px: 2,
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      fontFamily:
+        '"Roboto","Inter","Arial",sans-serif',
+    }}
+  >
+    <Box
+      sx={{
+        width: "100%",
+        maxWidth: 420,
+      }}
+    >
+      <Card
+        elevation={0}
+        sx={{
+          borderRadius: "14px",
+          overflow: "hidden",
+          background: "#f8fafc",
+          border: "1px solid #e2e8f0",
+          boxShadow:
+            "0 10px 35px rgba(0,0,0,0.12)",
+          position: "relative",
+        }}
+      >
+        {/* ===== HEADER ===== */}
+        <Box
+          sx={{
+            px: 3,
+            py: 1.5,
+            background: "#1976d2",
+            color: "#fff",
+            position: "relative",
+          }}
+        >
+          <Stack
+            direction="row"
+            alignItems="center"
+            justifyContent="space-between"
           >
-            <CloseIcon />
-          </IconButton>
+            <Box>
+              <Typography
+                sx={{
+                  fontSize: 17,
+                  fontWeight: 700,
+                }}
+              >
+                Đăng nhập hệ thống
+              </Typography>
 
-          <Stack spacing={3} alignItems="center">
-            <div style={{ fontSize: 50 }}>🔐</div>
-            <Typography variant="h5" fontWeight="bold" color="primary" textAlign="center">
-              ĐĂNG NHẬP
-            </Typography>
+              {/*<Typography
+                sx={{
+                  fontSize: 13,
+                  opacity: 0.9,
+                  mt: 0.3,
+                }}
+              >
+                Quản trị và soạn đề kiểm tra
+              </Typography>*/}
+            </Box>
 
-            <FormControl fullWidth size="small">
-              <InputLabel>Tài khoản</InputLabel>
+            <IconButton
+              onClick={handleClose}
+              sx={{
+                color: "#fff",
+                bgcolor:
+                  "rgba(255,255,255,0.12)",
+
+                "&:hover": {
+                  bgcolor:
+                    "rgba(255,255,255,0.22)",
+                },
+              }}
+            >
+              <CloseIcon />
+            </IconButton>
+          </Stack>
+        </Box>
+
+        {/* ===== CONTENT ===== */}
+        <Box
+          sx={{
+            px: 3,
+            py: 3,
+          }}
+        >
+          <Stack
+            spacing={2.5}
+            alignItems="center"
+          >
+            {/* ICON */}
+            <Box
+              sx={{
+                width: 82,
+                height: 82,
+                borderRadius: "50%",
+                bgcolor: "#e3f2fd",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 38,
+                border:
+                  "4px solid #fff",
+                boxShadow:
+                  "0 4px 15px rgba(25,118,210,0.15)",
+              }}
+            >
+              🔐
+            </Box>
+
+            {/* TITLE */}
+            <Box textAlign="center">
+              <Typography
+                sx={{
+                  fontSize: 24,
+                  fontWeight: 700,
+                  color: "#1e293b",
+                }}
+              >
+                Chào mừng
+              </Typography>
+
+              <Typography
+                sx={{
+                  fontSize: 14,
+                  color: "#64748b",
+                  mt: 0.5,
+                }}
+              >
+                Vui lòng đăng nhập để tiếp tục
+              </Typography>
+            </Box>
+
+            {/* ACCOUNT */}
+            <FormControl
+              fullWidth
+              size="small"
+            >
+              <InputLabel>
+                Tài khoản
+              </InputLabel>
+
               <Select
                 value={username}
                 label="Tài khoản"
-                onChange={(e) => setUsername(e.target.value)}
+                onChange={(e) =>
+                  setUsername(
+                    e.target.value
+                  )
+                }
+                sx={{
+                  bgcolor: "#fff",
+                  borderRadius: "5px",
+
+                  "& .MuiOutlinedInput-notchedOutline":
+                    {
+                      borderColor:
+                        "#dbe2ea",
+                    },
+
+                  "&.Mui-focused .MuiOutlinedInput-notchedOutline":
+                    {
+                      borderColor:
+                        "#1976d2",
+                      borderWidth: 2,
+                    },
+                }}
               >
-                {ACCOUNTS.map((acc) => (
-                  <MenuItem key={acc} value={acc}>
-                    {acc}
-                  </MenuItem>
-                ))}
+                {ACCOUNTS.map(
+                  (acc) => (
+                    <MenuItem
+                      key={acc}
+                      value={acc}
+                    >
+                      {acc}
+                    </MenuItem>
+                  )
+                )}
               </Select>
             </FormControl>
 
+            {/* PASSWORD */}
             <TextField
               label="Mật khẩu"
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) =>
+                setPassword(
+                  e.target.value
+                )
+              }
               fullWidth
               size="small"
-              onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+              onKeyDown={(e) =>
+                e.key === "Enter" &&
+                handleLogin()
+              }
+              sx={{
+                "& .MuiOutlinedInput-root":
+                  {
+                    bgcolor: "#fff",
+                    borderRadius:
+                      "5px",
+
+                    "& fieldset": {
+                      borderColor:
+                        "#dbe2ea",
+                    },
+
+                    "&.Mui-focused fieldset":
+                      {
+                        borderColor:
+                          "#1976d2",
+                        borderWidth: 2,
+                      },
+                  },
+              }}
             />
 
+            {/* LOGIN BUTTON */}
             <Button
               variant="contained"
-              color="primary"
-              onClick={handleLogin}
               fullWidth
-              sx={{ fontWeight: "bold", textTransform: "none", fontSize: "1rem" }}
+              onClick={handleLogin}
+              sx={{
+                textTransform:
+                  "none",
+                borderRadius:
+                  "12px",
+                py: 1.2,
+                fontWeight: 700,
+                fontSize: 15,
+                boxShadow: "none",
+
+                "&:hover": {
+                  boxShadow: "none",
+                },
+              }}
             >
               🔐 Đăng nhập
             </Button>
           </Stack>
-        </Card>
-      </Box>
-
-      {/* Snackbar */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
-        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-      >
-        <Alert severity={snackbar.severity} variant="filled">
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+        </Box>
+      </Card>
     </Box>
-  );
+
+    {/* ===== Snackbar ===== */}
+    <Snackbar
+      open={snackbar.open}
+      autoHideDuration={4000}
+      onClose={() =>
+        setSnackbar((s) => ({
+          ...s,
+          open: false,
+        }))
+      }
+      anchorOrigin={{
+        vertical: "bottom",
+        horizontal: "right",
+      }}
+    >
+      <Alert
+        severity={snackbar.severity}
+        variant="filled"
+      >
+        {snackbar.message}
+      </Alert>
+    </Snackbar>
+  </Box>
+);
 }

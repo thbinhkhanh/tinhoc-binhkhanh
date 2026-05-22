@@ -273,191 +273,314 @@ export default function BackupPage({ open, onClose }) {
     <Dialog
       open={open}
       onClose={onClose}
-      maxWidth="xs"
-      fullWidth
+      maxWidth={false}
       PaperProps={{
         sx: {
-          borderRadius: 3,
-          p: 3,
-          bgcolor: "#fff",
-          boxShadow: "0 4px 12px rgba(33,150,243,0.15)",
+          width: "100%",
+          maxWidth: 450,
+          borderRadius: "14px",
+          overflow: "hidden",
+          background: "#f8fafc",
+          border: "1px solid #e2e8f0",
+          boxShadow:
+            "0 10px 35px rgba(0,0,0,0.12)",
+          m: 0,
+        },
+      }}
+      sx={{
+        "& .MuiDialog-container": {
+          justifyContent: "center",
+          alignItems: "flex-start",
+          pt: 10, // giống py:10 của mẫu
+          px: 2,  // giống px:2 của mẫu
+        },
+
+        "& .MuiBackdrop-root": {
+          background: "rgba(15,23,42,0.45)",
+          backdropFilter: "blur(2px)",
         },
       }}
     >
-      {/* Header */}
-      <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-        <Box
-          sx={{
-            bgcolor: "#42a5f5",
-            color: "#fff",
-            borderRadius: "50%",
-            width: 36,
-            height: 36,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            mr: 1.5,
-            fontWeight: "bold",
-            fontSize: 18,
-          }}
+      {/* ===== HEADER ===== */}
+      <Box
+        sx={{
+          px: 3,
+          py: 1.5,
+          background: "#1976d2",
+          color: "#fff",
+        }}
+      >
+        <Stack
+          direction="row"
+          alignItems="center"
+          justifyContent="space-between"
         >
-          🗄️
-        </Box>
-        <DialogTitle
-          sx={{ p: 0, fontWeight: "bold", color: "#1565c0", flex: 1 }}
-        >
-          SAO LƯU DỮ LIỆU
-        </DialogTitle>
-        <IconButton
-          onClick={onClose}
-          sx={{
-            ml: "auto",
-            color: "#f44336",
-            "&:hover": { bgcolor: "rgba(244,67,54,0.1)" },
-          }}
-        >
-          <CloseIcon />
-        </IconButton>
+          <Box>
+            <Typography
+              sx={{
+                fontSize: 17,
+                fontWeight: 700,
+              }}
+            >
+              Sao lưu dữ liệu
+            </Typography>
+          </Box>
+
+          <IconButton
+            onClick={onClose}
+            sx={{
+              color: "#fff",
+              bgcolor:
+                "rgba(255,255,255,0.12)",
+
+              "&:hover": {
+                bgcolor:
+                  "rgba(255,255,255,0.22)",
+              },
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </Stack>
       </Box>
 
-      {/* Content */}
-      <DialogContent dividers>
-        <Stack spacing={1}>
-          {/* Hệ thống */}
-          {/*<Typography sx={{ fontSize: "1rem", fontWeight: "bold", color: "error.main" }}>
-            Hệ thống
-          </Typography>
-          <Box sx={{ ml: 3, display: "flex", flexDirection: "column" }}>
-            {["CONFIG", "MATKHAU"].map((key) => (
-              <FormControlLabel
-                key={key}
-                control={
-                  <Checkbox
-                    checked={backupOptions[key] || false}
-                    onChange={() => toggleOption(key)}
-                  />
-                }
-                label={BACKUP_KEYS.find((b) => b.key === key)?.label}
-              />
-            ))}
+      {/* ===== CONTENT ===== */}
+      <DialogContent
+        sx={{
+          px: 3,
+          py: 2.5,
+          bgcolor: "#f8fafc",
+        }}
+      >
+        <Stack spacing={2}>
+          {/* DỮ LIỆU */}
+          <Box
+            sx={{
+              p: 1.8,
+              borderRadius: "5px",
+              bgcolor: "#fff",
+              border:
+                "1px solid #e2e8f0",
+            }}
+          >
+            <Typography
+              sx={{
+                fontSize: 14,
+                fontWeight: 700,
+                mb: 1,
+                color: "#1e293b",
+              }}
+            >
+              Dữ liệu
+            </Typography>
+
+            <Stack spacing={0.5}>
+              {[
+                "DANHSACHLOP",
+                "DATA",
+              ].map((key) => (
+                <FormControlLabel
+                  key={key}
+                  control={
+                    <Checkbox
+                      checked={
+                        backupOptions[
+                          key
+                        ] || false
+                      }
+                      onChange={() =>
+                        toggleOption(
+                          key
+                        )
+                      }
+                    />
+                  }
+                  label={
+                    BACKUP_KEYS.find(
+                      (b) =>
+                        b.key === key
+                    )?.label
+                  }
+                />
+              ))}
+            </Stack>
           </Box>
 
-          <Divider sx={{ mt: 1, mb: 1 }} />*/}
+          {/* TRẮC NGHIỆM */}
+          <Box
+            sx={{
+              p: 1.8,
+              borderRadius: "5px",
+              bgcolor: "#fff",
+              border:
+                "1px solid #e2e8f0",
+            }}
+          >
+            <Typography
+              sx={{
+                fontSize: 14,
+                fontWeight: 700,
+                mb: 1,
+                color: "#1e293b",
+              }}
+            >
+              Trắc nghiệm
+            </Typography>
 
-          {/* Dữ liệu */}
-          <Typography sx={{ fontSize: "1rem", fontWeight: "bold", color: "error.main" }}>
-            Dữ liệu
-          </Typography>
-          <Box sx={{ ml: 3, display: "flex", flexDirection: "column" }}>
-            {["DANHSACHLOP", "DATA"].map((key) => (
-              <FormControlLabel
-                key={key}
-                control={
-                  <Checkbox
-                    checked={backupOptions[key] || false}
-                    onChange={() => toggleOption(key)}
-                  />
-                }
-                label={BACKUP_KEYS.find((b) => b.key === key)?.label}
-              />
-            ))}
+            <Stack spacing={0.5}>
+              {[
+                "TRACNGHIEM1",
+                "TRACNGHIEM2",
+                "TRACNGHIEM3",
+                "TRACNGHIEM4",
+                "TRACNGHIEM5",
+              ].map((key) => (
+                <FormControlLabel
+                  key={key}
+                  control={
+                    <Checkbox
+                      checked={
+                        backupOptions[
+                          key
+                        ] || false
+                      }
+                      onChange={() =>
+                        toggleOption(
+                          key
+                        )
+                      }
+                    />
+                  }
+                  label={
+                    BACKUP_KEYS.find(
+                      (b) =>
+                        b.key === key
+                    )?.label
+                  }
+                />
+              ))}
+            </Stack>
           </Box>
 
-          <Divider sx={{ mt: 1, mb: 1 }} />
+          {/* PROGRESS */}
+          {loading && (
+            <Box
+              sx={{
+                p: 2,
+                borderRadius: "5px",
+                bgcolor: "#fff",
+                border:
+                  "1px solid #e2e8f0",
+              }}
+            >
+              <Typography
+                sx={{
+                  fontSize: 14,
+                  fontWeight: 600,
+                  mb: 1,
+                  color: "#1e293b",
+                }}
+              >
+                Đang sao lưu dữ liệu...
+              </Typography>
 
-          {/* Bài học */}
-          {/*<Typography sx={{ fontSize: "1rem", fontWeight: "bold", color: "error.main" }}>
-            Bài học
-          </Typography>
-          <Box sx={{ ml: 3, display: "flex", flexDirection: "column" }}>
-            {[
-              "TENBAI_Lop1",
-              "TENBAI_Lop2",
-              "TENBAI_Lop3",
-              "TENBAI_Lop4",
-              "TENBAI_Lop5",
-            ].map((key) => (
-              <FormControlLabel
-                key={key}
-                control={
-                  <Checkbox
-                    checked={backupOptions[key] || false}
-                    onChange={() => toggleOption(key)}
-                  />
-                }
-                label={BACKUP_KEYS.find((b) => b.key === key)?.label}
+              <LinearProgress
+                variant="determinate"
+                value={progress}
+                sx={{
+                  height: 8,
+                  borderRadius: 999,
+                }}
               />
-            ))}
-          </Box>
 
-          <Divider sx={{ mt: 1, mb: 1 }} />*/}
-
-          {/* Trắc nghiệm */}
-          <Typography sx={{ fontSize: "1rem", fontWeight: "bold", color: "error.main" }}>
-            Trắc nghiệm
-          </Typography>
-          <Box sx={{ ml: 3, display: "flex", flexDirection: "column" }}>
-            {[
-              "TRACNGHIEM1",
-              "TRACNGHIEM2",
-              "TRACNGHIEM3",
-              "TRACNGHIEM4",
-              "TRACNGHIEM5",
-            ].map((key) => (
-              <FormControlLabel
-                key={key}
-                control={
-                  <Checkbox
-                    checked={backupOptions[key] || false}
-                    onChange={() => toggleOption(key)}
-                  />
-                }
-                label={BACKUP_KEYS.find((b) => b.key === key)?.label}
-              />
-            ))}
-          </Box>
+              <Typography
+                sx={{
+                  mt: 1,
+                  fontSize: 13,
+                  color: "#64748b",
+                  textAlign:
+                    "center",
+                }}
+              >
+                {Math.round(
+                  progress
+                )}
+                %
+              </Typography>
+            </Box>
+          )}
         </Stack>
       </DialogContent>
 
-      {/* Progress */}
-      {loading && (
-        <>
-          <Box sx={{ width: "50%", mx: "auto", mt: 3 }}>
-            <LinearProgress variant="determinate" value={progress} />
-          </Box>
-          <Typography
-            variant="body2"
-            align="center"
-            color="text.secondary"
-            sx={{ mt: 0.5 }}
-          >
-            Đang sao lưu... {Math.round(progress)}%
-          </Typography>
-        </>
-      )}
-
-      {/* Actions */}
-      <DialogActions>
-        <Button onClick={onClose}>Hủy</Button>
-        <Button
-          variant="contained"
-          startIcon={<BackupIcon />}
-          onClick={handleBackup}
-          disabled={loading}
+      {/* ===== ACTIONS ===== */}
+      <Box
+        sx={{
+          px: 3,
+          py: 2,
+          borderTop:
+            "1px solid #e2e8f0",
+          bgcolor: "#fff",
+        }}
+      >
+        <Stack
+          direction="row"
+          spacing={1.5}
+          justifyContent="flex-end"
         >
-          Sao lưu
-        </Button>
-      </DialogActions>
+          <Button
+            onClick={onClose}
+            sx={{
+              textTransform:
+                "none",
+            }}
+          >
+            Hủy
+          </Button>
+
+          <Button
+            variant="contained"
+            startIcon={<BackupIcon />}
+            onClick={handleBackup}
+            disabled={loading}
+            sx={{
+              textTransform:
+                "none",
+              borderRadius:
+                "12px",
+              fontWeight: 700,
+              boxShadow: "none",
+
+              "&:hover": {
+                boxShadow: "none",
+              },
+            }}
+          >
+            Sao lưu
+          </Button>
+        </Stack>
+      </Box>
     </Dialog>
 
-    {/* Snackbar */}
+    {/* ===== Snackbar ===== */}
     <Snackbar
       open={snackbar.open}
       autoHideDuration={4000}
-      onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
-      anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      onClose={() =>
+        setSnackbar((s) => ({
+          ...s,
+          open: false,
+        }))
+      }
+      anchorOrigin={{
+        vertical: "bottom",
+        horizontal: "right",
+      }}
     >
-      <Alert severity={snackbar.severity} variant="filled" sx={{ width: "100%" }}>
+      <Alert
+        severity={snackbar.severity}
+        variant="filled"
+        sx={{ width: "100%" }}
+      >
         {snackbar.message}
       </Alert>
     </Snackbar>

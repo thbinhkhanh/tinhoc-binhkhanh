@@ -211,174 +211,658 @@ export default function QuanTri() {
 
 
   return (
-    <Box sx={{ minHeight: "100vh", pt: 12, px: 3, backgroundColor: "#e3f2fd", display: "flex", justifyContent: "center" }}>
-      <Stack spacing={2} sx={{ width: { xs: "95%", sm: "400px" } }}>
-        <Card elevation={6} sx={{ p: 5, borderRadius: 3 }}>
-          <Typography variant="h5" fontWeight="bold" color="primary" textAlign="center" mb={2}>
-            CẤU HÌNH HỆ THỐNG
-          </Typography>
+  <Box
+    sx={{
+      minHeight: "100vh",
+      background: "#f1f5f9",
+      py: 10,
+      px: 2,
+      display: "flex",
+      justifyContent: "center",
+      fontFamily:
+        '"Roboto","Inter","Arial",sans-serif',
+    }}
+  >
+    <Box
+      sx={{
+        width: "100%",
+        maxWidth: 450,
+      }}
+    >
+      <Card
+        elevation={0}
+        sx={{
+          borderRadius: "14px",
+          overflow: "hidden",
+          background: "#f8fafc",
+          border: "1px solid #e2e8f0",
+          boxShadow:
+            "0 10px 35px rgba(0,0,0,0.12)",
+        }}
+      >
+        {/* ===== HEADER ===== */}
+        <Box
+          sx={{
+            px: 3,
+            py: 1.5,
+            background: "#1976d2",
+            color: "#fff",
+          }}
+        >
+          <Stack
+            direction="row"
+            alignItems="center"
+            justifyContent="space-between"
+          >
+            <Box>
+              <Typography
+                sx={{
+                  fontSize: 17,
+                  fontWeight: 700,
+                }}
+              >
+                Cấu hình hệ thống
+              </Typography>
+            </Box>
 
-          {/* ===== Account + Change PW ===== */}
-          <Box display="flex" justifyContent="center" alignItems="center" mb={2} gap={1}>
-            <Typography fontWeight="bold">{account || "Chưa đăng nhập"}</Typography>
-            <IconButton sx={{ color: "orange" }} onClick={() => setOpenChangePw(true)}>
-              <VpnKeyIcon />
-            </IconButton>
-          </Box>
+            <Tooltip title="Đổi mật khẩu">
+              <IconButton
+                onClick={() =>
+                  setOpenChangePw(true)
+                }
+                sx={{
+                  color: "#fff",
+                  bgcolor:
+                    "rgba(255,255,255,0.12)",
 
-          {/* ===== Năm học / Lớp / Thời gian / Checkboxes ===== */}
+                  "&:hover": {
+                    bgcolor:
+                      "rgba(255,255,255,0.22)",
+                  },
+                }}
+              >
+                <VpnKeyIcon />
+              </IconButton>
+            </Tooltip>
+          </Stack>
+        </Box>
+
+        {/* ===== CONTENT ===== */}
+        <Box
+          sx={{
+            px: 3,
+            py: 2.5,
+          }}
+        >
           <Stack spacing={2}>
-            <FormControl fullWidth size="small" variant="outlined">
-              <InputLabel id="namHoc-label">Năm học</InputLabel>
+            {/* ACCOUNT */}
+            <Box
+              sx={{
+                p: 1.5,
+                borderRadius: "5px",
+                bgcolor: "#fff",
+                border:
+                  "1px solid #e2e8f0",
+              }}
+            >
+              <Typography
+                sx={{
+                  fontSize: 13,
+                  color: "#64748b",
+                  mb: 0.5,
+                }}
+              >
+                Tài khoản đăng nhập
+              </Typography>
+
+              <Typography
+                sx={{
+                  fontWeight: 700,
+                  color: "#1e293b",
+                }}
+              >
+                {account ||
+                  "Chưa đăng nhập"}
+              </Typography>
+            </Box>
+
+            {/* NĂM HỌC */}
+            <FormControl
+              fullWidth
+              size="small"
+            >
+              <InputLabel>
+                Năm học
+              </InputLabel>
+
               <Select
-                labelId="namHoc-label"
                 value={selectedYear}
                 label="Năm học"
-                onChange={(e) => updateConfigField("namHoc", e.target.value, true)}
+                onChange={(e) =>
+                  updateConfigField(
+                    "namHoc",
+                    e.target.value,
+                    true
+                  )
+                }
+                sx={{
+                  bgcolor: "#fff",
+                  borderRadius: "5px",
+
+                  "& .MuiOutlinedInput-notchedOutline":
+                    {
+                      borderColor:
+                        "#dbe2ea",
+                    },
+
+                  "&.Mui-focused .MuiOutlinedInput-notchedOutline":
+                    {
+                      borderColor:
+                        "#1976d2",
+                      borderWidth: 2,
+                    },
+                }}
               >
-                {Array.from({ length: 5 }, (_, i) => {
-                  const start = 2025 + i;
-                  const end = start + 1;
-                  const value = `${start}-${end}`;
-                  return <MenuItem key={value} value={value}>{value}</MenuItem>;
-                })}
+                {Array.from(
+                  { length: 5 },
+                  (_, i) => {
+                    const start =
+                      2025 + i;
+
+                    const end =
+                      start + 1;
+
+                    const value = `${start}-${end}`;
+
+                    return (
+                      <MenuItem
+                        key={value}
+                        value={value}
+                      >
+                        {value}
+                      </MenuItem>
+                    );
+                  }
+                )}
               </Select>
             </FormControl>
 
-            {/* Lớp */}
-            <Stack direction="row" spacing={1} alignItems="center">
-              <FormControl size="small" sx={{ flex: 1 }} variant="outlined">
-                <InputLabel id="lop-label">Lớp</InputLabel>
-                <Select
-                  labelId="lop-label"
-                  value={selectedClass}
-                  label="Lớp"
-                  onChange={(e) => updateConfigField("lop", e.target.value, true)}
-                >
-                  {classes.map(cls => <MenuItem key={cls} value={cls}>{cls}</MenuItem>)}
-                </Select>
-              </FormControl>
-              <IconButton sx={{ color: "green" }} onClick={() => setAddingClass(true)}><Add /></IconButton>
-              <IconButton sx={{ color: "red" }} onClick={handleDeleteClass}><Delete /></IconButton>
-            </Stack>
+            {/* QUẢN LÝ LỚP */}
+            <Box
+              sx={{
+                p: 1.6,
+                borderRadius: "5px",
+                bgcolor: "#fff",
+                border:
+                  "1px solid #e2e8f0",
+              }}
+            >
+              <Typography
+                sx={{
+                  fontSize: 14,
+                  fontWeight: 700,
+                  mb: 1.5,
+                  color: "#1e293b",
+                }}
+              >
+                Quản lý lớp
+              </Typography>
 
-            {addingClass && (
-              <Stack direction="row" spacing={1}>
-                <Tooltip title="Nhập 1 lớp hoặc dãy lớp liên tiếp, ví dụ: 4.1->4.6, 5A->5H, 3A" arrow placement="top">
-                  <TextField
-                    size="small"
-                    label="Tên lớp"
-                    value={newClass}
-                    onChange={(e) => setNewClass(e.target.value)}
-                    fullWidth
-                  />
+              <Stack
+                direction="row"
+                spacing={1}
+                alignItems="center"
+              >
+                <FormControl
+                  size="small"
+                  fullWidth
+                >
+                  <InputLabel>
+                    Lớp
+                  </InputLabel>
+
+                  <Select
+                    value={selectedClass}
+                    label="Lớp"
+                    onChange={(e) =>
+                      updateConfigField(
+                        "lop",
+                        e.target.value,
+                        true
+                      )
+                    }
+                    sx={{
+                      bgcolor: "#fff",
+                      borderRadius:
+                        "5px",
+
+                      "& .MuiOutlinedInput-notchedOutline":
+                        {
+                          borderColor:
+                            "#dbe2ea",
+                        },
+
+                      "&.Mui-focused .MuiOutlinedInput-notchedOutline":
+                        {
+                          borderColor:
+                            "#1976d2",
+                          borderWidth: 2,
+                        },
+                    }}
+                  >
+                    {classes.map(
+                      (cls) => (
+                        <MenuItem
+                          key={cls}
+                          value={cls}
+                        >
+                          {cls}
+                        </MenuItem>
+                      )
+                    )}
+                  </Select>
+                </FormControl>
+
+                <Tooltip title="Thêm lớp">
+                  <IconButton
+                    onClick={() =>
+                      setAddingClass(true)
+                    }
+                    sx={{
+                      color: "#fff",
+                      bgcolor: "#22c55e",
+
+                      "&:hover": {
+                        bgcolor:
+                          "#16a34a",
+                      },
+                    }}
+                  >
+                    <Add />
+                  </IconButton>
                 </Tooltip>
 
-                <Button variant="contained" size="small" sx={{ bgcolor: "green" }} onClick={handleAddClass}>Lưu</Button>
-                <Button size="small" onClick={() => setAddingClass(false)}>Hủy</Button>
+                <Tooltip title="Xóa lớp">
+                  <IconButton
+                    onClick={
+                      handleDeleteClass
+                    }
+                    sx={{
+                      color: "#fff",
+                      bgcolor: "#ef4444",
+
+                      "&:hover": {
+                        bgcolor:
+                          "#dc2626",
+                      },
+                    }}
+                  >
+                    <Delete />
+                  </IconButton>
+                </Tooltip>
               </Stack>
-            )}
 
-            {/* Thời gian làm bài */}
-            {/*<Box display="flex" alignItems="center" gap={1}>
-              <Typography sx={{ minWidth: 140 }}>Thời gian làm bài (phút)</Typography>
-              <TextField
-                type="number"
-                size="small"
-                value={timeInput}
-                onChange={(e) => handleTimeLimitChange(e.target.value)}
-                inputProps={{ min: 1, style: { width: 60, textAlign: "center" } }}
-              />
-            </Box>*/}
-            
-            {/* ===== CHỌN HỆ THỐNG ===== */}
-            {/*<Box ml={2} mb={1}>
-              <FormLabel sx={{ fontWeight: "bold" }}>Chọn hệ thống</FormLabel>
-              <RadioGroup
-                row
-                value={config.heThong || "old"}
-                onChange={(e) =>
-                  updateConfigField("heThong", e.target.value, true)
-                }
-              >
-                <FormControlLabel
-                  value="old"
-                  control={<Radio />}
-                  label="Hệ thống cũ"
-                />
-                <FormControlLabel
-                  value="new"
-                  control={<Radio />}
-                  label="Hệ thống mới"
-                />
-              </RadioGroup>
+              {addingClass && (
+                <Stack
+                  direction={{
+                    xs: "column",
+                    sm: "row",
+                  }}
+                  spacing={1}
+                  mt={1.5}
+                >
+                  <Tooltip
+                    title="Ví dụ: 4.1->4.6, 5A->5H"
+                    arrow
+                  >
+                    <TextField
+                      size="small"
+                      label="Tên lớp"
+                      placeholder="VD: 3A->3K"
+                      value={newClass}
+                      onChange={(e) =>
+                        setNewClass(
+                          e.target.value
+                        )
+                      }
+                      fullWidth
+                    />
+                  </Tooltip>
 
-            </Box>*/}
+                  <Button
+                    variant="contained"
+                    onClick={
+                      handleAddClass
+                    }
+                    sx={{
+                      textTransform:
+                        "none",
+                      borderRadius:
+                        "12px",
+                      fontWeight: 700,
+                      boxShadow:
+                        "none",
+                    }}
+                  >
+                    Lưu
+                  </Button>
 
-            {/* Checkboxes */}
-            <Box ml={2} mt={1}>
-              {/* 🔒 KHÓA HỆ THỐNG */}
-              <Box display="flex" alignItems="center" gap={1}>
-                <Checkbox
-                  checked={config.locked}
-                  onChange={(e) =>
-                    updateConfigField("locked", e.target.checked, true)
-                  }
-                />
-                <Typography fontWeight="bold" color="error">
-                  Khóa hệ thống
-                </Typography>
-              </Box>
-              
-              {/*<Box display="flex" alignItems="center" gap={1}>
-                <Checkbox checked={config.choXemDiem} onChange={(e) => updateConfigField("choXemDiem", e.target.checked, true)} />
-                <Typography>Cho xem điểm</Typography>
-              </Box>*/}
-              
-              <Box display="flex" alignItems="center" gap={1}>
-                <Checkbox checked={config.choXemDapAn} onChange={(e) => updateConfigField("choXemDapAn", e.target.checked, true)} />
-                <Typography>Cho xem đáp án</Typography>
-              </Box>
+                  <Button
+                    onClick={() =>
+                      setAddingClass(
+                        false
+                      )
+                    }
+                    sx={{
+                      textTransform:
+                        "none",
+                    }}
+                  >
+                    Hủy
+                  </Button>
+                </Stack>
+              )}
             </Box>
 
-            {/* ===== Nút Sao lưu / Phục hồi ===== */}
-            <Stack direction="row" spacing={2} mt={2} justifyContent="center">
-              <Button variant="contained" color="primary" onClick={() => setOpenBackup(true)}>Sao lưu</Button>
-              <Button variant="outlined" color="secondary" onClick={() => setOpenRestore(true)}>Phục hồi</Button>
+            {/* TÙY CHỌN */}
+            <Box
+              sx={{
+                p: 1.6,
+                borderRadius: "5px",
+                bgcolor: "#fff",
+                border:
+                  "1px solid #e2e8f0",
+              }}
+            >
+              <Typography
+                sx={{
+                  fontSize: 14,
+                  fontWeight: 700,
+                  mb: 1,
+                  color: "#1e293b",
+                }}
+              >
+                Tùy chọn hệ thống
+              </Typography>
+
+              <Stack spacing={0.5}>
+                <Box
+                  display="flex"
+                  alignItems="center"
+                >
+                  <Checkbox
+                    checked={
+                      config.locked ||
+                      false
+                    }
+                    onChange={(e) =>
+                      updateConfigField(
+                        "locked",
+                        e.target.checked,
+                        true
+                      )
+                    }
+                    sx={{
+                      color:
+                        "#ef4444",
+
+                      "&.Mui-checked":
+                        {
+                          color:
+                            "#ef4444",
+                        },
+                    }}
+                  />
+
+                  <Typography
+                    fontWeight={700}
+                    color="#ef4444"
+                  >
+                    Khóa hệ thống
+                  </Typography>
+                </Box>
+
+                <Box
+                  display="flex"
+                  alignItems="center"
+                >
+                  <Checkbox
+                    checked={
+                      config.choXemDapAn
+                    }
+                    onChange={(e) =>
+                      updateConfigField(
+                        "choXemDapAn",
+                        e.target.checked,
+                        true
+                      )
+                    }
+                  />
+
+                  <Typography>
+                    Cho xem đáp án
+                  </Typography>
+                </Box>
+              </Stack>
+            </Box>
+
+            {/* ACTIONS */}
+            <Stack
+              direction="row"
+              spacing={1.5}
+            >
+              <Button
+                fullWidth
+                variant="contained"
+                onClick={() =>
+                  setOpenBackup(true)
+                }
+                sx={{
+                  textTransform:
+                    "none",
+                  borderRadius:
+                    "12px",
+                  py: 1,
+                  fontWeight: 700,
+                  boxShadow: "none",
+                }}
+              >
+                Sao lưu
+              </Button>
+
+              <Button
+                fullWidth
+                variant="outlined"
+                color="secondary"
+                onClick={() =>
+                  setOpenRestore(true)
+                }
+                sx={{
+                  textTransform:
+                    "none",
+                  borderRadius:
+                    "12px",
+                  py: 1,
+                  fontWeight: 700,
+                }}
+              >
+                Phục hồi
+              </Button>
             </Stack>
           </Stack>
-        </Card>
-      </Stack>
-
-      {/* ===== Snackbar ===== */}
-      <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar(s => ({ ...s, open: false }))} anchorOrigin={{ vertical: "bottom", horizontal: "right" }}>
-        <Alert severity={snackbar.severity} variant="filled">{snackbar.message}</Alert>
-      </Snackbar>
-
-      {/* ===== Dialog đổi mật khẩu ===== */}
-      <Dialog open={openChangePw} onClose={() => setOpenChangePw(false)} disableEscapeKeyDown maxWidth="xs" fullWidth>
-        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", bgcolor: "#1976d2", color: "#fff", px: 2, py: 1.2 }}>
-          <Typography variant="subtitle1" fontWeight="bold">ĐỔI MẬT KHẨU</Typography>
-          <IconButton onClick={() => setOpenChangePw(false)} sx={{ color: "#fff" }}><CloseIcon fontSize="small" /></IconButton>
         </Box>
-        <DialogContent>
-          <Stack spacing={2}>
-            <TextField label="Mật khẩu mới" type="password" fullWidth size="small" value={newPw} onChange={e => setNewPw(e.target.value)} />
-            <TextField label="Nhập lại mật khẩu" type="password" fullWidth size="small" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} />
-            {pwError && <Typography color="error" fontWeight={600}>{pwError}</Typography>}
-            <Stack direction="row" justifyContent="flex-end" spacing={1}>
-              <Button onClick={() => setOpenChangePw(false)}>Hủy</Button>
-              <Button variant="contained" onClick={handleChangePassword}>Lưu</Button>
-            </Stack>
-          </Stack>
-        </DialogContent>
-      </Dialog>
-
-      {/* ===== Backup Page Dialog ===== */}
-      <BackupPage open={openBackup} onClose={() => setOpenBackup(false)} />
-
-      {/* ===== Restore Page Dialog ===== */}
-      <RestorePage open={openRestore} onClose={() => setOpenRestore(false)} />
+      </Card>
     </Box>
-  );
+
+    {/* ===== Snackbar ===== */}
+    <Snackbar
+      open={snackbar.open}
+      autoHideDuration={4000}
+      onClose={() =>
+        setSnackbar((s) => ({
+          ...s,
+          open: false,
+        }))
+      }
+      anchorOrigin={{
+        vertical: "bottom",
+        horizontal: "right",
+      }}
+    >
+      <Alert
+        severity={snackbar.severity}
+        variant="filled"
+      >
+        {snackbar.message}
+      </Alert>
+    </Snackbar>
+
+    {/* ===== Dialog đổi mật khẩu ===== */}
+    <Dialog
+      open={openChangePw}
+      onClose={() =>
+        setOpenChangePw(false)
+      }
+      maxWidth="xs"
+      fullWidth
+      PaperProps={{
+        sx: {
+          borderRadius: "14px",
+        },
+      }}
+    >
+      <Box
+        sx={{
+          px: 3,
+          py: 1.5,
+          background: "#1976d2",
+          color: "#fff",
+        }}
+      >
+        <Stack
+          direction="row"
+          alignItems="center"
+          justifyContent="space-between"
+        >
+          <Typography
+            sx={{
+              fontSize: 16,
+              fontWeight: 700,
+            }}
+          >
+            Đổi mật khẩu
+          </Typography>
+
+          <IconButton
+            onClick={() =>
+              setOpenChangePw(false)
+            }
+            sx={{
+              color: "#fff",
+              bgcolor:
+                "rgba(255,255,255,0.12)",
+
+              "&:hover": {
+                bgcolor:
+                  "rgba(255,255,255,0.22)",
+              },
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </Stack>
+      </Box>
+
+      <DialogContent sx={{ pt: 3 }}>
+        <Stack spacing={2}>
+          <TextField
+            label="Mật khẩu mới"
+            type="password"
+            fullWidth
+            size="small"
+            value={newPw}
+            onChange={(e) =>
+              setNewPw(
+                e.target.value
+              )
+            }
+          />
+
+          <TextField
+            label="Nhập lại mật khẩu"
+            type="password"
+            fullWidth
+            size="small"
+            value={confirmPw}
+            onChange={(e) =>
+              setConfirmPw(
+                e.target.value
+              )
+            }
+          />
+
+          {pwError && (
+            <Typography
+              color="error"
+              fontWeight={600}
+            >
+              {pwError}
+            </Typography>
+          )}
+
+          <Stack
+            direction="row"
+            justifyContent="flex-end"
+            spacing={1}
+          >
+            <Button
+              onClick={() =>
+                setOpenChangePw(false)
+              }
+              sx={{
+                textTransform:
+                  "none",
+              }}
+            >
+              Hủy
+            </Button>
+
+            <Button
+              variant="contained"
+              onClick={
+                handleChangePassword
+              }
+              sx={{
+                textTransform:
+                  "none",
+                borderRadius:
+                  "12px",
+                fontWeight: 700,
+                boxShadow: "none",
+              }}
+            >
+              Lưu
+            </Button>
+          </Stack>
+        </Stack>
+      </DialogContent>
+    </Dialog>
+
+    {/* ===== Backup ===== */}
+    <BackupPage
+      open={openBackup}
+      onClose={() =>
+        setOpenBackup(false)
+      }
+    />
+
+    {/* ===== Restore ===== */}
+    <RestorePage
+      open={openRestore}
+      onClose={() =>
+        setOpenRestore(false)
+      }
+    />
+  </Box>
+);
 }
