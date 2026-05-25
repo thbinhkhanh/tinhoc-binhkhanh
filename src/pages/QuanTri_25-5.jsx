@@ -2,10 +2,10 @@ import React, { useState, useEffect, useContext } from "react";
 import {
   Box, Typography, Card, Stack, Select, MenuItem, FormControl, InputLabel,
   Button, TextField, IconButton, Checkbox, Snackbar, Alert, Dialog, DialogContent, Tooltip, 
-  //Radio,
-  //RadioGroup,
-  //FormControlLabel,
-  //FormLabel
+  Radio,
+  RadioGroup,
+  FormControlLabel,
+  FormLabel
 } from "@mui/material";
 import { Add, Delete } from "@mui/icons-material";
 import VpnKeyIcon from "@mui/icons-material/VpnKey";
@@ -20,18 +20,7 @@ import BackupPage from "./BackupPage";
 import RestorePage from "./RestorePage";
 
 export default function QuanTri() {
-  const accountValue =
-  localStorage.getItem("account") || "";
-
-  const ACCOUNTS = {
-    LVB: "Lâm Văn Bền",
-    Admin: "Admin",
-  };
-
-  const account =
-    ACCOUNTS[accountValue] ||
-    accountValue;
-
+  const account = localStorage.getItem("account") || "";
   const { config, setConfig } = useContext(ConfigContext);
 
   const [openChangePw, setOpenChangePw] = useState(false);
@@ -240,8 +229,6 @@ export default function QuanTri() {
         maxWidth: 450,
       }}
     >
-      {!openBackup &&
-      !openRestore && (
       <Card
         elevation={0}
         sx={{
@@ -705,22 +692,6 @@ export default function QuanTri() {
           </Stack>
         </Box>
       </Card>
-        )}
-      {openBackup && (
-        <BackupPage
-          onClose={() =>
-            setOpenBackup(false)
-          }
-        />
-      )}
-
-      {openRestore && (
-        <RestorePage
-          onClose={() =>
-            setOpenRestore(false)
-          }
-        />
-      )}
     </Box>
 
     {/* ===== Snackbar ===== */}
@@ -875,7 +846,23 @@ export default function QuanTri() {
           </Stack>
         </Stack>
       </DialogContent>
-    </Dialog>    
+    </Dialog>
+
+    {/* ===== Backup ===== */}
+    <BackupPage
+      open={openBackup}
+      onClose={() =>
+        setOpenBackup(false)
+      }
+    />
+
+    {/* ===== Restore ===== */}
+    <RestorePage
+      open={openRestore}
+      onClose={() =>
+        setOpenRestore(false)
+      }
+    />
   </Box>
 );
 }

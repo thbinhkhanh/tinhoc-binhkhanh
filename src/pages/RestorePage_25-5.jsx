@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
-  //Dialog,
-  //DialogTitle,
-  //DialogContent,
-  //DialogActions,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
   IconButton,
   Button,
   Stack,
@@ -15,12 +15,11 @@ import {
   Alert,
   Divider,
   Box,
-  Card
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import RestoreIcon from "@mui/icons-material/Restore";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
-import { doc } from "firebase/firestore";
+import { doc, setDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import { writeBatch, collection, getDocs } from "firebase/firestore";
 
@@ -309,15 +308,43 @@ export default function RestorePage({ open, onClose }) {
 
   return (
   <>
-    <Card
-      elevation={0}
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth={false}
+      fullWidth
+      PaperProps={{
+        sx: {
+          width: "100%",
+          maxWidth: "450px",
+
+          borderRadius: "14px",
+          overflow: "hidden",
+
+          background: "#f8fafc",
+          border: "1px solid #e2e8f0",
+
+          boxShadow:
+            "0 10px 35px rgba(0,0,0,0.12)",
+
+          m: 0,
+        },
+      }}
       sx={{
-        borderRadius: "14px",
-        overflow: "hidden",
-        background: "#f8fafc",
-        border: "1px solid #e2e8f0",
-        boxShadow:
-          "0 10px 35px rgba(0,0,0,0.12)",
+        "& .MuiDialog-container": {
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "flex-start",
+
+          pt: "80px",
+          px: "16px",
+        },
+
+        "& .MuiBackdrop-root": {
+          background:
+            "rgba(15,23,42,0.45)",
+          backdropFilter: "blur(2px)",
+        },
       }}
     >
       {/* ===== HEADER ===== */}
@@ -334,14 +361,16 @@ export default function RestorePage({ open, onClose }) {
           alignItems="center"
           justifyContent="space-between"
         >
-          <Typography
-            sx={{
-              fontSize: 17,
-              fontWeight: 700,
-            }}
-          >
-            Phục hồi dữ liệu
-          </Typography>
+          <Box>
+            <Typography
+              sx={{
+                fontSize: 17,
+                fontWeight: 700,
+              }}
+            >
+              Phục hồi dữ liệu
+            </Typography>
+          </Box>
 
           <IconButton
             onClick={onClose}
@@ -362,10 +391,11 @@ export default function RestorePage({ open, onClose }) {
       </Box>
 
       {/* ===== CONTENT ===== */}
-      <Box
+      <DialogContent
         sx={{
           px: 3,
           py: 2.5,
+          bgcolor: "#f8fafc",
         }}
       >
         <Stack spacing={2}>
@@ -603,56 +633,57 @@ export default function RestorePage({ open, onClose }) {
               </Typography>
             </Box>
           )}
+        </Stack>
+      </DialogContent>
 
-          {/* ===== ACTIONS ===== */}
-          <Stack
-            direction="row"
-            spacing={1.5}
+      {/* ===== ACTIONS ===== */}
+      <Box
+        sx={{
+          px: 3,
+          py: 2,
+          borderTop:
+            "1px solid #e2e8f0",
+          bgcolor: "#fff",
+        }}
+      >
+        <Stack
+          direction="row"
+          spacing={1.5}
+          justifyContent="flex-end"
+        >
+          <Button
+            onClick={onClose}
+            sx={{
+              textTransform:
+                "none",
+            }}
           >
-            <Button
-              fullWidth
-              variant="outlined"
-              onClick={onClose}
-              sx={{
-                textTransform:
-                  "none",
-                borderRadius:
-                  "12px",
-                py: 1,
-                fontWeight: 700,
-              }}
-            >
-              Quay lại
-            </Button>
+            Hủy
+          </Button>
 
-            <Button
-              fullWidth
-              variant="contained"
-              startIcon={
-                <RestoreIcon />
-              }
-              onClick={handleRestore}
-              disabled={loading}
-              sx={{
-                textTransform:
-                  "none",
-                borderRadius:
-                  "12px",
-                py: 1,
-                fontWeight: 700,
+          <Button
+            variant="contained"
+            startIcon={<RestoreIcon />}
+            onClick={handleRestore}
+            disabled={loading}
+            sx={{
+              textTransform:
+                "none",
+              borderRadius:
+                "12px",
+              fontWeight: 700,
+              boxShadow: "none",
+
+              "&:hover": {
                 boxShadow: "none",
-
-                "&:hover": {
-                  boxShadow: "none",
-                },
-              }}
-            >
-              Phục hồi
-            </Button>
-          </Stack>
+              },
+            }}
+          >
+            Phục hồi
+          </Button>
         </Stack>
       </Box>
-    </Card>
+    </Dialog>
 
     {/* ===== Snackbar ===== */}
     <Snackbar

@@ -132,13 +132,13 @@ useEffect(() => {
     };
 
     // 🔥 LOG để kiểm tra trước khi lưu context
-    //console.log("🔥 INFO LOGIN:", newUserInfo);
+    console.log("🔥 INFO LOGIN:", newUserInfo);
 
     // ✅ Lưu vào Context (KHÔNG cần localStorage nữa nếu bạn muốn sạch)
     await setConfig(newUserInfo, false);
 
     // 🔥 LOG SAU KHI SET
-    //console.log("✅ CONTEXT UPDATED (expected):", newUserInfo);
+    console.log("✅ CONTEXT UPDATED (expected):", newUserInfo);
 
     // điều hướng
     if (location.state?.target) {
@@ -146,7 +146,7 @@ useEffect(() => {
         state: { fromInfo: true },
       });
     } else {
-      //console.log("🚀 NAVIGATE /trac-nghiem?lop =", lop);
+      console.log("🚀 NAVIGATE /trac-nghiem?lop =", lop);
 
       navigate(`/trac-nghiem?lop=${lop}`, {
         state: { fromInfo: true },
@@ -157,89 +157,26 @@ useEffect(() => {
 
 
   return (
-  <Box
-    sx={{
-      minHeight: "100vh",
-      background: "#f1f5f9",
-      pt: 10, // 👈 giống mẫu (top 10)
-      px: 2,
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "flex-start",
-      fontFamily:
-        '"Roboto","Inter","Arial",sans-serif',
-    }}
-  >
-    <Box sx={{ width: "100%", maxWidth: 420 }}>
-      <Card
-        elevation={0}
-        sx={{
-          borderRadius: "14px",
-          overflow: "hidden",
-          background: "#f8fafc",
-          border: "1px solid #e2e8f0",
-          boxShadow: "0 10px 35px rgba(0,0,0,0.12)",
-        }}
-      >
-        {/* ===== HEADER ===== */}
-        <Box
-          sx={{
-            px: 3,
-            py: 1.5,
-            background: "#1976d2",
-            color: "#fff",
-          }}
-        >
-          <Typography sx={{ fontSize: 17, fontWeight: 700 }}>
-            THÔNG TIN HỌC SINH
-          </Typography>
-        </Box>
+    <Box
+      sx={{
+        minHeight: "100vh",
+        pt: 12,
+        px: 3,
+        backgroundColor: "#e3f2fd",
+        display: "flex",
+        justifyContent: "center"
+      }}
+    >
+      <Box sx={{ width: { xs: "95%", sm: 400 }, mx: "auto" }}>
+        <Card elevation={10} sx={{ p: 3, borderRadius: 4, pt: 4 }}>
+          <Stack spacing={3} alignItems="center">
+            <SchoolIcon sx={{ fontSize: 60, color: "#1976d2" }} />
 
-        {/* ===== CONTENT ===== */}
-        <Box sx={{ px: 3, py: 3 }}>
-          <Stack spacing={2.5} alignItems="center">
-            
-            {/* ICON */}
-            <Box
-              sx={{
-                width: 82,
-                height: 82,
-                borderRadius: "50%",
-                bgcolor: "#e3f2fd",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                border: "4px solid #fff",
-                boxShadow: "0 4px 15px rgba(25,118,210,0.15)",
-              }}
-            >
-              <SchoolIcon sx={{ fontSize: 42, color: "#1976d2" }} />
-            </Box>
+            <Typography variant="h5" fontWeight="bold" color="primary">
+              THÔNG TIN HỌC SINH
+            </Typography>
 
-            {/* TITLE */}
-            <Box textAlign="center">
-              <Typography
-                sx={{
-                  fontSize: 24,
-                  fontWeight: 700,
-                  color: "#1e293b",
-                }}
-              >
-                Chào em 👋
-              </Typography>
-
-              <Typography
-                sx={{
-                  fontSize: 14,
-                  color: "#64748b",
-                  mt: 0.5,
-                }}
-              >
-                Vui lòng nhập thông tin để tiếp tục
-              </Typography>
-            </Box>
-
-            {/* KHỐI */}
+            {/* Khối */}
             <FormControl fullWidth size="small">
               <InputLabel>Khối</InputLabel>
               <Select
@@ -249,32 +186,22 @@ useEffect(() => {
                   if (!disableKhoi) setKhoi(e.target.value);
                 }}
                 disabled={disableKhoi}
-                sx={{
-                  bgcolor: "#fff",
-                  borderRadius: "5px",
-                }}
               >
-                {["Khối 1", "Khối 2", "Khối 3", "Khối 4", "Khối 5"].map((k) => (
-                  <MenuItem key={k} value={k}>
-                    {k}
-                  </MenuItem>
+                {["Khối 1", "Khối 2", "Khối 3", "Khối 4", "Khối 5"].map(k => (
+                  <MenuItem key={k} value={k}>{k}</MenuItem>
                 ))}
               </Select>
             </FormControl>
 
-            {/* LỚP */}
+            {/* Lớp */}
             <FormControl fullWidth size="small">
               <InputLabel>Lớp</InputLabel>
               <Select
                 value={lop}
                 label="Lớp"
                 onChange={(e) => setLop(e.target.value)}
-                sx={{
-                  bgcolor: "#fff",
-                  borderRadius: "5px",
-                }}
               >
-                {filteredClasses.map((cl) => (
+                {filteredClasses.map(cl => (
                   <MenuItem key={cl} value={cl}>
                     {cl}
                   </MenuItem>
@@ -282,7 +209,7 @@ useEffect(() => {
               </Select>
             </FormControl>
 
-            {/* HỌ TÊN */}
+            {/* Họ và tên */}
             <TextField
               label="Họ và tên"
               value={fullname}
@@ -290,47 +217,25 @@ useEffect(() => {
               fullWidth
               size="small"
               onKeyDown={(e) => e.key === "Enter" && handleStart()}
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  bgcolor: "#fff",
-                  borderRadius: "5px",
-                },
-              }}
             />
 
-            {/* BUTTON */}
             <Button
               variant="contained"
               fullWidth
+              sx={{ textTransform: "none", fontSize: "1rem" }}
               onClick={handleStart}
-              sx={{
-                textTransform: "none",
-                borderRadius: "12px",
-                py: 1.2,
-                fontWeight: 700,
-                fontSize: 15,
-                boxShadow: "none",
-              }}
             >
               BẮT ĐẦU LÀM BÀI
             </Button>
 
-            {/* ERROR */}
             {errorMsg && (
-              <Typography
-                sx={{
-                  fontSize: 13,
-                  color: "#ef4444",
-                  fontWeight: 600,
-                }}
-              >
+              <Typography color="error" variant="body2">
                 {errorMsg}
               </Typography>
             )}
           </Stack>
-        </Box>
-      </Card>
+        </Card>
+      </Box>
     </Box>
-  </Box>
-);
+  );
 }

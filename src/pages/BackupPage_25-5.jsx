@@ -3,21 +3,20 @@ import {
   Box,
   Button,
   Checkbox,
-  //Dialog,
-  //DialogActions,
-  //DialogContent,
-  //DialogTitle,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   FormControlLabel,
   LinearProgress,
   Stack,
   Typography,
   Snackbar,
   Alert,
-  //Divider,
-  Card
+  Divider,
 } from "@mui/material";
 import BackupIcon from "@mui/icons-material/Backup";
-import { collection, getDocs, doc } from "firebase/firestore";
+import { collection, getDocs, getDoc, doc } from "firebase/firestore";
 import { db } from "../firebase";
 import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
@@ -271,15 +270,35 @@ export default function BackupPage({ open, onClose }) {
   /* ================= UI GIỮ NGUYÊN ================= */
   return (
   <>
-    <Card
-      elevation={0}
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth={false}
+      PaperProps={{
+        sx: {
+          width: "100%",
+          maxWidth: 450,
+          borderRadius: "14px",
+          overflow: "hidden",
+          background: "#f8fafc",
+          border: "1px solid #e2e8f0",
+          boxShadow:
+            "0 10px 35px rgba(0,0,0,0.12)",
+          m: 0,
+        },
+      }}
       sx={{
-        borderRadius: "14px",
-        overflow: "hidden",
-        background: "#f8fafc",
-        border: "1px solid #e2e8f0",
-        boxShadow:
-          "0 10px 35px rgba(0,0,0,0.12)",
+        "& .MuiDialog-container": {
+          justifyContent: "center",
+          alignItems: "flex-start",
+          pt: 10, // giống py:10 của mẫu
+          px: 2,  // giống px:2 của mẫu
+        },
+
+        "& .MuiBackdrop-root": {
+          background: "rgba(15,23,42,0.45)",
+          backdropFilter: "blur(2px)",
+        },
       }}
     >
       {/* ===== HEADER ===== */}
@@ -296,14 +315,16 @@ export default function BackupPage({ open, onClose }) {
           alignItems="center"
           justifyContent="space-between"
         >
-          <Typography
-            sx={{
-              fontSize: 17,
-              fontWeight: 700,
-            }}
-          >
-            Sao lưu dữ liệu
-          </Typography>
+          <Box>
+            <Typography
+              sx={{
+                fontSize: 17,
+                fontWeight: 700,
+              }}
+            >
+              Sao lưu dữ liệu
+            </Typography>
+          </Box>
 
           <IconButton
             onClick={onClose}
@@ -324,10 +345,11 @@ export default function BackupPage({ open, onClose }) {
       </Box>
 
       {/* ===== CONTENT ===== */}
-      <Box
+      <DialogContent
         sx={{
           px: 3,
           py: 2.5,
+          bgcolor: "#f8fafc",
         }}
       >
         <Stack spacing={2}>
@@ -487,54 +509,57 @@ export default function BackupPage({ open, onClose }) {
               </Typography>
             </Box>
           )}
+        </Stack>
+      </DialogContent>
 
-          {/* ACTIONS */}
-          <Stack
-            direction="row"
-            spacing={1.5}
+      {/* ===== ACTIONS ===== */}
+      <Box
+        sx={{
+          px: 3,
+          py: 2,
+          borderTop:
+            "1px solid #e2e8f0",
+          bgcolor: "#fff",
+        }}
+      >
+        <Stack
+          direction="row"
+          spacing={1.5}
+          justifyContent="flex-end"
+        >
+          <Button
+            onClick={onClose}
+            sx={{
+              textTransform:
+                "none",
+            }}
           >
-            <Button
-              fullWidth
-              variant="outlined"
-              onClick={onClose}
-              sx={{
-                textTransform:
-                  "none",
-                borderRadius:
-                  "12px",
-                py: 1,
-                fontWeight: 700,
-              }}
-            >
-              Quay lại
-            </Button>
+            Hủy
+          </Button>
 
-            <Button
-              fullWidth
-              variant="contained"
-              startIcon={<BackupIcon />}
-              onClick={handleBackup}
-              disabled={loading}
-              sx={{
-                textTransform:
-                  "none",
-                borderRadius:
-                  "12px",
-                py: 1,
-                fontWeight: 700,
+          <Button
+            variant="contained"
+            startIcon={<BackupIcon />}
+            onClick={handleBackup}
+            disabled={loading}
+            sx={{
+              textTransform:
+                "none",
+              borderRadius:
+                "12px",
+              fontWeight: 700,
+              boxShadow: "none",
+
+              "&:hover": {
                 boxShadow: "none",
-
-                "&:hover": {
-                  boxShadow: "none",
-                },
-              }}
-            >
-              Sao lưu
-            </Button>
-          </Stack>
+              },
+            }}
+          >
+            Sao lưu
+          </Button>
         </Stack>
       </Box>
-    </Card>
+    </Dialog>
 
     {/* ===== Snackbar ===== */}
     <Snackbar
