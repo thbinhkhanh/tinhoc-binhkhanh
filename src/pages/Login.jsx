@@ -20,7 +20,7 @@ import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "../firebase";
 
 const ACCOUNTS = [
-  { value: "LVB", label: "Lâm Văn Bền" },
+  { value: "LVB", label: "TH Bình Khánh" },
   { value: "Admin", label: "Admin" },
 ];
 
