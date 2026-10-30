@@ -24,7 +24,7 @@ export default function QuanTri() {
   localStorage.getItem("account") || "";
 
   const ACCOUNTS = {
-    LVB: "Lâm Văn Bền",
+    LVB: "TH Bình Khánh",
     Admin: "Admin",
   };
 
@@ -45,7 +45,7 @@ export default function QuanTri() {
   const [addingClass, setAddingClass] = useState(false);
   const [newClass, setNewClass] = useState("");
   const [timeInput, setTimeInput] = useState(config.timeLimit || 10);
-  const [selectedYear, setSelectedYear] = useState(config.namHoc || "2025-2026");
+  const [selectedYear, setSelectedYear] = useState(config.namHoc || "2026-2027");
 
   // ===== State mở Backup/Restore Dialog =====
   const [openBackup, setOpenBackup] = useState(false);

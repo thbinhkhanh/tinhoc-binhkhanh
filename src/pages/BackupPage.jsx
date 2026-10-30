@@ -50,7 +50,7 @@ const TENBAI_MAP = {
 };
 
 // ================== FIX LOGIC THEO NAM HỌC ==================
-const isOldYear = (namHoc) => namHoc === "2025-2026";
+const isOldYear = (namHoc) => namHoc === "2026-2027";
 
 // nếu là 2025-2026 => CŨ
 // ngược lại => MỚI

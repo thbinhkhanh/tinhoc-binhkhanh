@@ -55,7 +55,7 @@ const ImportFromFirestoreDialog = ({ open, onClose, onImport }) => {
     const num = lop.match(/\d+/)?.[0];
     if (!num || !selectedYear) return null;
 
-    const isOldYear = selectedYear === "2025-2026";
+    const isOldYear = selectedYear === "2026-2027";
 
     return isOldYear
       ? `TRACNGHIEM${num}`

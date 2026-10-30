@@ -17,7 +17,7 @@ export const ConfigProvider = ({ children }) => {
     studentId: "",
     hocKi: 1,
     login: false,
-    namHoc: "2025-2026",
+    namHoc: "2026-2027",
     hideMenu: false,
   };
 

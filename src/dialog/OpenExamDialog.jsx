@@ -181,7 +181,7 @@ const OpenExamDialog = ({ open, onClose, onSelectExam }) => {
         selectedClass.replace("Lớp ", "");
 
       const isOldYear =
-        namHoc === "2025-2026";
+        namHoc === "2026-2027";
 
       const tenBaiCollection = isOldYear
         ? `TENBAI_Lop${lopNumber}`
