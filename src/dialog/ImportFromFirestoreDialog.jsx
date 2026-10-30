@@ -37,7 +37,7 @@ const ImportFromFirestoreDialog = ({ open, onClose, onImport }) => {
           const currentYear = snap.data().namHoc;
 
           // 👉 danh sách năm (có thể mở rộng sau)
-          const years = ["2025-2026", "2026-2027"];
+          const years = ["2026-2027"];
 
           setYearOptions(years);
           setSelectedYear(currentYear || years[0]);
