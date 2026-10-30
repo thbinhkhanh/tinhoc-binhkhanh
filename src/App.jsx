@@ -91,7 +91,7 @@ function Navigation() {
   const location = useLocation();
   const navigate = useNavigate();
   const { config } = useContext(ConfigContext);
-  const selectedYear = config.namHoc || "2025-2026";
+  const selectedYear = config.namHoc || "2026-2027";
 
   const [loginState, setLoginState] = useState(false);
   const [lockedDialogOpen, setLockedDialogOpen] = useState(false); // 🔒 Dialog trạng thái khóa
